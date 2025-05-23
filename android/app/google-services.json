@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "438346985754",
+    "project_id": "mentalsustainability-974e3",
+    "storage_bucket": "mentalsustainability-974e3.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:438346985754:android:17b242f7b9f67d38747ca3",
+        "android_client_info": {
+          "package_name": "com.example.mentalsustainability"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "438346985754-pd1gjjf4c95qsgqir3kv673c1lf0isu9.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyALlBZ_6ZbxtpTEjawrm-D1skdMU01ruik"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "438346985754-pd1gjjf4c95qsgqir3kv673c1lf0isu9.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "438346985754-g2r932fa5cn0hgam6jt5rhfthgf5db70.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.mentalsustainability"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
