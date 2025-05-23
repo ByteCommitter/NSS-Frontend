@@ -6,7 +6,7 @@ import 'package:mentalsustainability/theme/theme_provider.dart';
 import '../services/auth_service.dart';
 import 'Profile/profile_page.dart';
 import 'Community/community_page.dart';
-import 'Quests/quest_page.dart';
+import 'Events/event_page.dart';
 import 'package:mentalsustainability/pages/guide_page.dart';
 
 class BaseScreen extends StatefulWidget{
