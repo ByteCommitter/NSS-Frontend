@@ -10,16 +10,33 @@ import 'pages/auth_wrapper.dart';
 import 'services/onboarding_screen.dart';
 import 'services/auth_service.dart';
 import 'services/api_service.dart';
+import 'package:mentalsustainability/services/socket_notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
+  // Initialize services
+  await initServices();
+  
+  runApp(const MyApp());
+}
+
+// Initialize all services
+Future<void> initServices() async {
+  print('Starting services initialization...');
+  
+  // Initialize other services first
   // Initialize providers
   Get.put(ThemeProvider());
   Get.put(AuthService());
   Get.put(ApiService());
   
-  runApp(const MyApp());
+  // Initialize SocketNotificationService - but don't connect immediately
+  print('Initializing SocketNotificationService...');
+  await Get.putAsync(() => SocketNotificationService().init());
+  print('SocketNotificationService initialized');
+  
+  print('All services initialized');
 }
 
 class MyApp extends StatelessWidget {

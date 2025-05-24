@@ -1,8 +1,8 @@
-import 'dart:math' as Math;
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:mentalsustainability/services/api_service.dart';
 import 'package:mentalsustainability/services/auth_service.dart';
+import 'package:mentalsustainability/services/socket_notification_service.dart';
 import 'package:mentalsustainability/theme/app_colors.dart';
 import 'dart:async';
 
@@ -20,23 +20,23 @@ class _HomePageState extends State<HomePage> {
   Map<String, bool> _eventRegistrationStatus = {};
   bool _isLoadingRegistered = false;
   
-  // Notification data is kept as is for now
-  final List<Notification> _notifications = [
-    Notification(
+  // Update data is kept as is for now
+  final List<Update> _updates = [
+    Update(
       id: 'n1',
       title: 'New Event Registration Open',
       message: 'Tree Plantation Drive registration is now open. Register before June 3rd.',
       time: '2 hours ago',
       isRead: false,
     ),
-    Notification(
+    Update(
       id: 'n2',
       title: 'Reminder: NSS Meetup',
       message: 'Don\'t forget to attend the NSS Annual Meetup on June 12th.',
       time: '1 day ago',
       isRead: true,
     ),
-    Notification(
+    Update(
       id: 'n3',
       title: 'Certificate Available',
       message: 'Your participation certificate for Blood Donation Camp is available for download.',
@@ -129,17 +129,99 @@ class _HomePageState extends State<HomePage> {
   bool _hasLoadingError = false;
   String _errorMessage = '';
 
+  // Add these properties for socket notifications
+  late final SocketNotificationService _socketNotificationService;
+  bool _socketConnected = false;
+  final List<SocketNotification> _socketNotifications = [];
+  StreamSubscription? _notificationSubscription;
+  
   @override
   void initState() {
     super.initState();
     _apiService = Get.find<ApiService>();
     _authService = Get.find<AuthService>();
     
+    // Initialize socket notification service
+    try {
+      _socketNotificationService = Get.find<SocketNotificationService>();
+      _connectAndListenToSocket();
+    } catch (e) {
+      print('Error initializing socket notification service: $e');
+    }
+    
     // Delay fetch to ensure all services are fully initialized
     Timer(const Duration(milliseconds: 500), () {
       _fetchEvents();
       _fetchRegisteredEventsWithTimeout();
     });
+  }
+  
+  void _connectAndListenToSocket() {
+    // Register this widget with the socket service
+    _socketNotificationService.registerUser();
+    
+    // Listen for connection status changes
+    _socketNotificationService.isConnected.listen((connected) {
+      if (mounted) {
+        setState(() {
+          _socketConnected = connected;
+          print('Socket connection status: ${connected ? "Connected" : "Disconnected"}');
+        });
+      }
+    });
+    
+    // Listen for incoming notifications - CHANGE EVENT NAME FROM 'notification' TO 'pushNotification'
+    _notificationSubscription = _socketNotificationService.notificationStream.listen(
+      (data) {
+        print('Received notification data: $data');
+        if (mounted) {
+          setState(() {
+            // Add to the beginning of our list
+            _socketNotifications.insert(0, SocketNotification.fromMap(data));
+            
+            // Limit the list to 10 items to avoid memory issues
+            if (_socketNotifications.length > 10) {
+              _socketNotifications.removeLast();
+            }
+          });
+          
+          // Show a snackbar for immediate feedback
+          _showNotificationSnackbar(_socketNotifications.first);
+        }
+      },
+      onError: (error) {
+        print('Error in socket notification stream: $error');
+      }
+    );
+  }
+  
+  void _showNotificationSnackbar(SocketNotification notification) {
+    Get.snackbar(
+      '🔔 ${notification.title}',
+      notification.message,
+      snackPosition: SnackPosition.TOP,
+      backgroundColor: AppColors.primary,
+      colorText: Colors.white,
+      duration: const Duration(seconds: 4),
+      margin: const EdgeInsets.all(8),
+      borderRadius: 8,
+      dismissDirection: DismissDirection.horizontal,
+    );
+  }
+  
+  @override
+  void dispose() {
+    // Clean up socket subscription
+    _notificationSubscription?.cancel();
+    
+    // Unregister from socket service
+    try {
+      _socketNotificationService.unregisterUser();
+    } catch (e) {
+      print('Error unregistering from socket service: $e');
+    }
+    
+    super.dispose();
   }
 
   Future<void> _fetchEvents() async {
@@ -628,14 +710,38 @@ class _HomePageState extends State<HomePage> {
                             ],
                           ),
                         ),
+                        // Add socket indicator
+                        if (_socketNotifications.isNotEmpty || _socketConnected)
+                          Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: _socketConnected 
+                                  ? AppColors.success.withOpacity(0.1)
+                                  : AppColors.warning.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Icon(
+                              _socketConnected ? Icons.wifi : Icons.wifi_off,
+                              size: 16,
+                              color: _socketConnected ? AppColors.success : AppColors.warning,
+                            ),
+                          ),
                       ],
                     ),
                     const SizedBox(height: 24),
                     
-                    // Notifications section
-                    _buildSectionHeader('Recent Updates', Icons.notifications_active),
+                    // Socket Notifications (only show if we have any)
+                    if (_socketNotifications.isNotEmpty) ...[
+                      _buildSectionHeader('Live Notifications', Icons.notifications_active),
+                      const SizedBox(height: 16),
+                      _buildSocketNotificationsCard(_socketNotifications),
+                      const SizedBox(height: 28),
+                    ],
+                    
+                    // Updates section (original)
+                    _buildSectionHeader('Recent Updates', Icons.announcement),
                     const SizedBox(height: 16),
-                    _buildNotificationsCard(_notifications),
+                    _buildUpdatesCard(_updates),
                     const SizedBox(height: 28),
                     
                     // Current Events section
@@ -759,29 +865,36 @@ class _HomePageState extends State<HomePage> {
                       ],
                     ),
                     
-                    // Dashboard Section
-                    _buildSectionHeader('Your Dashboard', Icons.dashboard_rounded),
-                    const SizedBox(height: 16),
-                    
-                    // Monthly Points Card
-                    _buildMonthlyPointsCard(_currentMonthPoints),
-                    const SizedBox(height: 20),
-                    
-                    // Leaderboard Card - Top 3 Users
-                    _buildLeaderboardCard(_topUsers),
-                    const SizedBox(height: 20),
-                    
-                    // Recent Event Participation
-                    _buildRecentParticipationCard(_recentParticipations),
-                    const SizedBox(height: 20),
-                    
-                    // Badges Earned
-                    _buildEnhancedBadgesCard(_badges),
-                    const SizedBox(height: 32),
+                   
                   ],
                 ),
               ),
             ),
+      ),
+      // Add a floating action button to test socket connection
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          if (_socketConnected) {
+            _socketNotificationService.sendTestNotification();
+            Get.snackbar(
+              'Test',
+              'Sent test notification request',
+              snackPosition: SnackPosition.BOTTOM,
+            );
+          } else {
+            _socketNotificationService.reconnect();
+            Get.snackbar(
+              'Socket',
+              'Attempting to reconnect to notification server',
+              snackPosition: SnackPosition.BOTTOM,
+            );
+          }
+        },
+        backgroundColor: _socketConnected ? AppColors.success : AppColors.warning,
+        child: Icon(
+          _socketConnected ? Icons.send : Icons.refresh,
+          color: Colors.white,
+        ),
       ),
     );
   }
@@ -821,8 +934,8 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // Notifications card
-  Widget _buildNotificationsCard(List<Notification> notifications) {
+  // Updates card
+  Widget _buildUpdatesCard(List<Update> updates) {
     return Card(
       elevation: 3,
       shadowColor: AppColors.primary.withOpacity(0.3),
@@ -849,24 +962,24 @@ class _HomePageState extends State<HomePage> {
                 //Text button to view all
                 // TextButton(
                 //   onPressed: () {
-                //     // TODO: Navigate to all notifications page
+                //     // TODO: Navigate to all updates page
                 //   },
                 //   child: const Text('View All'),
                 // ),
               ],
             ),
             const SizedBox(height: 10),
-            ...notifications.take(3).map((notification) {
+            ...updates.take(3).map((update) {
               return Container(
                 margin: const EdgeInsets.only(bottom: 12),
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: notification.isRead 
+                  color: update.isRead 
                     ? AppColors.background 
                     : AppColors.primary.withOpacity(0.05),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: notification.isRead 
+                    color: update.isRead 
                       ? AppColors.divider 
                       : AppColors.primary.withOpacity(0.3),
                     width: 1,
@@ -878,14 +991,14 @@ class _HomePageState extends State<HomePage> {
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: notification.isRead 
+                        color: update.isRead 
                           ? AppColors.textSecondary.withOpacity(0.1)
                           : AppColors.primary.withOpacity(0.1),
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
                         Icons.notifications,
-                        color: notification.isRead 
+                        color: update.isRead 
                           ? AppColors.textSecondary
                           : AppColors.primary,
                         size: 16,
@@ -901,15 +1014,149 @@ class _HomePageState extends State<HomePage> {
                             children: [
                               Expanded(
                                 child: Text(
-                                  notification.title,
+                                  update.title,
                                   style: TextStyle(
-                                    fontWeight: notification.isRead ? FontWeight.normal : FontWeight.bold,
+                                    fontWeight: update.isRead ? FontWeight.normal : FontWeight.bold,
                                     fontSize: 14,
                                   ),
                                 ),
                               ),
                               Text(
-                                notification.time,
+                                update.time,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            update.message,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Add a new widget to display socket notifications
+  Widget _buildSocketNotificationsCard(List<SocketNotification> notifications) {
+    return Card(
+      elevation: 3,
+      shadowColor: AppColors.primary.withOpacity(0.3),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                // Socket connection status indicator
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: _socketConnected 
+                        ? AppColors.success.withOpacity(0.1) 
+                        : AppColors.warning.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        _socketConnected ? Icons.circle : Icons.circle_outlined,
+                        size: 10,
+                        color: _socketConnected ? AppColors.success : AppColors.warning,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        _socketConnected ? 'Connected' : 'Connecting...',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: _socketConnected ? AppColors.success : AppColors.warning,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                
+                if (notifications.length > 3)
+                  TextButton(
+                    onPressed: () {
+                      // Clear all notifications
+                      setState(() {
+                        _socketNotifications.clear();
+                      });
+                    },
+                    child: const Text('Clear All'),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            
+            ...notifications.take(3).map((notification) {
+              return Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: AppColors.primary.withOpacity(0.3),
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withOpacity(0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.notifications_active,
+                        color: AppColors.primary,
+                        size: 16,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  notification.title,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ),
+                              Text(
+                                'Just now',
                                 style: TextStyle(
                                   fontSize: 11,
                                   color: AppColors.textSecondary,
@@ -938,7 +1185,60 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // Enhanced event card with fixed overflow
+  // Helper method to get event images based on title
+  DecorationImage? _getEventImage(String title) {
+    String imagePath;
+    
+    if (title.contains('Tree')) {
+      imagePath = 'assets/images/tree_plantation.jpg';
+    } else if (title.contains('NSS')) {
+      imagePath = 'assets/images/nss_meetup.jpg';
+    } else if (title.contains('Campus')) {
+      imagePath = 'assets/images/campus_cleanup.jpg';
+    } else {
+      // Default image
+      imagePath = 'assets/images/wooden_shelf.png';
+    }
+    
+    return DecorationImage(
+      image: AssetImage(imagePath),
+      fit: BoxFit.cover,
+      colorFilter: ColorFilter.mode(
+        Colors.black.withOpacity(0.15),
+        BlendMode.darken,
+      ),
+    );
+  }
+
+  // Helper method to format event time
+  String _formatEventTime(String fromTime, String toTime) {
+    // Convert API time format to more readable format
+    String formatTimeString(String time) {
+      if (time.isEmpty) return '';
+      
+      // If it's already in readable format, return as is
+      if (!time.contains(':')) return time;
+      
+      try {
+        final parts = time.split(':');
+        if (parts.length >= 2) {
+          int hour = int.parse(parts[0]);
+          final minutes = parts[1];
+          final amPm = hour >= 12 ? 'PM' : 'AM';
+          hour = hour % 12;
+          if (hour == 0) hour = 12;
+          return '$hour:$minutes $amPm';
+        }
+      } catch (e) {
+        print('Error formatting time: $e');
+      }
+      return time;
+    }
+    
+    return '${formatTimeString(fromTime)} - ${formatTimeString(toTime)}';
+  }
+  
+  // Fix the closing parentheses in these methods
   Widget _buildEnhancedEventCard(Event event, bool isRegistered) {
     return Container(
       height: 210, // Increased from 195 to 210
@@ -1167,520 +1467,7 @@ class _HomePageState extends State<HomePage> {
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  // Monthly points card
-  Widget _buildMonthlyPointsCard(int points) {
-    return Card(
-      elevation: 3,
-      shadowColor: AppColors.primary.withOpacity(0.3),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.1),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Icons.star,
-                color: AppColors.primary,
-                size: 24,
-              ),
-            ),
-            const SizedBox(width: 16),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Your Points This Month',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  points.toString(),
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.primary,
-                  ),
-                ),
-              ],
-            ),
-            const Spacer(),
-            TextButton(
-              onPressed: () {
-                // TODO: Navigate to detailed points history
-              },
-              child: const Text('History'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // Leaderboard card
-  Widget _buildLeaderboardCard(List<User> users) {
-    return Card(
-      elevation: 3,
-      shadowColor: AppColors.primary.withOpacity(0.3),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.amber.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Icon(
-                    Icons.leaderboard,
-                    color: Colors.amber[700],
-                    size: 18,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                const Text(
-                  'Top Volunteers',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                ),
-                const Spacer(),
-                TextButton(
-                  onPressed: () {
-                    // TODO: Navigate to full leaderboard
-                  },
-                  child: const Text('See All'),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            ...users.map((user) {
-              // Set medal color based on rank
-              Color medalColor;
-              IconData medalIcon;
-              
-              switch (user.rank) {
-                case 1:
-                  medalColor = Colors.amber;
-                  medalIcon = Icons.emoji_events;
-                  break;
-                case 2:
-                  medalColor = Colors.grey.shade400;
-                  medalIcon = Icons.emoji_events;
-                  break;
-                case 3:
-                  medalColor = Colors.brown.shade300;
-                  medalIcon = Icons.emoji_events;
-                  break;
-                default:
-                  medalColor = AppColors.primary;
-                  medalIcon = Icons.star;
-              }
-              
-              return Container(
-                margin: const EdgeInsets.only(bottom: 12),
-                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-                decoration: BoxDecoration(
-                  color: user.rank == 1 
-                    ? Colors.amber.withOpacity(0.05)
-                    : AppColors.background,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: user.rank == 1 
-                      ? Colors.amber.withOpacity(0.3)
-                      : AppColors.divider,
-                    width: 1,
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 32,
-                      height: 32,
-                      decoration: BoxDecoration(
-                        color: medalColor.withOpacity(0.1),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Center(
-                        child: Icon(
-                          medalIcon,
-                          color: medalColor,
-                          size: 18,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        user.name,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        '${user.points} pts',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.primary,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }).toList(),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // Recent event participation card
-  Widget _buildRecentParticipationCard(List<EventParticipation> participations) {
-    return Card(
-      elevation: 3,
-      shadowColor: AppColors.primary.withOpacity(0.3),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: AppColors.success.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Icon(
-                    Icons.history,
-                    color: AppColors.success,
-                    size: 18,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                const Text(
-                  'Recent Participations',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            ...participations.map((participation) {
-              return Container(
-                margin: const EdgeInsets.only(bottom: 12),
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppColors.cardBackground.withOpacity(0.5),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: AppColors.divider,
-                    width: 1,
-                  ),
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withOpacity(0.1),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        Icons.event_available,
-                        color: AppColors.primary,
-                        size: 18,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            participation.eventName,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            participation.date,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                      decoration: BoxDecoration(
-                        color: AppColors.success.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        '+${participation.pointsEarned} pts',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.success,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }).toList(),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // Enhanced badges earned card with better visuals
-  Widget _buildEnhancedBadgesCard(List<Badge> badges) {
-    return Card(
-      elevation: 3,
-      shadowColor: AppColors.primary.withOpacity(0.3),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.amber.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Icon(
-                    Icons.emoji_events_rounded,
-                    color: Colors.amber[700],
-                    size: 18,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                const Text(
-                  'Badges Earned',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: badges.map((badge) {
-                // Get specific color for each badge type
-                Color badgeColor = _getBadgeColor(badge.title);
-                
-                return Column(
-                  children: [
-                    Container(
-                      width: 70,
-                      height: 70,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [
-                            badgeColor.withOpacity(0.2),
-                            badgeColor.withOpacity(0.05),
-                          ],
-                        ),
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: badgeColor.withOpacity(0.2),
-                            blurRadius: 10,
-                            spreadRadius: 2,
-                          ),
-                        ],
-                        border: Border.all(
-                          color: badgeColor.withOpacity(0.5),
-                          width: 2,
-                        ),
-                      ),
-                      child: Center(
-                        child: Icon(
-                          _getBadgeIcon(badge.title),
-                          color: badgeColor,
-                          size: 32,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Container(
-                      width: 90,
-                      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
-                      decoration: BoxDecoration(
-                        color: badgeColor.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: badgeColor.withOpacity(0.3),
-                          width: 1,
-                        ),
-                      ),
-                      child: Text(
-                        badge.title,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: badgeColor.withOpacity(0.8),
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                );
-              }).toList(),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // Helper method to get the appropriate icon for badge types
-  IconData _getBadgeIcon(String badgeTitle) {
-    if (badgeTitle.contains('Mind')) {
-      return Icons.spa;
-    } else if (badgeTitle.contains('Eco')) {
-      return Icons.eco;
-    } else if (badgeTitle.contains('Community')) {
-      return Icons.people;
-    } else {
-      return Icons.star;
-    }
-  }
-  
-  // Helper method to get appropriate color for badge types
-  Color _getBadgeColor(String badgeTitle) {
-    if (badgeTitle.contains('Mind')) {
-      return Colors.purple;
-    } else if (badgeTitle.contains('Eco')) {
-      return Colors.green[700]!;
-    } else if (badgeTitle.contains('Community')) {
-      return Colors.blue[700]!;
-    } else {
-      return Colors.amber[700]!;
-    }
-  }
-
-  // Helper method to get event icon based on title
-  IconData _getEventIcon(String title) {
-    if (title.contains('Blood')) {
-      return Icons.favorite;
-    } else if (title.contains('Clothes')) {
-      return Icons.checkroom;
-    } else if (title.contains('Beach')) {
-      return Icons.beach_access;
-    } else {
-      return Icons.event;
-    }
-  }
-
-  // Helper method to get event images based on title
-  DecorationImage? _getEventImage(String title) {
-    String imagePath;
-    
-    if (title.contains('Tree')) {
-      imagePath = 'assets/images/tree_plantation.jpg';
-    } else if (title.contains('NSS')) {
-      imagePath = 'assets/images/nss_meetup.jpg';
-    } else if (title.contains('Campus')) {
-      imagePath = 'assets/images/campus_cleanup.jpg';
-    } else {
-      // Default image
-      imagePath = 'assets/images/wooden_shelf.png';
-    }
-    
-    return DecorationImage(
-      image: AssetImage(imagePath),
-      fit: BoxFit.cover,
-      colorFilter: ColorFilter.mode(
-        Colors.black.withOpacity(0.15),
-        BlendMode.darken,
-      ),
-    );
-  }
-
-  // Helper method to format event time
-  String _formatEventTime(String fromTime, String toTime) {
-    // Convert API time format to more readable format
-    String formatTimeString(String time) {
-      if (time.isEmpty) return '';
-      
-      // If it's already in readable format, return as is
-      if (!time.contains(':')) return time;
-      
-      try {
-        final parts = time.split(':');
-        if (parts.length >= 2) {
-          int hour = int.parse(parts[0]);
-          final minutes = parts[1];
-          final amPm = hour >= 12 ? 'PM' : 'AM';
-          hour = hour % 12;
-          if (hour == 0) hour = 12;
-          return '$hour:$minutes $amPm';
-        }
-      } catch (e) {
-        print('Error formatting time: $e');
-      }
-      return time;
-    }
-    
-    return '${formatTimeString(fromTime)} - ${formatTimeString(toTime)}';
+    ));
   }
 
   // Registered event card with confirmation UI
@@ -1872,8 +1659,7 @@ class _HomePageState extends State<HomePage> {
             ],
           ),
         ),
-      ),
-    );
+    ));
   }
 }
 
@@ -1937,14 +1723,14 @@ class Badge {
 
 // New model classes for NSS app
 
-class Notification {
+class Update {
   final String id;
   final String title;
   final String message;
   final String time;
   final bool isRead;
 
-  Notification({
+  Update({
     required this.id,
     required this.title,
     required this.message,
@@ -2009,4 +1795,30 @@ class Tip {
     required this.questDescription,
     required this.questPoints,
   });
+}
+
+// Add this model class for socket notifications
+class SocketNotification {
+  final String id;
+  final String title;
+  final String message;
+  final DateTime timestamp;
+
+  SocketNotification({
+    required this.id,
+    required this.title,
+    required this.message,
+    required this.timestamp,
+  });
+
+  factory SocketNotification.fromMap(Map<String, dynamic> map) {
+    return SocketNotification(
+      id: map['id']?.toString() ?? DateTime.now().millisecondsSinceEpoch.toString(),
+      title: map['title']?.toString() ?? 'New Notification',
+      message: map['message']?.toString() ?? map['content']?.toString() ?? 'You have a new notification',
+      timestamp: map['time'] != null 
+          ? DateTime.tryParse(map['time']) ?? DateTime.now()
+          : DateTime.now(),
+    );
+  }
 }

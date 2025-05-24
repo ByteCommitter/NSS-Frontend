@@ -361,7 +361,7 @@ class _PostThreadPageState extends State<PostThreadPage> {
         color: AppColors.white, // Use theme color
         boxShadow: [
           BoxShadow(
-            color: AppColors.blackOpacity10, // Use theme color
+            color: Colors.white, // Use theme color
             spreadRadius: 1,
             blurRadius: 3,
             offset: Offset(0, -1),

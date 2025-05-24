@@ -6,8 +6,8 @@ import 'package:mentalsustainability/theme/theme_provider.dart';
 import '../services/auth_service.dart';
 import 'Profile/profile_page.dart';
 import 'Community/community_page.dart';
-import 'Events/event_page.dart';
 import 'package:mentalsustainability/pages/guide_page.dart';
+import 'package:mentalsustainability/pages/Dashboard/dashboard_page.dart'; // New import for Dashboard page
 
 class BaseScreen extends StatefulWidget{
   const BaseScreen({super.key});
@@ -241,11 +241,11 @@ class _BaseScreenState extends State<BaseScreen> with SingleTickerProviderStateM
         margin: const EdgeInsets.only(bottom: 60), // Space for floating navbar
         child: IndexedStack(
           index: _selectedIndex,
-          children: const <Widget>[
-            HomePage(),
-            QuestPage(),
-            CommunityPage(),
-            ProfilePage(),
+          children: <Widget>[ // Removed the 'const' keyword here
+            const HomePage(),
+            const DashboardPage(), 
+            const CommunityPage(),
+            const ProfilePage(),
           ],
         ),
       ),
@@ -277,7 +277,7 @@ class _BaseScreenState extends State<BaseScreen> with SingleTickerProviderStateM
                   borderRadius: BorderRadius.circular(30),
                   boxShadow: const [
                     BoxShadow(
-                      color: AppColors.blackOpacity10,
+                      color: Colors.black,
                       blurRadius: 10,
                       spreadRadius: 3,
                       offset: Offset(0, 5),
@@ -288,7 +288,7 @@ class _BaseScreenState extends State<BaseScreen> with SingleTickerProviderStateM
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     _buildNavItem(Icons.home_rounded, Icons.home_outlined, 'Home', 0),
-                    _buildNavItem(Icons.assignment_rounded, Icons.assignment_outlined, 'Quests', 1),
+                    _buildNavItem(Icons.dashboard_rounded, Icons.dashboard_outlined, 'Dashboard', 1), // Changed from Events to Dashboard
                     _buildNavItem(Icons.people_rounded, Icons.people_outline_rounded, 'Community', 2),
                     _buildNavItem(Icons.person_rounded, Icons.person_outline_rounded, 'Profile', 3),
                   ],

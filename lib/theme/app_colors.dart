@@ -113,7 +113,7 @@ class AppColors {
   static const Color white = Colors.white;
   static const Color blackOpacity30 = Color(0x4D000000);
   static const Color blackOpacity20 = Color(0x33000000);
-  static const Color blackOpacity10 = Color(0x1A000000);
+  static final Color blackOpacity10 = Colors.black.withOpacity(0.1);
 }
 
 /// Class that holds a complete theme color set
