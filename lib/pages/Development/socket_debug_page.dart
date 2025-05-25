@@ -112,7 +112,7 @@ class _SocketDebugPageState extends State<SocketDebugPage> {
               color: Colors.red.shade50,
               child: Row(
                 children: [
-                  Icon(Icons.error, color: Colors.red),
+                  const Icon(Icons.error, color: Colors.red),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(

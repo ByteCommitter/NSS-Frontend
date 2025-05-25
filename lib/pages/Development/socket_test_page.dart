@@ -124,11 +124,11 @@ class _SocketTestPageState extends State<SocketTestPage> {
             Container(
               padding: const EdgeInsets.all(16),
               color: Colors.red.shade50,
-              child: Row(
+              child: const Row(
                 children: [
                   Icon(Icons.error, color: Colors.red),
-                  const SizedBox(width: 12),
-                  const Expanded(
+                  SizedBox(width: 12),
+                  Expanded(
                     child: Text(
                       'Socket service not available',
                       style: TextStyle(

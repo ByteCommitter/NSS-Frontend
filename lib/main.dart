@@ -11,6 +11,9 @@ import 'services/onboarding_screen.dart';
 import 'services/auth_service.dart';
 import 'services/api_service.dart';
 import 'package:mentalsustainability/services/socket_notification_service.dart';
+import 'package:mentalsustainability/middleware/auth_middleware.dart';
+import 'package:mentalsustainability/middleware/admin_middleware.dart';
+import 'package:mentalsustainability/pages/Admin/admin_home_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -70,13 +73,22 @@ class MyApp extends StatelessWidget {
             color: AppColors.divider,
           ),
         ),
-        home:SplashScreen(), // Use splash screen first, then it will navigate to login
+        home:const SplashScreen(), // Use splash screen first, then it will navigate to login
         getPages: [
-          GetPage(name: '/', page: () => SplashScreen()),
+          GetPage(name: '/', page: () => const SplashScreen()),
           GetPage(name: '/auth', page: () => AuthWrapper()),
           GetPage(name: '/onboarding', page: () => const OnboardingScreen()),
           GetPage(name: '/home', page: () => const BaseScreen()),
           GetPage(name: '/guide', page: () => const GuidePage()),
+          // Add AdminHomePage to your routes
+          GetPage(
+            name: '/admin',
+            page: () => const AdminHomePage(),
+            middlewares: [
+              AuthMiddleware(),
+              AdminMiddleware(),
+            ],
+          ),
         ],
       ),
     );

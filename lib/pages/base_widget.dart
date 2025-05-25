@@ -241,11 +241,11 @@ class _BaseScreenState extends State<BaseScreen> with SingleTickerProviderStateM
         margin: const EdgeInsets.only(bottom: 60), // Space for floating navbar
         child: IndexedStack(
           index: _selectedIndex,
-          children: <Widget>[ // Removed the 'const' keyword here
-            const HomePage(),
-            const DashboardPage(), 
-            const CommunityPage(),
-            const ProfilePage(),
+          children: const <Widget>[ // Removed the 'const' keyword here
+            HomePage(),
+            DashboardPage(), 
+            CommunityPage(),
+            ProfilePage(),
           ],
         ),
       ),

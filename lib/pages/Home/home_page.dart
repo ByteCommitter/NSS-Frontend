@@ -5,6 +5,8 @@ import 'package:mentalsustainability/services/auth_service.dart';
 import 'package:mentalsustainability/services/socket_notification_service.dart';
 import 'package:mentalsustainability/theme/app_colors.dart';
 import 'dart:async';
+// Import models.dart but rename its Event class to avoid conflicts
+import 'package:mentalsustainability/models/admin_models.dart' as admin_models;
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -17,7 +19,7 @@ class _HomePageState extends State<HomePage> {
   // Empty list to be filled from API
   List<Event> _events = [];
   List<Event> _registeredEvents = [];
-  Map<String, bool> _eventRegistrationStatus = {};
+  final Map<String, bool> _eventRegistrationStatus = {};
   bool _isLoadingRegistered = false;
   
   // Update data is kept as is for now
@@ -235,18 +237,40 @@ class _HomePageState extends State<HomePage> {
       print('Attempting to fetch events from backend...');
       
       // First try to get events from the API
-      final events = await _apiService.getEvents();
+      final apiEvents = await _apiService.getEvents();
       
       setState(() {
-        if (events.isNotEmpty) {
-          _events = events;
+        if (apiEvents.isNotEmpty) {
+          // Convert the API events to our local Event type
+          _events = apiEvents.map((e) => Event(
+            id: e.id,
+            title: e.title,
+            description: e.description,
+            date: e.date,
+            fromTime: e.fromTime,
+            toTime: e.toTime,
+            location: e.location,
+            imageUrl: e.imageUrl,
+          )).toList();
+          
           _isLoading = false;
           _useTestData = false;
-          print('Successfully loaded ${events.length} events from API');
+          print('Successfully loaded ${apiEvents.length} events from API');
         } else {
           // If no events from API, use test data
           print('No events from API, using test data');
-          _events = _apiService.getTestEvents();
+          final testEvents = _apiService.getTestEvents();
+          _events = testEvents.map((e) => Event(
+            id: e.id,
+            title: e.title,
+            description: e.description,
+            date: e.date,
+            fromTime: e.fromTime,
+            toTime: e.toTime,
+            location: e.location,
+            imageUrl: e.imageUrl,
+          )).toList();
+          
           _isLoading = false;
           _useTestData = true;
           _errorMessage = 'Using sample events (API returned no events)';
@@ -256,7 +280,18 @@ class _HomePageState extends State<HomePage> {
       print('Error in _fetchEvents: $e');
       setState(() {
         // Use test data on error
-        _events = _apiService.getTestEvents();
+        final testEvents = _apiService.getTestEvents();
+        _events = testEvents.map((e) => Event(
+          id: e.id,
+          title: e.title,
+          description: e.description,
+          date: e.date,
+          fromTime: e.fromTime,
+          toTime: e.toTime,
+          location: e.location,
+          imageUrl: e.imageUrl,
+        )).toList();
+        
         _isLoading = false;
         _useTestData = true;
         _hasLoadingError = true;
@@ -286,7 +321,7 @@ class _HomePageState extends State<HomePage> {
     });
     
     try {
-      final registeredEvents = await _apiService.getUserRegisteredEvents();
+      final registeredApiEvents = await _apiService.getUserRegisteredEvents();
       
       // Cancel the timer if we got a response
       if (timeoutTimer.isActive) {
@@ -297,10 +332,20 @@ class _HomePageState extends State<HomePage> {
       }
       
       setState(() {
-        _registeredEvents = registeredEvents;
+        // Convert API events to our local Event type
+        _registeredEvents = registeredApiEvents.map((e) => Event(
+          id: e.id,
+          title: e.title,
+          description: e.description,
+          date: e.date,
+          fromTime: e.fromTime,
+          toTime: e.toTime,
+          location: e.location,
+          imageUrl: e.imageUrl,
+        )).toList();
         
         // Update registration status map
-        for (var event in registeredEvents) {
+        for (var event in _registeredEvents) {
           _eventRegistrationStatus[event.id] = true;
         }
         
@@ -947,7 +992,7 @@ class _HomePageState extends State<HomePage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
+            const Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 // Text(

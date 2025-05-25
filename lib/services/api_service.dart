@@ -1,11 +1,35 @@
 import 'dart:convert';
 import 'dart:async'; // Added missing import for TimeoutException
-import 'dart:math' as Math;
+import 'dart:math' as math; // lowercase math to follow convention
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:get/get.dart';
-import 'package:mentalsustainability/pages/Home/home_page.dart';
+import 'package:mentalsustainability/pages/Home/home_page.dart' hide Event; // Hide Event from home_page
 import 'package:mentalsustainability/services/auth_service.dart';
+import 'package:mentalsustainability/models/admin_models.dart'; // Keep this import for Event
+
+// Define a specific class for API events to avoid conflicts
+class ApiEvent {
+  final String id;
+  final String title;
+  final String description;
+  final String date;
+  final String fromTime;
+  final String toTime;
+  final String location;
+  final String? imageUrl;
+
+  ApiEvent({
+    required this.id,
+    required this.title,
+    required this.description,
+    required this.date,
+    required this.fromTime,
+    required this.toTime,
+    required this.location,
+    this.imageUrl,
+  });
+}
 
 class ApiService extends GetxService {
   static ApiService get to => Get.find();
@@ -74,7 +98,7 @@ class ApiService extends GetxService {
   }
   
   // Events APIs
-  Future<List<Event>> getEvents() async {
+  Future<List<ApiEvent>> getEvents() async {
     try {
       final token = await _authService.getToken();
       
@@ -128,7 +152,7 @@ class ApiService extends GetxService {
           final events = eventsData.map((eventJson) {
             print('Processing event: ${eventJson['id']} - ${eventJson['title']}');
             
-            return Event(
+            return ApiEvent(
               id: eventJson['id'].toString(),
               title: eventJson['title'] ?? 'Untitled Event',
               description: eventJson['description'] ?? 'No description available',
@@ -158,7 +182,7 @@ class ApiService extends GetxService {
     }
   }
   
-  Future<bool> createEvent(Event event) async {
+  Future<bool> createEvent(ApiEvent event) async {
     try {
       final token = await _authService.getToken();
       
@@ -242,7 +266,7 @@ class ApiService extends GetxService {
         }
       } catch (e) {
         if (e is AlreadyRegisteredException) {
-          throw e; // Re-throw this specific exception
+          rethrow; // Re-throw this specific exception
         }
         // Ignore other parsing errors
       }
@@ -257,14 +281,14 @@ class ApiService extends GetxService {
     } catch (e) {
       print('Exception during registration: $e');
       if (e is AlreadyRegisteredException) {
-        throw e; // Re-throw so we can handle it specifically in the UI
+        rethrow; // Re-throw so we can handle it specifically in the UI
       }
       return false;
     }
   }
   
   // Get user's registered events - updated with the correct endpoint
-  Future<List<Event>> getUserRegisteredEvents() async {
+  Future<List<ApiEvent>> getUserRegisteredEvents() async {
     try {
       final token = await _authService.getToken();
       final userId = await _authService.getUserId();
@@ -304,7 +328,7 @@ class ApiService extends GetxService {
           print('Received ${eventsData.length} registered events for user');
           
           final events = eventsData.map((eventJson) {
-            return Event(
+            return ApiEvent(
               id: eventJson['id'].toString(),
               title: eventJson['title'] ?? 'Unknown Event',
               description: eventJson['description'] ?? 'No description available',
@@ -482,9 +506,9 @@ class ApiService extends GetxService {
   }
   
   // Create test events from the JSON snippet the user provided
-  List<Event> getTestEvents() {
+  List<ApiEvent> getTestEvents() {
     return [
-      Event(
+      ApiEvent(
         id: '1',
         title: 'New event',
         description: 'Description of event1',
@@ -494,7 +518,7 @@ class ApiService extends GetxService {
         location: 'IN our heads',
         imageUrl: null,
       ),
-      Event(
+      ApiEvent(
         id: '2',
         title: 'New event 2',
         description: 'Another test event',
@@ -504,6 +528,115 @@ class ApiService extends GetxService {
         location: 'Test location',
         imageUrl: null,
       ),
+    ];
+  }
+  
+  // Admin methods for event management
+  Future<List<AdminEvent>> getAdminEvents() async {
+    try {
+      // Implementation would call your backend API
+      // For now, return sample data
+      return [
+        AdminEvent(
+          id: 'e1',
+          title: 'Tree Plantation Drive',
+          description: 'Join us for a tree plantation drive to help the environment.',
+          date: '12/06/2023',
+          fromTime: '9:00',
+          toTime: '12:00',
+          location: 'City Park',
+        ),
+        AdminEvent(
+          id: 'e2',
+          title: 'Blood Donation Camp',
+          description: 'Donate blood and save lives.',
+          date: '20/06/2023',
+          fromTime: '10:00',
+          toTime: '16:00',
+          location: 'Community Center',
+        ),
+      ];
+    } catch (e) {
+      print('Error getting admin events: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> createAdminEvent(
+    String title,
+    String description,
+    String date,
+    String fromTime,
+    String toTime,
+    String location,
+  ) async {
+    // Implementation would call your backend API
+    print('Creating admin event: $title');
+  }
+
+  Future<void> updateEvent(
+    String id,
+    String title,
+    String description,
+    String date,
+    String fromTime,
+    String toTime,
+    String location,
+  ) async {
+    // Implementation would call your backend API
+    print('Updating event: $id - $title');
+  }
+
+  Future<void> deleteEvent(String id) async {
+    // Implementation would call your backend API
+    print('Deleting event: $id');
+  }
+
+  // Admin methods for notification management
+  Future<List<AdminUpdate>> getAdminUpdates() async {
+    // Implementation would call your backend API
+    // For now, return sample data
+    return [
+      AdminUpdate(
+        id: 'n1',
+        title: 'New Event Registration Open',
+        message: 'Tree Plantation Drive registration is now open. Register before June 3rd.',
+        time: '2 hours ago',
+        isRead: false,
+      ),
+      AdminUpdate(
+        id: 'n2',
+        title: 'Reminder: NSS Meetup',
+        message: 'Don\'t forget to attend the NSS Annual Meetup on June 12th.',
+        time: '1 day ago',
+        isRead: true,
+      ),
+    ];
+  }
+
+  Future<void> createNotification(String title, String message) async {
+    // Implementation would call your backend API
+    print('Creating notification: $title');
+  }
+
+  Future<void> updateNotification(String id, String title, String message) async {
+    // Implementation would call your backend API
+    print('Updating notification: $id - $title');
+  }
+
+  Future<void> deleteNotification(String id) async {
+    // Implementation would call your backend API
+    print('Deleting notification: $id');
+  }
+
+  // Admin methods for user management
+  Future<List<AdminUser>> getAdminUsers() async {
+    // Implementation would call your backend API
+    // For now, return sample data
+    return [
+      AdminUser(id: 'u1', name: 'Rajesh Kumar', points: 780, rank: 1),
+      AdminUser(id: 'u2', name: 'Priya Singh', points: 720, rank: 2),
+      AdminUser(id: 'u3', name: 'Amit Sharma', points: 690, rank: 3),
     ];
   }
 }

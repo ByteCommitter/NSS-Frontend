@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get/get.dart';
@@ -41,11 +40,19 @@ class AuthService extends GetxController {
   // Add this field to store the user ID
   String? _userId;
   
+  // Add this variable to cache the admin status for synchronous checks
+  String? _adminStatus;
+  
+  // Create an observable for admin status
+  final RxBool isAdminUser = false.obs;
+  
   @override
   void onInit() {
     super.onInit();
     // Check for existing token when app starts
     checkAndSetAuthStatus();
+    // Also initialize admin status
+    initAdminStatus();
   }
   
   // Initialize auth status from stored token
@@ -180,8 +187,9 @@ class AuthService extends GetxController {
           
           // Extract user ID from token or use the provided username
           String userIdToStore = username;
+          bool isAdmin = false; // Default to not admin
           
-          // Try to get user ID from token payload
+          // Try to get user ID and admin status from token payload
           try {
             final parts = token.split('.');
             if (parts.length == 3) {
@@ -194,9 +202,22 @@ class AuthService extends GetxController {
                 userIdToStore = data['id'].toString();
                 print('Extracted user ID from token: $userIdToStore');
               }
+              
+              // Extract admin status from token claims
+              if (data.containsKey('isAdmin')) {
+                isAdmin = data['isAdmin'] == true;
+                print('Extracted admin status from token: $isAdmin');
+              } else if (data.containsKey('role')) {
+                isAdmin = data['role'] == 'admin';
+                print('Extracted admin role from token: $isAdmin');
+              }
+              
+              // Store the admin status
+              await _secureStorage.write(key: 'isAdmin', value: isAdmin.toString());
+              print('Stored admin status: $isAdmin');
             }
           } catch (e) {
-            print('Error extracting user ID from token: $e');
+            print('Error extracting data from token: $e');
           }
           
           // Store the user ID
@@ -352,7 +373,7 @@ class AuthService extends GetxController {
       print('Logout complete - all data cleared');
     } catch (e) {
       print('Error during logout: $e');
-      throw e; // Re-throw for handling upstream
+      rethrow; // Re-throw for handling upstream
     }
   }
   
@@ -437,6 +458,90 @@ class AuthService extends GetxController {
     } catch (e) {
       print('Token verification error: $e');
       return false;
+    }
+  }
+  
+  // Check if the current user is an admin
+  Future<bool> isAdmin() async {
+    // First check if we have a cached value
+    if (_adminStatus != null) {
+      return _adminStatus == 'true';
+    }
+    
+    // Otherwise read from storage
+    try {
+      final token = await _secureStorage.read(key: 'jwt_token');
+      if (token == null || token.isEmpty) return false;
+      
+      String? adminStatus;
+      if (kIsWeb) {
+        adminStatus = html.window.localStorage['isAdmin'];
+      } else {
+        adminStatus = await _secureStorage.read(key: 'isAdmin');
+      }
+      
+      // Cache the result for future sync checks
+      _adminStatus = adminStatus;
+      
+      // Update the observable
+      isAdminUser.value = adminStatus == 'true';
+      
+      return adminStatus == 'true';
+    } catch (e) {
+      print('Error checking admin status: $e');
+      return false;
+    }
+  }
+  
+  // Update the isAdminSync method for middleware
+  bool isAdminSync() {
+    try {
+      // Check if the user is logged in first
+      if (!isAuthenticated.value) {
+        return false;
+      }
+      
+      // Use cached admin status from memory first
+      if (_adminStatus != null) {
+        return _adminStatus == 'true';
+      }
+      
+      // For web, check localStorage
+      if (kIsWeb) {
+        final adminStatus = html.window.localStorage['isAdmin'];
+        return adminStatus == 'true';
+      } else {
+        // For mobile, we can't use _secureStorage.read() directly as it's async
+        // Just return false if we don't have cached status yet
+        return false; // Safe default when we can't check synchronously
+      }
+    } catch (e) {
+      print('Error checking admin status: $e');
+      return false;
+    }
+  }
+
+  // Add this method to initialize admin status from storage when app starts
+  Future<void> initAdminStatus() async {
+    try {
+      String? adminStatus;
+      
+      if (kIsWeb) {
+        adminStatus = html.window.localStorage['isAdmin'];
+      } else {
+        adminStatus = await _secureStorage.read(key: 'isAdmin');
+      }
+      
+      // Cache the admin status for sync checks
+      _adminStatus = adminStatus;
+      
+      // Update the observable
+      isAdminUser.value = adminStatus == 'true';
+      print('Admin status initialized: ${isAdminUser.value}');
+    } catch (e) {
+      print('Error initializing admin status: $e');
+      _adminStatus = 'false';
+      isAdminUser.value = false;
     }
   }
 }

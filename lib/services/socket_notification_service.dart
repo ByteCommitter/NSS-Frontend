@@ -60,7 +60,7 @@ class SocketNotificationService extends GetxService {
       
       // Create socket connection
       // For web, we need to use the full URL including protocol
-      final serverUrl = kIsWeb 
+      const serverUrl = kIsWeb 
           ? 'http://localhost:8991' 
           : 'http://10.0.2.2:8991';  // Use this for Android emulator (or localhost for iOS simulator)
       
