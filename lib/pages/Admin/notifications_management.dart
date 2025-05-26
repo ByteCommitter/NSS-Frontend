@@ -184,16 +184,89 @@ class _NotificationsManagementState extends State<NotificationsManagement> {
                 Icon(Icons.access_time, size: 16, color: Colors.grey[600]),
                 const SizedBox(width: 4),
                 Text(formatDateTime(notification['time'])),
-                const SizedBox(width: 16),
-                Icon(Icons.visibility, size: 16, color: Colors.grey[600]),
-                const SizedBox(width: 4),
-                Text(notification['isRead'] == 1 ? 'Read' : 'Unread'),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TextButton.icon(
+                  onPressed: () => _deleteNotification(notification),
+                  icon: const Icon(Icons.delete, color: Colors.red),
+                  label: const Text('Delete', style: TextStyle(color: Colors.red)),
+                ),
               ],
             ),
           ],
         ),
       ),
     );
+  }
+
+  Future<void> _deleteNotification(Map<String, dynamic> notification) async {
+    // Confirm deletion
+    final confirm = await Get.dialog<bool>(
+      AlertDialog(
+        title: const Text('Delete Notification'),
+        content: const Text('Are you sure you want to delete this notification?'),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(result: false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Get.back(result: true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    
+    if (confirm != true) return;
+    
+    // Show loading indicator
+    Get.dialog(
+      const Center(child: CircularProgressIndicator()),
+      barrierDismissible: false,
+    );
+    
+    try {
+      final success = await _apiService.deleteNotification(notification['id']);
+      
+      // Close loading dialog
+      Get.back();
+      
+      if (success) {
+        Get.snackbar(
+          'Success',
+          'Notification deleted successfully',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.green.withOpacity(0.1),
+          colorText: Colors.green,
+        );
+        _loadNotifications(); // Refresh the list
+      } else {
+        Get.snackbar(
+          'Error',
+          'Failed to delete notification',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.red.withOpacity(0.1),
+          colorText: Colors.red,
+        );
+      }
+    } catch (e) {
+      // Close loading dialog
+      Get.back();
+      
+      Get.snackbar(
+        'Error',
+        'An error occurred: $e',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.withOpacity(0.1),
+        colorText: Colors.red,
+      );
+    }
   }
 
   void _showSendNotificationDialog() {

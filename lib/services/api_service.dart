@@ -711,24 +711,6 @@ Future<void> debugUserInfo() async {
     print('Creating admin event: $title');
   }
 
-  Future<void> updateEvent(
-    String id,
-    String title,
-    String description,
-    String date,
-    String fromTime,
-    String toTime,
-    String location,
-  ) async {
-    // Implementation would call your backend API
-    print('Updating event: $id - $title');
-  }
-
-  Future<void> deleteEvent(String id) async {
-    // Implementation would call your backend API
-    print('Deleting event: $id');
-  }
-
   // Admin methods for notification management
   Future<List<AdminUpdate>> getAdminUpdates() async {
     // Implementation would call your backend API
@@ -752,29 +734,124 @@ Future<void> debugUserInfo() async {
   }
 
   Future<void> createNotification(String title, String message) async {
-    // Implementation would call your backend API
-    print('Creating notification: $title');
+    // Implement the postNotification method that we already defined
+    await postNotification(title, message);
   }
 
-  Future<void> updateNotification(String id, String title, String message) async {
-    // Implementation would call your backend API
-    print('Updating notification: $id - $title');
+  // Updated updateEvent method to include banner_image
+  Future<bool> updateEvent(
+    String id,
+    String title,
+    String description,
+    String date,
+    String fromTime,
+    String toTime,
+    String location,
+    [String? bannerImage] // Optional parameter for banner image
+  ) async {
+    try {
+      final token = await _authService.getToken();
+      
+      if (token == null) {
+        print('No auth token available');
+        return false;
+      }
+      
+      // Using PUT to update an existing event
+      final response = await http.put(
+        Uri.parse('${baseUrl}events/'),
+        headers: {
+          'Authorization': token,
+          'Content-Type': 'application/json'
+        },
+        body: json.encode({
+          'id': id,
+          'title': title,
+          'description': description,
+          'date': date,
+          'fromTime': fromTime,
+          'ToTime': toTime, // Note: API uses 'ToTime' with capital T
+          'eventVenue': location,
+          'banner_image': bannerImage, // Include banner image in the request
+        }),
+      );
+      
+      print('Update event response: ${response.statusCode} - ${response.body}');
+      
+      return response.statusCode == 200;
+    } catch (e) {
+      print('Error updating event: $e');
+      return false;
+    }
   }
 
-  Future<void> deleteNotification(String id) async {
-    // Implementation would call your backend API
-    print('Deleting notification: $id');
+  // Add a method to get registered users for an event
+  Future<List<Map<String, dynamic>>> getEventRegisteredUsers(String eventId) async {
+    try {
+      final token = await _authService.getToken();
+      
+      if (token == null) {
+        print('No auth token available');
+        return [];
+      }
+      
+      final response = await http.get(
+        Uri.parse('${baseUrl}events/user-event?query=usersForEvent&event_id=$eventId'),
+        headers: {
+          'Authorization': token,
+          'Content-Type': 'application/json',
+        },
+      );
+      
+      print('Get registered users response: ${response.statusCode}');
+      
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> responseData = json.decode(response.body);
+        
+        if (responseData.containsKey('result') && responseData['result'] is List) {
+          return List<Map<String, dynamic>>.from(responseData['result']);
+        }
+        return [];
+      } else {
+        print('Failed to fetch registered users: ${response.statusCode}');
+        return [];
+      }
+    } catch (e) {
+      print('Error fetching registered users: $e');
+      return [];
+    }
   }
-
-  // Admin methods for user management
-  Future<List<AdminUser>> getAdminUsers() async {
-    // Implementation would call your backend API
-    // For now, return sample data
-    return [
-      AdminUser(id: 'u1', name: 'Rajesh Kumar', points: 780, rank: 1),
-      AdminUser(id: 'u2', name: 'Priya Singh', points: 720, rank: 2),
-      AdminUser(id: 'u3', name: 'Amit Sharma', points: 690, rank: 3),
-    ];
+  
+  // Method to verify a user's attendance at an event
+  Future<bool> verifyUserAttendance(String eventId, String userId, bool attended) async {
+    try {
+      final token = await _authService.getToken();
+      
+      if (token == null) {
+        print('No auth token available');
+        return false;
+      }
+      
+      final response = await http.put(
+        Uri.parse('${baseUrl}events/user-event/'),
+        headers: {
+          'Authorization': token,
+          'Content-Type': 'application/json'
+        },
+        body: json.encode({
+          'user_id': userId,
+          'event_id': eventId,
+          'isParticipated': attended ? 1 : 0,
+        }),
+      );
+      
+      print('Verify attendance response: ${response.statusCode} - ${response.body}');
+      
+      return response.statusCode == 200;
+    } catch (e) {
+      print('Error verifying attendance: $e');
+      return false;
+    }
   }
 
   // Fetch all notifications
@@ -840,7 +917,7 @@ Future<void> debugUserInfo() async {
         body: json.encode(notification),
       );
       
-      print('Post notification response: ${response.statusCode}');
+      print('Post notification response: ${response.statusCode} - ${response.body}');
       
       if (response.statusCode == 200 || response.statusCode == 201) {
         final responseData = json.decode(response.body);
@@ -851,6 +928,102 @@ Future<void> debugUserInfo() async {
       }
     } catch (e) {
       print('Error posting notification: $e');
+      return false;
+    }
+  }
+
+  // Delete a notification
+  Future<bool> deleteNotification(int notificationId) async {
+    try {
+      final token = await _authService.getToken();
+      
+      if (token == null) {
+        print('No auth token available');
+        return false;
+      }
+      
+      final response = await http.delete(
+        Uri.parse('${baseUrl}notifications'),
+        headers: {
+          'Authorization': token,
+          'Content-Type': 'application/json',
+        },
+        body: json.encode({
+          'id': notificationId
+        }),
+      );
+      
+      print('Delete notification response: ${response.statusCode} - ${response.body}');
+      
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+        return responseData['isSuccess'] == true;
+      } else {
+        print('Failed to delete notification: ${response.statusCode}');
+        return false;
+      }
+    } catch (e) {
+      print('Error deleting notification: $e');
+      return false;
+    }
+  }
+
+  // Soft delete event method (just marks as deleted in the database)
+  Future<bool> softDeleteEvent(String id) async {
+    try {
+      final token = await _authService.getToken();
+      
+      if (token == null) {
+        print('No auth token available');
+        return false;
+      }
+      
+      final response = await http.put(
+        Uri.parse('${baseUrl}events/softDelete'),
+        headers: {
+          'Authorization': token,
+          'Content-Type': 'application/json'
+        },
+        body: json.encode({
+          'id': id,
+        }),
+      );
+      
+      print('Soft delete event response: ${response.statusCode} - ${response.body}');
+      
+      return response.statusCode == 200;
+    } catch (e) {
+      print('Error soft deleting event: $e');
+      return false;
+    }
+  }
+  
+  // Hard delete event method (completely removes from database)
+  Future<bool> hardDeleteEvent(String id) async {
+    try {
+      final token = await _authService.getToken();
+      
+      if (token == null) {
+        print('No auth token available');
+        return false;
+      }
+      
+      final response = await http.delete(
+        Uri.parse('${baseUrl}events/hardDelete'),
+        headers: {
+          'Authorization': token,
+          'Content-Type': 'application/json'
+        },
+        body: json.encode({
+          'id': id,
+        }),
+      );
+      
+      print('Hard delete event response: ${response.statusCode} - ${response.body}');
+      
+      return response.statusCode == 200;
+    } catch (e) {
+      print('Error hard deleting event: $e');
       return false;
     }
   }

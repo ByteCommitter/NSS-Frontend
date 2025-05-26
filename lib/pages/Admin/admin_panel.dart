@@ -39,6 +39,7 @@ class _AdminPanelState extends State<AdminPanel> {
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
+            tooltip: 'Logout',
             onPressed: () async {
               final confirm = await Get.dialog<bool>(
                 AlertDialog(
