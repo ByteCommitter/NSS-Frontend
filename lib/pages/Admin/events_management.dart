@@ -319,7 +319,7 @@ class _EventsManagementState extends State<EventsManagement> {
     );
   }
 
-  // Add this new method to show registered users for verification
+  // Updated to use real API data instead of mock data
   void _showVerifyUsersDialog(Map<String, dynamic> event) {
     // Default to empty list - will be populated from API
     final List<Map<String, dynamic>> registeredUsers = [];
@@ -334,22 +334,16 @@ class _EventsManagementState extends State<EventsManagement> {
             setState(() => isLoading = true);
             
             try {
-              // TODO: Replace with actual API call to get registered users
-              // Example: final users = await _apiService.getEventRegisteredUsers(event['id']);
-              
-              // For now, use mock data
-              await Future.delayed(const Duration(seconds: 1));
-              final mockUsers = [
-                {'id': 'u1', 'name': 'John Doe', 'university_id': 'f20220101', 'verified': false},
-                {'id': 'u2', 'name': 'Jane Smith', 'university_id': 'f20220102', 'verified': true},
-                {'id': 'u3', 'name': 'Alex Johnson', 'university_id': 'f20220103', 'verified': false},
-              ];
+              // Use the real API to get registered users
+              final users = await _apiService.getEventRegisteredUsers(event['id'].toString());
               
               setState(() {
                 registeredUsers.clear();
-                registeredUsers.addAll(mockUsers);
+                registeredUsers.addAll(users);
                 isLoading = false;
               });
+              
+              print('Loaded ${users.length} registered users for event ${event['id']}');
             } catch (e) {
               print('Error loading registered users: $e');
               setState(() => isLoading = false);
@@ -425,9 +419,12 @@ class _EventsManagementState extends State<EventsManagement> {
                         itemCount: registeredUsers.length,
                         itemBuilder: (context, index) {
                           final user = registeredUsers[index];
+                          // Check if the user has participated
+                          final bool isVerified = user['isParticipated'] == 1;
+                          
                           return ListTile(
-                            title: Text(user['name'] ?? 'Unknown User'),
-                            subtitle: Text(user['university_id'] ?? 'No ID'),
+                            title: Text(user['user_id'] ?? 'Unknown User ID'),
+                            subtitle: Text('Registration Status: ${isVerified ? 'Verified' : 'Not Verified'}'),
                             trailing: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
@@ -435,13 +432,11 @@ class _EventsManagementState extends State<EventsManagement> {
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                   decoration: BoxDecoration(
-                                    color: user['verified'] == true
-                                        ? Colors.green
-                                        : Colors.grey,
+                                    color: isVerified ? Colors.green : Colors.grey,
                                     borderRadius: BorderRadius.circular(12),
                                   ),
                                   child: Text(
-                                    user['verified'] == true ? 'VERIFIED' : 'PENDING',
+                                    isVerified ? 'VERIFIED' : 'PENDING',
                                     style: const TextStyle(
                                       color: Colors.white,
                                       fontSize: 12,
@@ -453,41 +448,50 @@ class _EventsManagementState extends State<EventsManagement> {
                                 // Toggle verification status
                                 IconButton(
                                   icon: Icon(
-                                    user['verified'] == true
-                                        ? Icons.check_circle
-                                        : Icons.check_circle_outline,
-                                    color: user['verified'] == true
-                                        ? Colors.green
-                                        : Colors.grey,
+                                    isVerified ? Icons.check_circle : Icons.check_circle_outline,
+                                    color: isVerified ? Colors.green : Colors.grey,
                                   ),
                                   onPressed: () async {
                                     try {
-                                      // Show loading indicator
+                                      // Show loading indicator for the specific user
                                       setState(() => user['isUpdating'] = true);
                                       
-                                      // TODO: Call API to update verification status
-                                      // Example: await _apiService.verifyUserAttendance(event['id'], user['id'], !user['verified']);
-                                      
-                                      // For now, just toggle locally
-                                      await Future.delayed(const Duration(milliseconds: 500));
-                                      
-                                      setState(() {
-                                        user['verified'] = !(user['verified'] == true);
-                                        user['isUpdating'] = false;
-                                      });
-                                      
-                                      Get.snackbar(
-                                        'Success',
-                                        'User verification status updated',
-                                        snackPosition: SnackPosition.BOTTOM,
-                                        backgroundColor: Colors.green.withOpacity(0.1),
-                                        colorText: Colors.green,
+                                      // Call API to update verification status
+                                      final success = await _apiService.verifyUserAttendance(
+                                        event['id'].toString(), 
+                                        user['user_id'], 
+                                        !isVerified
                                       );
+                                      
+                                      if (success) {
+                                        // Update the UI
+                                        setState(() {
+                                          user['isParticipated'] = isVerified ? 0 : 1;
+                                          user['isUpdating'] = false;
+                                        });
+                                        
+                                        Get.snackbar(
+                                          'Success',
+                                          'User verification status updated',
+                                          snackPosition: SnackPosition.BOTTOM,
+                                          backgroundColor: Colors.green.withOpacity(0.1),
+                                          colorText: Colors.green,
+                                        );
+                                      } else {
+                                        setState(() => user['isUpdating'] = false);
+                                        Get.snackbar(
+                                          'Error',
+                                          'Failed to update verification status',
+                                          snackPosition: SnackPosition.BOTTOM,
+                                          backgroundColor: Colors.red.withOpacity(0.1),
+                                          colorText: Colors.red,
+                                        );
+                                      }
                                     } catch (e) {
                                       setState(() => user['isUpdating'] = false);
                                       Get.snackbar(
                                         'Error',
-                                        'Failed to update verification status',
+                                        'An error occurred: $e',
                                         snackPosition: SnackPosition.BOTTOM,
                                         backgroundColor: Colors.red.withOpacity(0.1),
                                         colorText: Colors.red,

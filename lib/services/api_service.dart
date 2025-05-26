@@ -785,7 +785,7 @@ Future<void> debugUserInfo() async {
     }
   }
 
-  // Add a method to get registered users for an event
+  // Updated method to get registered users for an event with the correct endpoint
   Future<List<Map<String, dynamic>>> getEventRegisteredUsers(String eventId) async {
     try {
       final token = await _authService.getToken();
@@ -795,15 +795,16 @@ Future<void> debugUserInfo() async {
         return [];
       }
       
+      // Updated to use the correct query parameter: usersForEvents (with 's')
       final response = await http.get(
-        Uri.parse('${baseUrl}events/user-event?query=usersForEvent&event_id=$eventId'),
+        Uri.parse('${baseUrl}events/user-event?query=usersForEvents&event_id=$eventId'),
         headers: {
           'Authorization': token,
           'Content-Type': 'application/json',
         },
       );
       
-      print('Get registered users response: ${response.statusCode}');
+      print('Get registered users response: ${response.statusCode} - ${response.body}');
       
       if (response.statusCode == 200) {
         final Map<String, dynamic> responseData = json.decode(response.body);
@@ -823,7 +824,7 @@ Future<void> debugUserInfo() async {
   }
   
   // Method to verify a user's attendance at an event
-  Future<bool> verifyUserAttendance(String eventId, String userId, bool attended) async {
+  Future<bool> verifyUserAttendance(String eventId, String userId, bool verified) async {
     try {
       final token = await _authService.getToken();
       
@@ -832,17 +833,22 @@ Future<void> debugUserInfo() async {
         return false;
       }
       
+      // Request body based on the provided API format
+      final requestBody = {
+        'user_id': userId,
+        'event_id': eventId,
+        'isParticipated': verified ? 1 : 0, // 1 for verified, 0 for unverified
+      };
+      
+      print('Verifying user attendance: $requestBody');
+      
       final response = await http.put(
         Uri.parse('${baseUrl}events/user-event/'),
         headers: {
           'Authorization': token,
           'Content-Type': 'application/json'
         },
-        body: json.encode({
-          'user_id': userId,
-          'event_id': eventId,
-          'isParticipated': attended ? 1 : 0,
-        }),
+        body: json.encode(requestBody),
       );
       
       print('Verify attendance response: ${response.statusCode} - ${response.body}');
