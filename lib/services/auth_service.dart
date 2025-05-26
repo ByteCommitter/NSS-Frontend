@@ -2,9 +2,29 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
+import 'package:mentalsustainability/services/api_service.dart';
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:html' as html; // Import for web localStorage
+
+// Add this extension at the top of the file after imports
+extension Base64Extension on String {
+  String normalize() {
+    String normalizedPayload = this;
+    switch (length % 4) {
+      case 1:
+        normalizedPayload += '===';
+        break;
+      case 2:
+        normalizedPayload += '==';
+        break;
+      case 3:
+        normalizedPayload += '=';
+        break;
+    }
+    return normalizedPayload;
+  }
+}
 
 // Define API base URL that can be accessed throughout the app
 class ApiConfig {
@@ -157,80 +177,207 @@ class AuthService extends GetxController {
   }
   
   // Login method that communicates with your backend
-  Future<bool> login(String username, String password) async {
-    // Validate ID format
-    if (!isValidId(username)) {
-      print('Invalid ID format. Expected format: f20XXXXX');
-      return false;
-    }
-    
+  Future<bool> login(String id, String password) async {
     try {
-      // Connect to localhost:8081 auth/login endpoint
-      final response = await http.post(
-        Uri.parse('${ApiConfig.apiBase}auth/login'),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          'id': username, // Changed from 'username' to match backend
-          'password': password,
-        }),
-      );
+      final apiService = Get.find<ApiService>();
+      final response = await apiService.login(id, password);
       
-      // Print response for debugging
-      print('Login response: ${response.statusCode} - ${response.body}');
+      print('AuthService received login response: $response');
       
-      if (response.statusCode == 200) {
-        final responseData = json.decode(response.body);
-        final token = responseData['token'];
+      if (response != null) {
+        final token = response['token'];
         
         if (token != null) {
+          // Store the token and user ID
           await storeToken(token);
           
-          // Extract user ID from token or use the provided username
-          String userIdToStore = username;
-          bool isAdmin = false; // Default to not admin
+          // Use the provided user_id or fallback to the login id
+          final userId = response['user_id']?.toString() ?? id;
+          await storeUserId(userId);
           
-          // Try to get user ID and admin status from token payload
-          try {
-            final parts = token.split('.');
-            if (parts.length == 3) {
-              final payload = parts[1];
-              final normalized = base64Url.normalize(payload);
-              final decoded = utf8.decode(base64Url.decode(normalized));
-              final Map<String, dynamic> data = json.decode(decoded);
-              
-              if (data.containsKey('id')) {
-                userIdToStore = data['id'].toString();
-                print('Extracted user ID from token: $userIdToStore');
-              }
-              
-              // Extract admin status from token claims
-              if (data.containsKey('isAdmin')) {
-                isAdmin = data['isAdmin'] == true;
-                print('Extracted admin status from token: $isAdmin');
-              } else if (data.containsKey('role')) {
-                isAdmin = data['role'] == 'admin';
-                print('Extracted admin role from token: $isAdmin');
-              }
-              
-              // Store the admin status
-              await _secureStorage.write(key: 'isAdmin', value: isAdmin.toString());
-              print('Stored admin status: $isAdmin');
-            }
-          } catch (e) {
-            print('Error extracting data from token: $e');
+          // Set authentication status
+          isAuthenticated.value = true;
+          
+          // Check for admin status in the response
+          final isAdminFromResponse = response['isAdmin'];
+          if (isAdminFromResponse != null) {
+            // Store admin status from direct response
+            isAdminUser.value = isAdminFromResponse == true;
+            _adminStatus = isAdminFromResponse == true ? 'admin' : 'user';
+            
+            // Store admin status for future reference
+            await _storeAdminStatus(isAdminFromResponse == true);
+            
+            print('Admin status from response: ${isAdminUser.value}');
+          } else {
+            // Fallback: try to decode from JWT
+            await initAdminStatus();
           }
           
-          // Store the user ID
-          await storeUserId(userIdToStore);
-          print('Stored user ID: $userIdToStore');
+          print('Login successful - User ID: $userId, Is Admin: ${isAdminUser.value}');
           return true;
         }
       }
       
       return false;
     } catch (e) {
-      print('Login error: $e');
+      print('Login error in AuthService: $e');
       return false;
+    }
+  }
+  
+  // Store admin status securely
+  Future<void> _storeAdminStatus(bool isAdmin) async {
+    try {
+      final adminValue = isAdmin.toString();
+      
+      if (kIsWeb) {
+        html.window.localStorage['isAdmin'] = adminValue;
+        try {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('isAdmin', adminValue);
+        } catch (e) {
+          print('SharedPreferences admin status storage failed: $e');
+        }
+      } else {
+        await _secureStorage.write(key: 'isAdmin', value: adminValue);
+      }
+      print('Admin status stored: $isAdmin');
+    } catch (e) {
+      print('Error storing admin status: $e');
+    }
+  }
+  
+  // Enhanced admin status initialization
+  Future<void> initAdminStatus() async {
+    try {
+      // First try to get stored admin status
+      final storedAdminStatus = await _getStoredAdminStatus();
+      if (storedAdminStatus != null) {
+        isAdminUser.value = storedAdminStatus;
+        _adminStatus = storedAdminStatus ? 'admin' : 'user';
+        print('Admin status from storage: ${isAdminUser.value}');
+        return;
+      }
+      
+      // Fallback: try to decode from JWT
+      final token = await getToken();
+      if (token != null) {
+        final isAdmin = await _checkAdminStatusFromToken(token);
+        isAdminUser.value = isAdmin;
+        _adminStatus = isAdmin ? 'admin' : 'user';
+        
+        // Store the decoded status for future use
+        await _storeAdminStatus(isAdmin);
+        
+        print('Admin status from JWT: ${isAdminUser.value}');
+      }
+    } catch (e) {
+      print('Error initializing admin status: $e');
+      isAdminUser.value = false;
+      _adminStatus = 'user';
+    }
+  }
+  
+  // Get stored admin status
+  Future<bool?> _getStoredAdminStatus() async {
+    try {
+      String? adminStatus;
+      
+      if (kIsWeb) {
+        adminStatus = html.window.localStorage['isAdmin'];
+        if (adminStatus == null) {
+          try {
+            final prefs = await SharedPreferences.getInstance();
+            adminStatus = prefs.getString('isAdmin');
+          } catch (e) {
+            print('SharedPreferences admin status retrieval failed: $e');
+          }
+        }
+      } else {
+        adminStatus = await _secureStorage.read(key: 'isAdmin');
+      }
+      
+      if (adminStatus != null) {
+        return adminStatus == 'true';
+      }
+      
+      return null;
+    } catch (e) {
+      print('Error getting stored admin status: $e');
+      return null;
+    }
+  }
+  
+  // Method to decode JWT and check admin status (keep as fallback)
+  Future<bool> _checkAdminStatusFromToken(String token) async {
+    try {
+      final parts = token.split('.');
+      if (parts.length != 3) return false;
+      
+      final payload = parts[1];
+      final normalizedPayload = payload.normalize();
+      
+      final bytes = base64Url.decode(normalizedPayload);
+      final payloadString = utf8.decode(bytes);
+      final payloadMap = json.decode(payloadString);
+      
+      // Check for admin status in the JWT payload
+      final isAdmin = payloadMap['isAdmin'] == true || 
+                     payloadMap['isAdmin'] == 1 ||
+                     payloadMap['role'] == 'admin' || 
+                     payloadMap['admin'] == true ||
+                     payloadMap['user_type'] == 'admin';
+      
+      print('JWT payload admin check: $isAdmin');
+      print('Full JWT payload: $payloadMap');
+      
+      return isAdmin;
+    } catch (e) {
+      print('Error decoding JWT for admin status: $e');
+      return false;
+    }
+  }
+  
+  // Clear all data (for complete logout)
+  Future<void> logout() async {
+    try {
+      // Clear token
+      await clearToken();
+      // Clear user ID
+      await clearUserId();
+      // Clear admin status
+      await _clearAdminStatus();
+      
+      // Reset observables
+      isAuthenticated.value = false;
+      isAdminUser.value = false;
+      _adminStatus = null;
+      
+      print('Logout complete - all data cleared');
+    } catch (e) {
+      print('Error during logout: $e');
+      rethrow;
+    }
+  }
+  
+  // Clear admin status
+  Future<void> _clearAdminStatus() async {
+    try {
+      if (kIsWeb) {
+        html.window.localStorage.remove('isAdmin');
+        try {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.remove('isAdmin');
+        } catch (e) {
+          print('SharedPreferences admin status clear failed: $e');
+        }
+      } else {
+        await _secureStorage.delete(key: 'isAdmin');
+      }
+      print('Admin status cleared');
+    } catch (e) {
+      print('Error clearing admin status: $e');
     }
   }
   
@@ -362,64 +509,52 @@ class AuthService extends GetxController {
     }
   }
   
-  // Clear all data (for complete logout)
-  Future<void> logout() async {
-    try {
-      // Clear token
-      await clearToken();
-      // Clear user ID
-      await clearUserId();
-      
-      print('Logout complete - all data cleared');
-    } catch (e) {
-      print('Error during logout: $e');
-      rethrow; // Re-throw for handling upstream
-    }
-  }
-  
   // Signup method that communicates with your backend
-  Future<bool> signup(String id, String username, String password) async {
-    // Validate ID format
-    if (!isValidId(id)) {
-      print('Invalid ID format. Expected format: f20XXXXXX');
-      return false;
-    }
-    
+  Future<bool> signup(String universityId, String username, String password) async {
     try {
-      print('Attempting to connect to: ${ApiConfig.apiBase}auth/register');
+      final apiService = Get.find<ApiService>();
+      final response = await apiService.register(universityId, username, password);
       
-      // Connect to localhost:8081 auth/register endpoint
-      final response = await http.post(
-        Uri.parse('${ApiConfig.apiBase}auth/register'),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          'university_id': id,
-          'username': username, 
-          'password': password
-        }),
-      );
+      print('AuthService received signup response: $response');
       
-      // Print response for debugging
-      print('Signup response: ${response.statusCode} - ${response.body}');
-      
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        // Store the token from signup response so user is automatically logged in
-        final responseData = json.decode(response.body);
-        final token = responseData['token'];
+      if (response != null) {
+        final token = response['token'];
         
         if (token != null) {
+          // Store the token and user ID
           await storeToken(token);
-          // Store the user ID
-          await storeUserId(id); // Store university ID as user ID
+          
+          // Use the provided user_id or fallback to the university_id
+          final userId = response['user_id']?.toString() ?? universityId;
+          await storeUserId(userId);
+          
+          // Set authentication status
+          isAuthenticated.value = true;
+          
+          // Check for admin status in the response
+          final isAdminFromResponse = response['isAdmin'];
+          if (isAdminFromResponse != null) {
+            // Store admin status from direct response
+            isAdminUser.value = isAdminFromResponse == true;
+            _adminStatus = isAdminFromResponse == true ? 'admin' : 'user';
+            
+            // Store admin status for future reference
+            await _storeAdminStatus(isAdminFromResponse == true);
+            
+            print('Admin status from signup response: ${isAdminUser.value}');
+          } else {
+            // Fallback: try to decode from JWT
+            await initAdminStatus();
+          }
+          
+          print('Signup successful - User ID: $userId, Is Admin: ${isAdminUser.value}');
           return true;
         }
-        return true; // Still return true even if token isn't present
       }
+      
       return false;
     } catch (e) {
-      print('Signup error: $e');
-      // More detailed error logging
-      print('Error details: ${e.toString()}');
+      print('Signup error in AuthService: $e');
       return false;
     }
   }
@@ -465,23 +600,29 @@ class AuthService extends GetxController {
   Future<bool> isAdmin() async {
     // First check if we have a cached value
     if (_adminStatus != null) {
-      return _adminStatus == 'true';
+      return _adminStatus == 'admin';
     }
     
     // Otherwise read from storage
     try {
-      final token = await _secureStorage.read(key: 'jwt_token');
-      if (token == null || token.isEmpty) return false;
-      
       String? adminStatus;
+      
       if (kIsWeb) {
         adminStatus = html.window.localStorage['isAdmin'];
+        if (adminStatus == null) {
+          try {
+            final prefs = await SharedPreferences.getInstance();
+            adminStatus = prefs.getString('isAdmin');
+          } catch (e) {
+            print('SharedPreferences admin status retrieval failed: $e');
+          }
+        }
       } else {
         adminStatus = await _secureStorage.read(key: 'isAdmin');
       }
       
       // Cache the result for future sync checks
-      _adminStatus = adminStatus;
+      _adminStatus = adminStatus == 'true' ? 'admin' : 'user';
       
       // Update the observable
       isAdminUser.value = adminStatus == 'true';
@@ -503,7 +644,7 @@ class AuthService extends GetxController {
       
       // Use cached admin status from memory first
       if (_adminStatus != null) {
-        return _adminStatus == 'true';
+        return _adminStatus == 'admin';
       }
       
       // For web, check localStorage
@@ -518,30 +659,6 @@ class AuthService extends GetxController {
     } catch (e) {
       print('Error checking admin status: $e');
       return false;
-    }
-  }
-
-  // Add this method to initialize admin status from storage when app starts
-  Future<void> initAdminStatus() async {
-    try {
-      String? adminStatus;
-      
-      if (kIsWeb) {
-        adminStatus = html.window.localStorage['isAdmin'];
-      } else {
-        adminStatus = await _secureStorage.read(key: 'isAdmin');
-      }
-      
-      // Cache the admin status for sync checks
-      _adminStatus = adminStatus;
-      
-      // Update the observable
-      isAdminUser.value = adminStatus == 'true';
-      print('Admin status initialized: ${isAdminUser.value}');
-    } catch (e) {
-      print('Error initializing admin status: $e');
-      _adminStatus = 'false';
-      isAdminUser.value = false;
     }
   }
 }

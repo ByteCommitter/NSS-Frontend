@@ -8,7 +8,7 @@ class AdminHomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final AuthService _authService = Get.find<AuthService>();
+    final AuthService authService = Get.find<AuthService>();
     
     return Scaffold(
       appBar: AppBar(
@@ -17,8 +17,8 @@ class AdminHomePage extends StatelessWidget {
         foregroundColor: Colors.white,
         actions: [
           IconButton(
-            icon: const Icon(Icons.exit_to_app),
-            onPressed: () => _authService.logout(),
+            icon: const Icon(Icons.logout, semanticLabel: 'Logout'),  // Updated for clarity
+            onPressed: () => authService.logout(),
           ),
         ],
       ),
@@ -26,10 +26,11 @@ class AdminHomePage extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(
+            // Use a simple Material icon with explicit size and color
+            Icon(
               Icons.admin_panel_settings,
               size: 80,
-              color: Colors.blueGrey,
+              color: AppColors.primary.withOpacity(0.8),
             ),
             const SizedBox(height: 24),
             const Text(

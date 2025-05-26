@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:mentalsustainability/services/socket_notification_service.dart';
-import 'package:mentalsustainability/theme/app_colors.dart';
 
 class SocketDebugPage extends StatefulWidget {
   const SocketDebugPage({super.key});

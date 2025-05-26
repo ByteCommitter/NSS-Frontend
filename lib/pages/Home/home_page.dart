@@ -6,7 +6,6 @@ import 'package:mentalsustainability/services/socket_notification_service.dart';
 import 'package:mentalsustainability/theme/app_colors.dart';
 import 'dart:async';
 // Import models.dart but rename its Event class to avoid conflicts
-import 'package:mentalsustainability/models/admin_models.dart' as admin_models;
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -150,6 +149,10 @@ class _HomePageState extends State<HomePage> {
     } catch (e) {
       print('Error initializing socket notification service: $e');
     }
+
+    Timer(const Duration(milliseconds: 1000), () {
+      _apiService.debugUserInfo(); // Add this line for debugging
+    });
     
     // Delay fetch to ensure all services are fully initialized
     Timer(const Duration(milliseconds: 500), () {
@@ -309,7 +312,7 @@ class _HomePageState extends State<HomePage> {
     });
     
     // Create a timeout
-    Timer timeoutTimer = Timer(const Duration(seconds: 10), () {
+    Timer timeoutTimer = Timer(const Duration(seconds: 15), () {
       if (_isLoadingRegistered) {
         setState(() {
           _isLoadingRegistered = false;
@@ -350,6 +353,13 @@ class _HomePageState extends State<HomePage> {
         }
         
         _isLoadingRegistered = false;
+        
+        // Log success message
+        if (_registeredEvents.isNotEmpty) {
+          print('Successfully loaded ${_registeredEvents.length} registered events');
+        } else {
+          print('No registered events found for user');
+        }
       });
     } catch (e) {
       // Cancel the timer if we got an error
@@ -364,7 +374,7 @@ class _HomePageState extends State<HomePage> {
       setState(() {
         _isLoadingRegistered = false;
         _hasLoadingError = true;
-        _errorMessage = 'Error loading registered events: ${e.toString()}';
+        _errorMessage = 'Error loading registered events. Some event details may be unavailable.';
       });
     }
   }
@@ -1517,18 +1527,25 @@ class _HomePageState extends State<HomePage> {
 
   // Registered event card with confirmation UI
   Widget _buildRegisteredEventCard(Event event) {
+    bool isPlaceholder = event.title.contains('Details Unavailable') || 
+                        event.title.contains('Registered Event #');
+    
     return Container(
-      height: 210, // Increased from 194 to 210
+      height: 210,
       width: 240,
       margin: const EdgeInsets.only(right: 12),
       child: Card(
         clipBehavior: Clip.antiAlias,
         elevation: 3,
-        shadowColor: AppColors.success.withOpacity(0.3),
+        shadowColor: isPlaceholder 
+            ? AppColors.warning.withOpacity(0.3)
+            : AppColors.success.withOpacity(0.3),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
           side: BorderSide(
-            color: AppColors.success.withOpacity(0.3),
+            color: isPlaceholder 
+                ? AppColors.warning.withOpacity(0.3)
+                : AppColors.success.withOpacity(0.3),
             width: 1,
           ),
         ),
@@ -1544,9 +1561,18 @@ class _HomePageState extends State<HomePage> {
                     height: 100,
                     width: double.infinity,
                     decoration: BoxDecoration(
-                      color: AppColors.success.withOpacity(0.05),
-                      image: _getEventImage(event.title),
+                      color: isPlaceholder 
+                          ? AppColors.warning.withOpacity(0.05)
+                          : AppColors.success.withOpacity(0.05),
+                      image: isPlaceholder ? null : _getEventImage(event.title),
                     ),
+                    child: isPlaceholder 
+                        ? Icon(
+                            Icons.event_note,
+                            size: 40,
+                            color: AppColors.warning.withOpacity(0.5),
+                          )
+                        : null,
                   ),
                   // Registration badge
                   Positioned(
@@ -1555,7 +1581,9 @@ class _HomePageState extends State<HomePage> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: AppColors.success.withOpacity(0.2),
+                        color: isPlaceholder 
+                            ? AppColors.warning.withOpacity(0.2)
+                            : AppColors.success.withOpacity(0.2),
                         borderRadius: BorderRadius.circular(12),
                         boxShadow: [
                           BoxShadow(
@@ -1569,9 +1597,9 @@ class _HomePageState extends State<HomePage> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(
-                            Icons.check_circle,
+                            isPlaceholder ? Icons.warning : Icons.check_circle,
                             size: 12,
-                            color: AppColors.success,
+                            color: isPlaceholder ? AppColors.warning : AppColors.success,
                           ),
                           const SizedBox(width: 4),
                           Text(
@@ -1579,44 +1607,45 @@ class _HomePageState extends State<HomePage> {
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.bold,
-                              color: AppColors.success,
+                              color: isPlaceholder ? AppColors.warning : AppColors.success,
                             ),
                           ),
                         ],
                       ),
                     ),
                   ),
-                  // Date badge
-                  Positioned(
-                    bottom: 10,
-                    left: 10,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: AppColors.cardBackground.withOpacity(0.85),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.calendar_today,
-                            size: 12,
-                            color: AppColors.primary,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            event.date,
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
+                  // Date badge - only show if not placeholder
+                  if (!isPlaceholder && event.date != 'TBD')
+                    Positioned(
+                      bottom: 10,
+                      left: 10,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppColors.cardBackground.withOpacity(0.85),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.calendar_today,
+                              size: 12,
                               color: AppColors.primary,
                             ),
-                          ),
-                        ],
+                            const SizedBox(width: 4),
+                            Text(
+                              event.date,
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
                 ],
               ),
               // Event details
@@ -1628,65 +1657,88 @@ class _HomePageState extends State<HomePage> {
                     children: [
                       Text(
                         event.title,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 13,
+                          color: isPlaceholder ? AppColors.warning : null,
                         ),
-                        maxLines: 1,
+                        maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: 2), // Reduced from 4
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.access_time,
-                            size: 12,
-                            color: AppColors.textSecondary,
-                          ),
-                          const SizedBox(width: 4),
-                          Expanded(
-                            child: Text(
-                              _formatEventTime(event.fromTime, event.toTime),
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: AppColors.textSecondary,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
                       const SizedBox(height: 2),
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.location_on_outlined,
-                            size: 12,
-                            color: AppColors.textSecondary,
-                          ),
-                          const SizedBox(width: 4),
-                          Expanded(
-                            child: Text(
-                              event.location,
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: AppColors.textSecondary,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                      if (!isPlaceholder && event.fromTime != '00:00:00') ...[
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.access_time,
+                              size: 12,
+                              color: AppColors.textSecondary,
                             ),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: Text(
+                                _formatEventTime(event.fromTime, event.toTime),
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: AppColors.textSecondary,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 2),
+                      ],
+                      if (!isPlaceholder && event.location != 'TBD') ...[
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.location_on_outlined,
+                              size: 12,
+                              color: AppColors.textSecondary,
+                            ),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: Text(
+                                event.location,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: AppColors.textSecondary,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ] else if (isPlaceholder) ...[
+                        Text(
+                          'Event details temporarily unavailable',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: AppColors.textSecondary,
+                            fontStyle: FontStyle.italic,
                           ),
-                        ],
-                      ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
                       const Spacer(),
                       Center(
                         child: TextButton.icon(
                           onPressed: () => _showEventDialog(event),
-                          icon: Icon(Icons.visibility, size: 14, color: AppColors.primary),
+                          icon: Icon(
+                            isPlaceholder ? Icons.info_outline : Icons.visibility, 
+                            size: 14, 
+                            color: isPlaceholder ? AppColors.warning : AppColors.primary
+                          ),
                           label: Text(
-                            'View Details',
-                            style: TextStyle(color: AppColors.primary, fontSize: 12),
+                            isPlaceholder ? 'View Info' : 'View Details',
+                            style: TextStyle(
+                              color: isPlaceholder ? AppColors.warning : AppColors.primary, 
+                              fontSize: 12
+                            ),
                           ),
                           style: TextButton.styleFrom(
                             padding: EdgeInsets.zero,
@@ -1696,7 +1748,7 @@ class _HomePageState extends State<HomePage> {
                           ),
                         ),
                       ),
-                      const SizedBox(height: 4), // Added small bottom padding
+                      const SizedBox(height: 4),
                     ],
                   ),
                 ),

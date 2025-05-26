@@ -353,7 +353,7 @@ class _BaseScreenState extends State<BaseScreen> with SingleTickerProviderStateM
         children: [
           // Modern stylish header
           Container(
-            height: 150, // Reduced from 180 to 150
+            height: 150,
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
@@ -387,12 +387,37 @@ class _BaseScreenState extends State<BaseScreen> with SingleTickerProviderStateM
                       ),
                     ),
                     const SizedBox(width: 15),
-                    const Text(
-                      'Sereine',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Sereine',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          // Add admin status indicator
+                          Obx(() => _authService.isAdminUser.value
+                              ? Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: Colors.orange.withOpacity(0.8),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: const Text(
+                                    'ADMIN',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                )
+                              : const SizedBox.shrink()),
+                        ],
                       ),
                     ),
                   ],
@@ -414,6 +439,28 @@ class _BaseScreenState extends State<BaseScreen> with SingleTickerProviderStateM
             child: ListView(
               padding: const EdgeInsets.symmetric(vertical: 16),
               children: [
+                // Add admin panel access if user is admin
+                Obx(() => _authService.isAdminUser.value
+                    ? Column(
+                        children: [
+                          _buildDrawerMenuItem(
+                            icon: Icons.admin_panel_settings,
+                            iconColor: Colors.orange,
+                            title: 'Admin Panel',
+                            subtitle: 'Manage events, users, and notifications',
+                            onTap: () {
+                              Navigator.pop(context);
+                              Get.toNamed('/admin');
+                            },
+                          ),
+                          const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 20),
+                            child: Divider(height: 32),
+                          ),
+                        ],
+                      )
+                    : const SizedBox.shrink()),
+                
                 // Take Personalised Quiz
                 _buildDrawerMenuItem(
                   icon: Icons.quiz,

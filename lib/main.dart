@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:mentalsustainability/pages/base_widget.dart';
 import 'package:mentalsustainability/pages/guide_page.dart';
+import 'package:mentalsustainability/pages/admin/admin_panel.dart'; // Add this import
 import 'package:mentalsustainability/theme/app_colors.dart';
 import 'package:mentalsustainability/theme/theme_provider.dart';
 import 'pages/auth_wrapper.dart';
@@ -13,13 +14,13 @@ import 'services/api_service.dart';
 import 'package:mentalsustainability/services/socket_notification_service.dart';
 import 'package:mentalsustainability/middleware/auth_middleware.dart';
 import 'package:mentalsustainability/middleware/admin_middleware.dart';
-import 'package:mentalsustainability/pages/Admin/admin_home_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
   // Initialize services
   await initServices();
+  
   
   runApp(const MyApp());
 }
@@ -73,17 +74,16 @@ class MyApp extends StatelessWidget {
             color: AppColors.divider,
           ),
         ),
-        home:const SplashScreen(), // Use splash screen first, then it will navigate to login
+        home: const SplashScreen(),
         getPages: [
-          GetPage(name: '/', page: () => const SplashScreen()),
-          GetPage(name: '/auth', page: () => AuthWrapper()),
-          GetPage(name: '/onboarding', page: () => const OnboardingScreen()),
-          GetPage(name: '/home', page: () => const BaseScreen()),
+          GetPage(name: '/', page: () => AuthWrapper()),
+          GetPage(name: '/login', page: () => AuthWrapper()),
+          GetPage(name: '/auth', page: () => AuthWrapper()), // Add this for splash navigation
+          GetPage(name: '/home', page: () => const BaseScreen() ),
           GetPage(name: '/guide', page: () => const GuidePage()),
-          // Add AdminHomePage to your routes
           GetPage(
             name: '/admin',
-            page: () => const AdminHomePage(),
+            page: () => const AdminPanel(),
             middlewares: [
               AuthMiddleware(),
               AdminMiddleware(),

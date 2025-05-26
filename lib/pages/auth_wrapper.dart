@@ -12,13 +12,26 @@ class AuthWrapper extends StatelessWidget {
   Widget build(BuildContext context) {
     return Obx(() {
       if (authService.isAuthenticated.value) {
-        // If authenticated, navigate to home
+        // If authenticated, check if admin and navigate accordingly
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          Get.offAllNamed('/home');
+          if (authService.isAdminUser.value) {
+            print('Navigating to admin panel');
+            Get.offAllNamed('/admin');
+          } else {
+            print('Navigating to home');
+            Get.offAllNamed('/home');
+          }
         });
         return const Scaffold(
           body: Center(
-            child: CircularProgressIndicator(),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text('Loading...'),
+              ],
+            ),
           ),
         );
       } else {
@@ -65,7 +78,8 @@ class _LoginScreenState extends State<LoginScreen> {
       });
 
       if (success) {
-        Get.offAllNamed('/home');
+        // Let the AuthWrapper handle navigation based on admin status
+        // The AuthWrapper will automatically navigate to admin or home
       } else {
         Get.snackbar(
           'Error',

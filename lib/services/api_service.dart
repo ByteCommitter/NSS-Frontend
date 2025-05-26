@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'dart:async'; // Added missing import for TimeoutException
-import 'dart:math' as math; // lowercase math to follow convention
+// lowercase math to follow convention
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:get/get.dart';
@@ -88,7 +88,24 @@ class ApiService extends GetxService {
       print('Login response: ${response.statusCode} - ${response.body}');
       
       if (response.statusCode == 200) {
-        return json.decode(response.body);
+        final responseData = json.decode(response.body);
+        
+        // Debug: Print the full response to see what we're getting
+        print('Full login response data: $responseData');
+        
+        // Handle the current backend format which only sends {token}
+        if (responseData['token'] != null) {
+          // Create a standardized response format for the frontend
+          return {
+            'success': true,
+            'token': responseData['token'],
+            'user_id': id, // Use the login ID as user_id for now
+            'isAdmin': responseData['isAdmin'] ?? false, // Will be null if not provided
+            'message': 'Login successful'
+          };
+        }
+        
+        return responseData;
       }
       return null;
     } catch (e) {
@@ -181,7 +198,66 @@ class ApiService extends GetxService {
       return [];
     }
   }
-  
+  Future<ApiEvent?> getEventById(String eventId) async {
+    try {
+      final token = await _authService.getToken();
+      
+      if (token == null) {
+        print('No auth token available');
+        return null;
+      }
+      
+      final response = await http.post(
+        Uri.parse('${baseUrl}events/eventById'),
+        headers: {
+          'Authorization': token,
+          'Content-Type': 'application/json',
+        },
+        body: json.encode({
+          'id': eventId,
+        }),
+      );
+      
+      print('Get event by ID response: ${response.statusCode}');
+      print('Response body: ${response.body}');
+      
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+        
+        // Handle the actual API response format with result array
+        dynamic eventData;
+        if (responseData is Map && responseData.containsKey('result')) {
+          final resultArray = responseData['result'] as List<dynamic>;
+          if (resultArray.isNotEmpty) {
+            eventData = resultArray[0]; // Get the first (and likely only) event
+          } else {
+            print('No event found in result array');
+            return null;
+          }
+        } else {
+          // Fallback for direct event data format
+          eventData = responseData;
+        }
+        
+        return ApiEvent(
+          id: eventData['id'].toString(),
+          title: eventData['title'] ?? 'Unknown Event',
+          description: eventData['description'] ?? 'No description available',
+          date: eventData['date'] ?? 'TBD',
+          fromTime: eventData['fromTime'] ?? '00:00:00',
+          toTime: eventData['ToTime'] ?? '00:00:00',
+          location: eventData['eventVenue'] ?? 'TBD',
+          imageUrl: eventData['banner_image'],
+        );
+      } else {
+        print('Failed to fetch event $eventId: ${response.statusCode}');
+        return null;
+      }
+    } catch (e) {
+      print('Error fetching event $eventId: $e');
+      return null;
+    }
+  }
   Future<bool> createEvent(ApiEvent event) async {
     try {
       final token = await _authService.getToken();
@@ -288,73 +364,134 @@ class ApiService extends GetxService {
   }
   
   // Get user's registered events - updated with the correct endpoint
-  Future<List<ApiEvent>> getUserRegisteredEvents() async {
-    try {
-      final token = await _authService.getToken();
-      final userId = await _authService.getUserId();
-      
-      if (token == null || userId == null) {
-        print('No auth token or user ID available');
-        return [];
-      }
-      
-      // Using the correct endpoint with query parameters as provided
-      final response = await http.get(
-        Uri.parse('${baseUrl}events/user-event?query=eventsForUser&user_id=$userId'),
-        headers: {
-          'Authorization': token,
-          'Content-Type': 'application/json',
-        },
-      );
-      
-      print('Get user registered events response: ${response.statusCode}');
-      
-      if (response.statusCode == 200) {
-        try {
-          final responseData = json.decode(response.body);
-          List<dynamic> eventsData;
-          
-          if (responseData is Map && responseData.containsKey('events')) {
-            eventsData = responseData['events'] as List<dynamic>;
-            print('Found events array in response object');
-          } else if (responseData is List) {
-            eventsData = responseData;
-            print('Response is directly an events array');
-          } else {
-            print('Unexpected response format: $responseData');
-            return [];
-          }
-          
-          print('Received ${eventsData.length} registered events for user');
-          
-          final events = eventsData.map((eventJson) {
-            return ApiEvent(
-              id: eventJson['id'].toString(),
-              title: eventJson['title'] ?? 'Unknown Event',
-              description: eventJson['description'] ?? 'No description available',
-              date: eventJson['date'] ?? 'TBD',
-              fromTime: eventJson['fromTime'] ?? '00:00:00',
-              toTime: eventJson['ToTime'] ?? '00:00:00',
-              location: eventJson['eventVenue'] ?? 'TBD',
-              imageUrl: eventJson['banner_image'],
-            );
-          }).toList();
-          
-          return events;
-        } catch (e) {
-          print('Error parsing user registered events: $e');
-          return [];
-        }
-      } else {
-        print('Failed to load user registered events: ${response.statusCode} - ${response.body}');
-        return [];
-      }
-    } catch (e) {
-      print('Error fetching user registered events: $e');
+Future<List<ApiEvent>> getUserRegisteredEvents() async {
+  try {
+    final token = await _authService.getToken();
+    final userId = await _authService.getUserId();
+    
+    if (token == null || userId == null) {
+      print('No auth token or user ID available');
       return [];
     }
+    
+    print('Fetching registered events for user ID: $userId');
+    print('Using token: ${token.substring(0, 20)}...');
+    
+    // Use the exact endpoint format you provided
+    final response = await http.get(
+      Uri.parse('${baseUrl}events/user-event?query=eventsForUser&user_id=$userId'),
+      headers: {
+        'Authorization': token,
+        'Content-Type': 'application/json',
+      },
+    );
+    
+    print('Get user registered events response: ${response.statusCode}');
+    print('Response body: ${response.body}');
+    
+    if (response.statusCode == 200) {
+      try {
+        final responseData = json.decode(response.body);
+        print('Parsed response data: $responseData');
+        
+        List<dynamic> eventIds = [];
+        
+        // Handle the response format from your server
+        if (responseData is Map && responseData.containsKey('result')) {
+          eventIds = responseData['result'] as List<dynamic>;
+          print('Found result array with ${eventIds.length} event registrations');
+        } else {
+          print('Unexpected response format: $responseData');
+          return [];
+        }
+        
+        // Check if the result array is empty
+        if (eventIds.isEmpty) {
+          print('No registered events found for user $userId');
+          return [];
+        }
+        
+        // Since your server returns event_ids, we need to fetch full event details
+        List<ApiEvent> registeredEvents = [];
+        
+        for (var eventData in eventIds) {
+          String eventId;
+          if (eventData is Map && eventData.containsKey('event_id')) {
+            eventId = eventData['event_id'].toString();
+          } else {
+            eventId = eventData.toString();
+          }
+          
+          print('Fetching details for event ID: $eventId');
+          
+          // Fetch full event details for each registered event
+          try {
+            final eventDetails = await getEventById(eventId);
+            if (eventDetails != null) {
+              registeredEvents.add(eventDetails);
+              print('Successfully fetched details for event $eventId: ${eventDetails.title}');
+            } else {
+              print('Could not fetch details for event $eventId, creating placeholder');
+              // Create a placeholder event with minimal info
+              registeredEvents.add(ApiEvent(
+                id: eventId,
+                title: 'Event #$eventId (Details Unavailable)',
+                description: 'Event details could not be loaded from server',
+                date: 'TBD',
+                fromTime: '00:00:00',
+                toTime: '00:00:00',
+                location: 'TBD',
+                imageUrl: null,
+              ));
+            }
+          } catch (e) {
+            print('Error fetching details for event $eventId: $e');
+            // Still add a placeholder so user knows they're registered
+            registeredEvents.add(ApiEvent(
+              id: eventId,
+              title: 'Registered Event #$eventId',
+              description: 'Unable to load event details at this time',
+              date: 'TBD',
+              fromTime: '00:00:00',
+              toTime: '00:00:00',
+              location: 'Check with organizers',
+              imageUrl: null,
+            ));
+          }
+        }
+        
+        print('Successfully processed ${registeredEvents.length} registered events');
+        return registeredEvents;
+        
+      } catch (e) {
+        print('Error parsing user registered events: $e');
+        return [];
+      }
+    } else {
+      print('Failed to load user registered events: ${response.statusCode} - ${response.body}');
+      return [];
+    }
+  } catch (e) {
+    print('Error fetching user registered events: $e');
+    return [];
   }
+}
 
+// Add a debug method to check what user ID is being used
+Future<void> debugUserInfo() async {
+  final token = await _authService.getToken();
+  final userId = await _authService.getUserId();
+  
+  print('=== DEBUG USER INFO ===');
+  print('Token available: ${token != null}');
+  if (token != null) {
+    print('Token preview: ${token.substring(0, 20)}...');
+  }
+  print('User ID: $userId');
+  print('User ID type: ${userId.runtimeType}');
+  print('========================');
+}
+ 
   // Check if user is registered for a specific event - simplified to use the list approach
   Future<bool> isUserRegisteredForEvent(String userId, String eventId) async {
     try {
@@ -638,6 +775,84 @@ class ApiService extends GetxService {
       AdminUser(id: 'u2', name: 'Priya Singh', points: 720, rank: 2),
       AdminUser(id: 'u3', name: 'Amit Sharma', points: 690, rank: 3),
     ];
+  }
+
+  // Fetch all notifications
+  Future<List<Map<String, dynamic>>> getNotifications() async {
+    try {
+      final token = await _authService.getToken();
+      
+      if (token == null) {
+        print('No auth token available');
+        return [];
+      }
+      
+      final response = await http.get(
+        Uri.parse('${baseUrl}notifications'),
+        headers: {
+          'Authorization': token,
+        },
+      );
+      
+      print('Get notifications response: ${response.statusCode}');
+      
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> responseData = json.decode(response.body);
+        
+        if (responseData.containsKey('result') && responseData['result'] is List) {
+          return List<Map<String, dynamic>>.from(responseData['result']);
+        }
+        return [];
+      } else {
+        print('Failed to fetch notifications: ${response.statusCode}');
+        return [];
+      }
+    } catch (e) {
+      print('Error fetching notifications: $e');
+      return [];
+    }
+  }
+  
+  // Post a new notification
+  Future<bool> postNotification(String title, String message) async {
+    try {
+      final token = await _authService.getToken();
+      
+      if (token == null) {
+        print('No auth token available');
+        return false;
+      }
+      
+      // Create notification payload
+      final notification = {
+        'title': title,
+        'message': message,
+        'time': DateTime.now().toUtc().toIso8601String(),
+        'isRead': false
+      };
+      
+      final response = await http.post(
+        Uri.parse('${baseUrl}notifications'),
+        headers: {
+          'Authorization': token,
+          'Content-Type': 'application/json',
+        },
+        body: json.encode(notification),
+      );
+      
+      print('Post notification response: ${response.statusCode}');
+      
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final responseData = json.decode(response.body);
+        return responseData['success'] == true;
+      } else {
+        print('Failed to post notification: ${response.statusCode}');
+        return false;
+      }
+    } catch (e) {
+      print('Error posting notification: $e');
+      return false;
+    }
   }
 }
 
