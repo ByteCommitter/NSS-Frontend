@@ -1033,6 +1033,246 @@ Future<void> debugUserInfo() async {
       return false;
     }
   }
+
+  // Get all users for admin dashboard
+  Future<List<Map<String, dynamic>>> getAllUsers() async {
+    try {
+      final token = await _authService.getToken();
+      
+      if (token == null) {
+        print('No auth token available');
+        return [];
+      }
+      
+      final response = await http.get(
+        Uri.parse('${baseUrl}maintenance/users'),
+        headers: {
+          'Authorization': token,
+        },
+      );
+      
+      print('Get all users response: ${response.statusCode}');
+      
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> responseData = json.decode(response.body);
+        
+        if (responseData.containsKey('result') && responseData['result'] is List) {
+          return List<Map<String, dynamic>>.from(responseData['result']);
+        }
+        return [];
+      } else {
+        print('Failed to fetch users: ${response.statusCode}');
+        return [];
+      }
+    } catch (e) {
+      print('Error fetching users: $e');
+      return [];
+    }
+  }
+  
+  // Get volunteers (users with isVolunteer = 1)
+  Future<List<Map<String, dynamic>>> getVolunteers() async {
+    try {
+      final token = await _authService.getToken();
+      
+      if (token == null) {
+        print('No auth token available');
+        return [];
+      }
+      
+      final response = await http.get(
+        Uri.parse('${baseUrl}maintenance/volunteers'),
+        headers: {
+          'Authorization': token,
+        },
+      );
+      
+      print('Get volunteers response: ${response.statusCode}');
+      
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> responseData = json.decode(response.body);
+        
+        if (responseData.containsKey('result') && responseData['result'] is List) {
+          return List<Map<String, dynamic>>.from(responseData['result']);
+        }
+        return [];
+      } else {
+        print('Failed to fetch volunteers: ${response.statusCode}');
+        return [];
+      }
+    } catch (e) {
+      print('Error fetching volunteers: $e');
+      return [];
+    }
+  }
+  
+  // Delete a user (admin only)
+  Future<bool> deleteUser(String universityId) async {
+    try {
+      final token = await _authService.getToken();
+      
+      if (token == null) {
+        print('No auth token available');
+        return false;
+      }
+      
+      final response = await http.delete(
+        Uri.parse('${baseUrl}maintenance/users'),
+        headers: {
+          'Authorization': token,
+          'Content-Type': 'application/json',
+        },
+        body: json.encode({
+          'university_id': universityId
+        }),
+      );
+      
+      print('Delete user response: ${response.statusCode} - ${response.body}');
+      
+      return response.statusCode == 200;
+    } catch (e) {
+      print('Error deleting user: $e');
+      return false;
+    }
+  }
+  
+  // Request to become a volunteer (user action)
+  Future<bool> wishToBeVolunteer(String universityId) async {
+    try {
+      final token = await _authService.getToken();
+      
+      if (token == null) {
+        print('No auth token available');
+        return false;
+      }
+      
+      final response = await http.put(
+        Uri.parse('${baseUrl}maintenance/wishVolunteer'),
+        headers: {
+          'Authorization': token,
+          'Content-Type': 'application/json',
+        },
+        body: json.encode({
+          'university_id': universityId
+        }),
+      );
+      
+      print('Wish to be volunteer response: ${response.statusCode} - ${response.body}');
+      
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+        return responseData['isSuccess'] == true;
+      }
+      return false;
+    } catch (e) {
+      print('Error requesting volunteer status: $e');
+      return false;
+    }
+  }
+  
+  // Make a user a volunteer (admin action)
+  Future<bool> makeVolunteer(String universityId) async {
+    try {
+      final token = await _authService.getToken();
+      
+      if (token == null) {
+        print('No auth token available');
+        return false;
+      }
+      
+      final response = await http.put(
+        Uri.parse('${baseUrl}maintenance/makeVolunteer'),
+        headers: {
+          'Authorization': token,
+          'Content-Type': 'application/json',
+        },
+        body: json.encode({
+          'university_id': universityId
+        }),
+      );
+      
+      print('Make volunteer response: ${response.statusCode} - ${response.body}');
+      
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+        return responseData['isSuccess'] == true;
+      }
+      return false;
+    } catch (e) {
+      print('Error making user a volunteer: $e');
+      return false;
+    }
+  }
+  
+  // Remove volunteer status (admin action)
+  Future<bool> removeVolunteer(String universityId) async {
+    try {
+      final token = await _authService.getToken();
+      
+      if (token == null) {
+        print('No auth token available');
+        return false;
+      }
+      
+      print('Removing volunteer status for: $universityId'); // Debug log
+      
+      final response = await http.put(
+        Uri.parse('${baseUrl}maintenance/removeVolunteer'),
+        headers: {
+          'Authorization': token,
+          'Content-Type': 'application/json',
+        },
+        body: json.encode({
+          'university_id': universityId
+        }),
+      );
+      
+      print('Remove volunteer response: ${response.statusCode} - ${response.body}');
+      
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+        return responseData['isSuccess'] == true;
+      }
+      return false;
+    } catch (e) {
+      print('Error removing volunteer status: $e');
+      return false;
+    }
+  }
+  
+  // Reject volunteer request (admin action)
+  Future<bool> rejectVolunteerRequest(String universityId) async {
+    try {
+      final token = await _authService.getToken();
+      
+      if (token == null) {
+        print('No auth token available');
+        return false;
+      }
+      
+      final response = await http.put(
+        Uri.parse('${baseUrl}maintenance/rejectVolunteer'),
+        headers: {
+          'Authorization': token,
+          'Content-Type': 'application/json',
+        },
+        body: json.encode({
+          'university_id': universityId
+        }),
+      );
+      
+      print('Reject volunteer request response: ${response.statusCode} - ${response.body}');
+      
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+        return responseData['isSuccess'] == true;
+      }
+      return false;
+    } catch (e) {
+      print('Error rejecting volunteer request: $e');
+      return false;
+    }
+  }
 }
 
 // Custom exception for already registered events

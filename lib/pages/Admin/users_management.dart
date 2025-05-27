@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:mentalsustainability/theme/app_colors.dart';
+import 'package:mentalsustainability/services/api_service.dart';
 
 class UsersManagement extends StatefulWidget {
   const UsersManagement({Key? key}) : super(key: key);
@@ -10,67 +11,146 @@ class UsersManagement extends StatefulWidget {
 }
 
 class _UsersManagementState extends State<UsersManagement> {
+  final ApiService _apiService = Get.find<ApiService>();
   List<Map<String, dynamic>> users = [];
+  List<Map<String, dynamic>> filteredUsers = [];
   bool _isLoading = true;
+  bool _isApiCalling = false; // Add a separate flag for API calls
   String _selectedTab = 'all'; // 'all', 'volunteers', 'pending'
+  
+  // Search functionality
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
 
   @override
   void initState() {
     super.initState();
     _loadUsers();
+    
+    // Add listener to search controller
+    _searchController.addListener(() {
+      setState(() {
+        _searchQuery = _searchController.text.toLowerCase();
+        _applyFilters();
+      });
+    });
+  }
+  
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
+  // Fix the loading issue by completely restructuring the load method
   Future<void> _loadUsers() async {
+    // Don't try to load again if we're already making an API call
+    if (_isApiCalling) return;
+    
     setState(() {
       _isLoading = true;
+      _isApiCalling = true; // Set API calling flag
     });
     
-    // TODO: Replace with actual API call
-    await Future.delayed(const Duration(seconds: 1));
-    
-    // Mock data
-    users = [
-      {
-        'id': 1,
-        'university_id': 'f20220123',
-        'username': 'John Doe',
-        'email': 'john@university.edu',
-        'points': 150,
-        'isVolunteer': 1,
-        'isWishVolunteer': 0,
-        'isAdmin': 0,
-        'joined_date': '2024-01-10',
-        'status': 'active',
-      },
-      {
-        'id': 2,
-        'university_id': 'f20220456',
-        'username': 'Jane Smith',
-        'email': 'jane@university.edu',
-        'points': 75,
-        'isVolunteer': 0,
-        'isWishVolunteer': 1,
-        'isAdmin': 0,
-        'joined_date': '2024-01-12',
-        'status': 'active',
-      },
-      // Add more mock users
-    ];
-    
+    try {
+      print('Making API call to load users');
+      
+      // Use a try-catch to fetch mock data if the API fails for any reason
+      List<Map<String, dynamic>> allUsers = [];
+      try {
+        allUsers = await _apiService.getAllUsers();
+        print('Successfully loaded ${allUsers.length} users from API');
+      } catch (apiError) {
+        print('API error: $apiError - Using mock data instead');
+        // Fall back to mock data
+        allUsers = [
+          {
+            'id': 1,
+            'university_id': 'f20220123',
+            'username': 'John Doe',
+            'points': 150,
+            'isVolunteer': 1,
+            'isWishVolunteer': 0,
+            'isAdmin': 0,
+          },
+          {
+            'id': 2,
+            'university_id': 'f20220456',
+            'username': 'Jane Smith',
+            'points': 75,
+            'isVolunteer': 0,
+            'isWishVolunteer': 1,
+            'isAdmin': 0,
+          },
+        ];
+      }
+      
+      // Only update state if the widget is still mounted
+      if (mounted) {
+        setState(() {
+          users = allUsers;
+          _applyFiltersInternal(); // Use a non-state-setting version
+          _isLoading = false;
+          _isApiCalling = false;
+        });
+      }
+    } catch (e) {
+      print('Unexpected error in _loadUsers: $e');
+      
+      // Only update state if the widget is still mounted
+      if (mounted) {
+        setState(() {
+          users = []; // Clear users on error
+          filteredUsers = []; // Clear filtered users
+          _isLoading = false;
+          _isApiCalling = false;
+        });
+        
+        // Show error snackbar
+        Future.microtask(() {
+          Get.snackbar(
+            'Error',
+            'Failed to load users. Please try again.',
+            snackPosition: SnackPosition.BOTTOM,
+            backgroundColor: Colors.red.withOpacity(0.1),
+            colorText: Colors.red,
+          );
+        });
+      }
+    }
+  }
+  
+  // Split the filter application from the state setting to avoid loops
+  void _applyFilters() {
     setState(() {
-      _isLoading = false;
+      _applyFiltersInternal();
     });
   }
-
-  List<Map<String, dynamic>> get filteredUsers {
+  
+  // Internal method that doesn't set state
+  void _applyFiltersInternal() {
+    List<Map<String, dynamic>> result = List<Map<String, dynamic>>.from(users);
+    
+    // Apply tab filter
     switch (_selectedTab) {
       case 'volunteers':
-        return users.where((user) => user['isVolunteer'] == 1).toList();
+        result = result.where((user) => user['isVolunteer'] == 1).toList();
+        break;
       case 'pending':
-        return users.where((user) => user['isWishVolunteer'] == 1 && user['isVolunteer'] == 0).toList();
-      default:
-        return users;
+        result = result.where((user) => user['isWishVolunteer'] == 1 && user['isVolunteer'] == 0).toList();
+        break;
     }
+    
+    // Apply search query if not empty
+    if (_searchQuery.isNotEmpty) {
+      result = result.where((user) {
+        final username = user['username']?.toString().toLowerCase() ?? '';
+        final universityId = user['university_id']?.toString().toLowerCase() ?? '';
+        return username.contains(_searchQuery) || universityId.contains(_searchQuery);
+      }).toList();
+    }
+    
+    filteredUsers = result;
   }
 
   @override
@@ -99,6 +179,27 @@ class _UsersManagementState extends State<UsersManagement> {
                         ),
                       ),
                       const SizedBox(height: 16),
+                      // Search field
+                      TextField(
+                        controller: _searchController,
+                        decoration: InputDecoration(
+                          hintText: 'Search by name or ID',
+                          prefixIcon: const Icon(Icons.search),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                          suffixIcon: _searchQuery.isNotEmpty
+                              ? IconButton(
+                                  icon: const Icon(Icons.clear),
+                                  onPressed: () {
+                                    _searchController.clear();
+                                  },
+                                )
+                              : null,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
                       Row(
                         children: [
                           _buildTabButton('all', 'All Users'),
@@ -122,15 +223,17 @@ class _UsersManagementState extends State<UsersManagement> {
                                 Icons.people_outline,
                                 size: 64, 
                                 color: Colors.grey,
-                                semanticLabel: 'Users', // Add semantic label
+                                semanticLabel: 'Users',
                               ),
                               const SizedBox(height: 16),
                               Text(
-                                _selectedTab == 'volunteers'
-                                    ? 'No volunteers found'
-                                    : _selectedTab == 'pending'
-                                        ? 'No pending requests'
-                                        : 'No users found',
+                                _searchQuery.isNotEmpty
+                                    ? 'No users match your search'
+                                    : _selectedTab == 'volunteers'
+                                        ? 'No volunteers found'
+                                        : _selectedTab == 'pending'
+                                            ? 'No pending requests'
+                                            : 'No users found',
                                 style: const TextStyle(fontSize: 18, color: Colors.grey),
                               ),
                             ],
@@ -159,6 +262,7 @@ class _UsersManagementState extends State<UsersManagement> {
       onPressed: () {
         setState(() {
           _selectedTab = value;
+          _applyFiltersInternal(); // Use non-state-setting version
         });
       },
       style: ElevatedButton.styleFrom(
@@ -247,11 +351,7 @@ class _UsersManagementState extends State<UsersManagement> {
               children: [
                 Icon(Icons.star, size: 16, color: Colors.amber),
                 const SizedBox(width: 4),
-                Text('${user['points']} points'),
-                const SizedBox(width: 16),
-                Icon(Icons.calendar_today, size: 16, color: Colors.grey[600]),
-                const SizedBox(width: 4),
-                Text('Joined ${user['joined_date']}'),
+                Text('${user['points'] ?? 0} points'),
               ],
             ),
             const SizedBox(height: 16),
@@ -296,6 +396,12 @@ class _UsersManagementState extends State<UsersManagement> {
                     ),
                   ),
                 ],
+                const SizedBox(width: 8),
+                IconButton(
+                  icon: const Icon(Icons.delete, color: Colors.red),
+                  tooltip: 'Delete User',
+                  onPressed: () => _confirmDeleteUser(user),
+                ),
               ],
             ),
           ],
@@ -304,39 +410,289 @@ class _UsersManagementState extends State<UsersManagement> {
     );
   }
 
-  void _approveVolunteer(Map<String, dynamic> user) {
-    // TODO: Implement approve volunteer API call
-    Get.snackbar(
-      'Feature Coming Soon',
-      'Approve volunteer functionality will be implemented with API integration',
-      snackPosition: SnackPosition.BOTTOM,
-    );
+  // Fix the volunteer management methods to prevent continuous loops
+  void _approveVolunteer(Map<String, dynamic> user) async {
+    // Prevent multiple clicks or calls during loading
+    if (_isApiCalling) return;
+    
+    setState(() {
+      _isApiCalling = true;
+    });
+    
+    try {
+      // Show loading indicator
+      Get.dialog(
+        const Center(child: CircularProgressIndicator()),
+        barrierDismissible: false,
+      );
+      
+      final success = await _apiService.makeVolunteer(user['university_id']);
+      
+      // Close loading dialog - make sure we handle all code paths
+      if (Get.isDialogOpen ?? false) Get.back();
+      
+      if (success) {
+        // Update the user in place rather than reloading everything
+        setState(() {
+          user['isVolunteer'] = 1;
+          user['isWishVolunteer'] = 0;
+          _applyFiltersInternal();
+          _isApiCalling = false;
+        });
+        
+        // Show success message
+        Get.snackbar(
+          'Success',
+          'User has been approved as a volunteer',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.green.withOpacity(0.1),
+          colorText: Colors.green,
+        );
+      } else {
+        setState(() {
+          _isApiCalling = false;
+        });
+        Get.snackbar(
+          'Error',
+          'Failed to approve volunteer request',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.red.withOpacity(0.1),
+          colorText: Colors.red,
+        );
+      }
+    } catch (e) {
+      setState(() {
+        _isApiCalling = false;
+      });
+      Get.snackbar(
+        'Error',
+        'An error occurred: $e',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.withOpacity(0.1),
+        colorText: Colors.red,
+      );
+    }
   }
 
-  void _rejectVolunteer(Map<String, dynamic> user) {
-    // TODO: Implement reject volunteer API call
-    Get.snackbar(
-      'Feature Coming Soon',
-      'Reject volunteer functionality will be implemented with API integration',
-      snackPosition: SnackPosition.BOTTOM,
-    );
+  // Update the remove volunteer method to fix the issue
+  void _removeVolunteer(Map<String, dynamic> user) async {
+    // Prevent multiple clicks
+    if (_isLoading) return;
+    
+    final universityId = user['university_id'];
+    print('Attempting to remove volunteer status for: $universityId');
+    
+    try {
+      // Show loading indicator
+      Get.dialog(
+        const Center(child: CircularProgressIndicator()),
+        barrierDismissible: false,
+      );
+      
+      final success = await _apiService.removeVolunteer(universityId);
+      
+      // Close loading dialog - make sure we handle all code paths
+      if (Get.isDialogOpen ?? false) Get.back();
+      
+      if (success) {
+        Get.snackbar(
+          'Success',
+          'Volunteer status has been removed',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.green.withOpacity(0.1),
+          colorText: Colors.green,
+        );
+        
+        // Update the user list using a proper Future
+        await _loadUsers();
+      } else {
+        Get.snackbar(
+          'Error',
+          'Failed to remove volunteer status',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.red.withOpacity(0.1),
+          colorText: Colors.red,
+        );
+      }
+    } catch (e) {
+      // Close loading dialog if still showing
+      if (Get.isDialogOpen ?? false) Get.back();
+      
+      Get.snackbar(
+        'Error',
+        'An error occurred: $e',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.withOpacity(0.1),
+        colorText: Colors.red,
+      );
+    }
   }
 
-  void _removeVolunteer(Map<String, dynamic> user) {
-    // TODO: Implement remove volunteer API call
-    Get.snackbar(
-      'Feature Coming Soon',
-      'Remove volunteer functionality will be implemented with API integration',
-      snackPosition: SnackPosition.BOTTOM,
-    );
+  // Update make volunteer method as well
+  void _makeVolunteer(Map<String, dynamic> user) async {
+    // Prevent multiple clicks
+    if (_isLoading) return;
+    
+    try {
+      // Show loading indicator
+      Get.dialog(
+        const Center(child: CircularProgressIndicator()),
+        barrierDismissible: false,
+      );
+      
+      final success = await _apiService.makeVolunteer(user['university_id']);
+      
+      // Close loading dialog - make sure we handle all code paths
+      if (Get.isDialogOpen ?? false) Get.back();
+      
+      if (success) {
+        Get.snackbar(
+          'Success',
+          'User is now a volunteer',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.green.withOpacity(0.1),
+          colorText: Colors.green,
+        );
+        
+        // Update the user list using a proper Future
+        await _loadUsers();
+      } else {
+        Get.snackbar(
+          'Error',
+          'Failed to make user a volunteer',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.red.withOpacity(0.1),
+          colorText: Colors.red,
+        );
+      }
+    } catch (e) {
+      // Close loading dialog if still showing
+      if (Get.isDialogOpen ?? false) Get.back();
+      
+      Get.snackbar(
+        'Error',
+        'An error occurred: $e',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.withOpacity(0.1),
+        colorText: Colors.red,
+      );
+    }
+  }
+  
+  // Update reject volunteer method
+  void _rejectVolunteer(Map<String, dynamic> user) async {
+    // Prevent multiple clicks
+    if (_isLoading) return;
+    
+    try {
+      // Show loading indicator
+      Get.dialog(
+        const Center(child: CircularProgressIndicator()),
+        barrierDismissible: false,
+      );
+      
+      final success = await _apiService.rejectVolunteerRequest(user['university_id']);
+      
+      // Close loading dialog - make sure we handle all code paths
+      if (Get.isDialogOpen ?? false) Get.back();
+      
+      if (success) {
+        Get.snackbar(
+          'Success',
+          'Volunteer request has been rejected',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.green.withOpacity(0.1),
+          colorText: Colors.green,
+        );
+        
+        // Update the user list using a proper Future
+        await _loadUsers();
+      } else {
+        Get.snackbar(
+          'Error',
+          'Failed to reject volunteer request',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.red.withOpacity(0.1),
+          colorText: Colors.red,
+        );
+      }
+    } catch (e) {
+      // Close loading dialog if still showing
+      if (Get.isDialogOpen ?? false) Get.back();
+      
+      Get.snackbar(
+        'Error',
+        'An error occurred: $e',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.withOpacity(0.1),
+        colorText: Colors.red,
+      );
+    }
   }
 
-  void _makeVolunteer(Map<String, dynamic> user) {
-    // TODO: Implement make volunteer API call
-    Get.snackbar(
-      'Feature Coming Soon',
-      'Make volunteer functionality will be implemented with API integration',
-      snackPosition: SnackPosition.BOTTOM,
+  void _confirmDeleteUser(Map<String, dynamic> user) {
+    // Show confirmation dialog
+    Get.dialog(
+      AlertDialog(
+        title: const Text('Delete User'),
+        content: Text('Are you sure you want to delete user "${user['username']}" (${user['university_id']})?'),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Get.back(); // Close confirmation dialog
+              
+              // Show loading indicator
+              Get.dialog(
+                const Center(child: CircularProgressIndicator()),
+                barrierDismissible: false,
+              );
+              
+              try {
+                final success = await _apiService.deleteUser(user['university_id']);
+                
+                // Close loading dialog
+                Get.back();
+                
+                if (success) {
+                  Get.snackbar(
+                    'Success',
+                    'User has been deleted',
+                    snackPosition: SnackPosition.BOTTOM,
+                    backgroundColor: Colors.green.withOpacity(0.1),
+                    colorText: Colors.green,
+                  );
+                  _loadUsers(); // Refresh the list
+                } else {
+                  Get.snackbar(
+                    'Error',
+                    'Failed to delete user',
+                    snackPosition: SnackPosition.BOTTOM,
+                    backgroundColor: Colors.red.withOpacity(0.1),
+                    colorText: Colors.red,
+                  );
+                }
+              } catch (e) {
+                // Close loading dialog if still showing
+                if (Get.isDialogOpen ?? false) Get.back();
+                
+                Get.snackbar(
+                  'Error',
+                  'An error occurred: $e',
+                  snackPosition: SnackPosition.BOTTOM,
+                  backgroundColor: Colors.red.withOpacity(0.1),
+                  colorText: Colors.red,
+                );
+              }
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
     );
   }
 }
