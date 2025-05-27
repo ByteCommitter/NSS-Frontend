@@ -41,6 +41,7 @@ class _EventsManagementState extends State<EventsManagement> {
         'toTime': event.toTime,
         'location': event.location,
         'imageUrl': event.imageUrl,
+        'points': event.points ?? 50, // Change default from 0 to 50
         'capacity': 100, // Default capacity (not provided by API)
         'enrolled': 0, // Default enrolled (not provided by API)
         'status': 'active', // Default status (not provided by API)
@@ -289,6 +290,14 @@ class _EventsManagementState extends State<EventsManagement> {
                 Text(event['location'] ?? 'TBD'),
               ],
             ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Icon(Icons.star, size: 16, color: Colors.amber),
+                const SizedBox(width: 4),
+                Text('${event['points'] ?? 0} points for participation'),
+              ],
+            ),
             const SizedBox(height: 16),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
@@ -521,7 +530,8 @@ class _EventsManagementState extends State<EventsManagement> {
     final fromTimeController = TextEditingController();
     final toTimeController = TextEditingController();
     final locationController = TextEditingController();
-    final bannerImageController = TextEditingController(); // Add controller for banner image
+    final bannerImageController = TextEditingController();
+    final pointsController = TextEditingController(text: '50'); // Change default from 0 to 50
     
     DateTime selectedDate = DateTime.now();
     TimeOfDay selectedFromTime = TimeOfDay.now();
@@ -657,6 +667,17 @@ class _EventsManagementState extends State<EventsManagement> {
                   ),
                 ),
                 const SizedBox(height: 16),
+                // Add points field before banner image
+                TextField(
+                  controller: pointsController,
+                  decoration: const InputDecoration(
+                    labelText: 'Participation Points',
+                    hintText: 'Points awarded for attending this event',
+                    border: OutlineInputBorder(),
+                  ),
+                  keyboardType: TextInputType.number, // Numeric keyboard
+                ),
+                const SizedBox(height: 16),
                 TextField(
                   controller: bannerImageController,
                   decoration: const InputDecoration(
@@ -701,7 +722,7 @@ class _EventsManagementState extends State<EventsManagement> {
                         );
                         
                         try {
-                          // Create ApiEvent object with banner image
+                          // Create ApiEvent object with points
                           final newEvent = ApiEvent(
                             id: '0',
                             title: titleController.text,
@@ -713,6 +734,7 @@ class _EventsManagementState extends State<EventsManagement> {
                             imageUrl: bannerImageController.text.isNotEmpty 
                                 ? bannerImageController.text 
                                 : null,
+                            points: int.tryParse(pointsController.text) ?? 0, // Add points
                           );
                           
                           // Call API
@@ -771,7 +793,8 @@ class _EventsManagementState extends State<EventsManagement> {
     final fromTimeController = TextEditingController(text: event['fromTime']);
     final toTimeController = TextEditingController(text: event['toTime']);
     final locationController = TextEditingController(text: event['location']);
-    final bannerImageController = TextEditingController(text: event['imageUrl'] ?? ''); // Add controller for banner image
+    final bannerImageController = TextEditingController(text: event['imageUrl'] ?? '');
+    final pointsController = TextEditingController(text: '${event['points'] ?? 50}'); // Change default from 0 to 50
     
     DateTime selectedDate = DateTime.tryParse(event['date'] ?? '') ?? DateTime.now();
     TimeOfDay selectedFromTime = TimeOfDay(
@@ -906,6 +929,17 @@ class _EventsManagementState extends State<EventsManagement> {
                   ),
                 ),
                 const SizedBox(height: 16),
+                // Add points field before banner image
+                TextField(
+                  controller: pointsController,
+                  decoration: const InputDecoration(
+                    labelText: 'Participation Points',
+                    hintText: 'Points awarded for attending this event',
+                    border: OutlineInputBorder(),
+                  ),
+                  keyboardType: TextInputType.number, // Numeric keyboard
+                ),
+                const SizedBox(height: 16),
                 TextField(
                   controller: bannerImageController,
                   decoration: const InputDecoration(
@@ -950,7 +984,7 @@ class _EventsManagementState extends State<EventsManagement> {
                         );
                         
                         try {
-                          // Update including banner_image
+                          // Update including points
                           await _apiService.updateEvent(
                             event['id'].toString(),
                             titleController.text,
@@ -959,7 +993,8 @@ class _EventsManagementState extends State<EventsManagement> {
                             fromTimeController.text,
                             toTimeController.text,
                             locationController.text,
-                            bannerImageController.text, // Pass banner image URL
+                            bannerImageController.text,
+                            int.tryParse(pointsController.text) ?? 0, // Add points parameter
                           );
                           
                           Get.back(); // Close loading dialog

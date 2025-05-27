@@ -509,7 +509,7 @@ class _UsersManagementState extends State<UsersManagement> {
               children: [
                 Icon(Icons.star, size: 16, color: Colors.amber),
                 const SizedBox(width: 4),
-                Text('${user['points'] ?? 0} points'),
+                Text('${user['points'] ?? 50} points'), // Set default to 50 points
               ],
             ),
             const SizedBox(height: 16),

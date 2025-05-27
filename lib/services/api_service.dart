@@ -8,7 +8,7 @@ import 'package:mentalsustainability/pages/Home/home_page.dart' hide Event; // H
 import 'package:mentalsustainability/services/auth_service.dart';
 import 'package:mentalsustainability/models/admin_models.dart'; // Keep this import for Event
 
-// Define a specific class for API events to avoid conflicts
+// Update the ApiEvent class to include points
 class ApiEvent {
   final String id;
   final String title;
@@ -18,6 +18,7 @@ class ApiEvent {
   final String toTime;
   final String location;
   final String? imageUrl;
+  final int? points; // Make sure points is included in the model
 
   ApiEvent({
     required this.id,
@@ -28,7 +29,24 @@ class ApiEvent {
     required this.toTime,
     required this.location,
     this.imageUrl,
+    this.points = 50, // Default to 50 points
   });
+
+  // ...existing code for fromJson if any...
+  
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'title': title,
+      'description': description,
+      'date': date,
+      'fromTime': fromTime,
+      'toTime': toTime,
+      'location': location,
+      if (imageUrl != null) 'imageUrl': imageUrl,
+      'points': points ?? 0, // Include points in JSON with default
+    };
+  }
 }
 
 class ApiService extends GetxService {
@@ -262,30 +280,23 @@ class ApiService extends GetxService {
     try {
       final token = await _authService.getToken();
       
-      if (token == null) {
-        print('No auth token available');
-        return false;
-      }
-      
       final response = await http.post(
-        Uri.parse('${baseUrl}events/'),
+        Uri.parse('${baseUrl}events'),
         headers: {
-          'Authorization': token,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': token ?? '',
         },
         body: json.encode({
           'title': event.title,
           'description': event.description,
           'date': event.date,
           'fromTime': event.fromTime,
-          'ToTime': event.toTime, // Note: API uses 'ToTime' with capital T
-          'eventVenue': event.location,
-          'banner_image': event.imageUrl,
+          'toTime': event.toTime,
+          'eventVenue': event.location,     // Changed to match backend naming
+          'banner_image': event.imageUrl,   // Changed to match backend naming
+          'points': event.points ?? 50,
         }),
       );
-      
-      print('Create event response: ${response.statusCode} - ${response.body}');
-      
       return response.statusCode == 200 || response.statusCode == 201;
     } catch (e) {
       print('Error creating event: $e');
@@ -738,7 +749,7 @@ Future<void> debugUserInfo() async {
     await postNotification(title, message);
   }
 
-  // Updated updateEvent method to include banner_image
+  // Updated updateEvent method to include points
   Future<bool> updateEvent(
     String id,
     String title,
@@ -747,37 +758,29 @@ Future<void> debugUserInfo() async {
     String fromTime,
     String toTime,
     String location,
-    [String? bannerImage] // Optional parameter for banner image
+    String imageUrl,
+    int points,
   ) async {
     try {
       final token = await _authService.getToken();
       
-      if (token == null) {
-        print('No auth token available');
-        return false;
-      }
-      
-      // Using PUT to update an existing event
       final response = await http.put(
-        Uri.parse('${baseUrl}events/'),
+        Uri.parse('${baseUrl}events/$id'),
         headers: {
-          'Authorization': token,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': token ?? '',
         },
         body: json.encode({
-          'id': id,
           'title': title,
           'description': description,
           'date': date,
           'fromTime': fromTime,
-          'ToTime': toTime, // Note: API uses 'ToTime' with capital T
-          'eventVenue': location,
-          'banner_image': bannerImage, // Include banner image in the request
+          'toTime': toTime,
+          'eventVenue': location,     // Changed from 'location' to 'eventVenue'
+          'banner_image': imageUrl,   // Changed from 'imageUrl' to 'banner_image'
+          'points': points,
         }),
       );
-      
-      print('Update event response: ${response.statusCode} - ${response.body}');
-      
       return response.statusCode == 200;
     } catch (e) {
       print('Error updating event: $e');
