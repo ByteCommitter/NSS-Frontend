@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'dart:async'; // Add import for Timer
 import 'package:mentalsustainability/theme/app_colors.dart';
 import 'package:mentalsustainability/services/api_service.dart';
 
@@ -22,6 +23,12 @@ class _UsersManagementState extends State<UsersManagement> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
 
+  // Add a map to track operations in progress for specific users
+  final Map<String, bool> _operationsInProgress = {};
+
+  // Debounce for operations to prevent multiple rapid clicks
+  DateTime? _lastOperationTime;
+  
   @override
   void initState() {
     super.initState();
@@ -38,6 +45,7 @@ class _UsersManagementState extends State<UsersManagement> {
   
   @override
   void dispose() {
+    _operationsInProgress.clear();
     _searchController.dispose();
     super.dispose();
   }
@@ -274,7 +282,157 @@ class _UsersManagementState extends State<UsersManagement> {
     );
   }
 
+  // Replace the _safeOperation method with this completely redesigned version
+  Future<void> _safeOperation(Map<String, dynamic> user, String operationType, 
+      Future<bool> Function() apiCall, Function(Map<String, dynamic>) updateUserState) async {
+    final universityId = user['university_id'];
+    
+    // Much stronger debouncing - ignore operations within 2 seconds
+    final now = DateTime.now();
+    if (_lastOperationTime != null && 
+        now.difference(_lastOperationTime!).inMilliseconds < 2000) {
+      print('STRICT DEBOUNCE: Operation ignored - too soon after last operation');
+      return;
+    }
+    _lastOperationTime = now;
+    
+    // Double-check we're not already in an operation
+    if (_isApiCalling) {
+      print('GLOBAL OPERATION LOCK: API already calling, ignoring request');
+      return;
+    }
+    
+    // Mark global operation in progress - prevent ANY operations while one is in progress
+    setState(() {
+      _isApiCalling = true;
+    });
+    
+    print('Starting $operationType operation for user: $universityId');
+    
+    // Use simple local variable to track if operation completed
+    bool operationCompleted = false;
+    
+    // Set a timeout to forcibly end the operation after 3 seconds
+    // Use a more reliable approach with microtask scheduling
+    Future.delayed(const Duration(seconds: 3), () {
+      if (!operationCompleted) {
+        print('FORCE TIMEOUT: Operation $operationType for user $universityId');
+        // Force cleanup without waiting for anything
+        if (mounted) {
+          // Reset ALL state to ensure we break any loops
+          setState(() {
+            _isApiCalling = false;
+            _operationsInProgress.clear(); // Clear ALL operations
+          });
+        }
+        
+        // Show timeout message
+        Get.closeAllSnackbars();
+        Get.snackbar(
+          'Operation Timeout',
+          'The operation took too long and was cancelled',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.orange.withOpacity(0.1),
+          colorText: Colors.orange,
+          duration: const Duration(seconds: 2),
+        );
+      }
+    });
+    
+    try {
+      // Show loading indicator inline in the UI instead of a dialog
+      // This avoids any dialog management issues
+      
+      // Execute the API call directly without a dialog
+      final success = await apiCall();
+      print('API call completed for user $universityId, success: $success');
+      
+      // Mark operation as completed to prevent timeout from firing
+      operationCompleted = true;
+      
+      if (success) {
+        // Update user state
+        if (mounted) {
+          setState(() {
+            // Update the user
+            updateUserState(user);
+            // Reset ALL flags to ensure clean state
+            _isApiCalling = false;
+          });
+          
+          // Apply filters separately to avoid loops
+          Future.microtask(() {
+            if (mounted) {
+              setState(() {
+                _applyFiltersInternal();
+              });
+            }
+          });
+        }
+        
+        // Show success message AFTER state is updated
+        Future.microtask(() {
+          Get.closeAllSnackbars();
+          Get.snackbar(
+            'Success',
+            'Operation completed successfully',
+            snackPosition: SnackPosition.BOTTOM,
+            backgroundColor: Colors.green.withOpacity(0.1),
+            colorText: Colors.green,
+            duration: const Duration(seconds: 2),
+          );
+        });
+      } else {
+        // Handle failure
+        if (mounted) {
+          setState(() {
+            _isApiCalling = false;
+          });
+        }
+        
+        Future.microtask(() {
+          Get.closeAllSnackbars();
+          Get.snackbar(
+            'Error',
+            'Operation failed',
+            snackPosition: SnackPosition.BOTTOM,
+            backgroundColor: Colors.red.withOpacity(0.1),
+            colorText: Colors.red,
+            duration: const Duration(seconds: 2),
+          );
+        });
+      }
+    } catch (e) {
+      // Mark operation as completed to prevent timeout from firing
+      operationCompleted = true;
+      
+      print('Error in $operationType: $e');
+      
+      // Reset state
+      if (mounted) {
+        setState(() {
+          _isApiCalling = false;
+        });
+      }
+      
+      Future.microtask(() {
+        Get.closeAllSnackbars();
+        Get.snackbar(
+          'Error',
+          'An error occurred: $e',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.red.withOpacity(0.1),
+          colorText: Colors.red,
+          duration: const Duration(seconds: 2),
+        );
+      });
+    }
+  }
+  
   Widget _buildUserCard(Map<String, dynamic> user) {
+    final universityId = user['university_id'];
+    final isOperationInProgress = _isApiCalling;
+    
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       elevation: 2,
@@ -358,7 +516,18 @@ class _UsersManagementState extends State<UsersManagement> {
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                if (user['isWishVolunteer'] == 1 && user['isVolunteer'] == 0) ...[
+                // If any operation is in progress, disable all buttons across the UI
+                if (isOperationInProgress) ...[
+                  // Show loading indicator instead of buttons when any operation is in progress
+                  const Expanded(
+                    child: Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(8.0),
+                        child: LinearProgressIndicator(),
+                      ),
+                    ),
+                  ),
+                ] else if (user['isWishVolunteer'] == 1 && user['isVolunteer'] == 0) ...[
                   ElevatedButton.icon(
                     onPressed: () => _approveVolunteer(user),
                     icon: const Icon(Icons.check, size: 16),
@@ -410,226 +579,47 @@ class _UsersManagementState extends State<UsersManagement> {
     );
   }
 
-  // Fix the volunteer management methods to prevent continuous loops
-  void _approveVolunteer(Map<String, dynamic> user) async {
-    // Prevent multiple clicks or calls during loading
-    if (_isApiCalling) return;
-    
-    setState(() {
-      _isApiCalling = true;
-    });
-    
-    try {
-      // Show loading indicator
-      Get.dialog(
-        const Center(child: CircularProgressIndicator()),
-        barrierDismissible: false,
-      );
-      
-      final success = await _apiService.makeVolunteer(user['university_id']);
-      
-      // Close loading dialog - make sure we handle all code paths
-      if (Get.isDialogOpen ?? false) Get.back();
-      
-      if (success) {
-        // Update the user in place rather than reloading everything
-        setState(() {
-          user['isVolunteer'] = 1;
-          user['isWishVolunteer'] = 0;
-          _applyFiltersInternal();
-          _isApiCalling = false;
-        });
-        
-        // Show success message
-        Get.snackbar(
-          'Success',
-          'User has been approved as a volunteer',
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.green.withOpacity(0.1),
-          colorText: Colors.green,
-        );
-      } else {
-        setState(() {
-          _isApiCalling = false;
-        });
-        Get.snackbar(
-          'Error',
-          'Failed to approve volunteer request',
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.red.withOpacity(0.1),
-          colorText: Colors.red,
-        );
-      }
-    } catch (e) {
-      setState(() {
-        _isApiCalling = false;
-      });
-      Get.snackbar(
-        'Error',
-        'An error occurred: $e',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.red.withOpacity(0.1),
-        colorText: Colors.red,
-      );
-    }
+  // Use the new safeOperation method for all volunteer operations
+  void _makeVolunteer(Map<String, dynamic> user) {
+    _safeOperation(
+      user, 
+      'make_volunteer',
+      () => _apiService.makeVolunteer(user['university_id']),
+      (u) => u['isVolunteer'] = 1
+    );
   }
 
-  // Update the remove volunteer method to fix the issue
-  void _removeVolunteer(Map<String, dynamic> user) async {
-    // Prevent multiple clicks
-    if (_isLoading) return;
-    
-    final universityId = user['university_id'];
-    print('Attempting to remove volunteer status for: $universityId');
-    
-    try {
-      // Show loading indicator
-      Get.dialog(
-        const Center(child: CircularProgressIndicator()),
-        barrierDismissible: false,
-      );
-      
-      final success = await _apiService.removeVolunteer(universityId);
-      
-      // Close loading dialog - make sure we handle all code paths
-      if (Get.isDialogOpen ?? false) Get.back();
-      
-      if (success) {
-        Get.snackbar(
-          'Success',
-          'Volunteer status has been removed',
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.green.withOpacity(0.1),
-          colorText: Colors.green,
-        );
-        
-        // Update the user list using a proper Future
-        await _loadUsers();
-      } else {
-        Get.snackbar(
-          'Error',
-          'Failed to remove volunteer status',
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.red.withOpacity(0.1),
-          colorText: Colors.red,
-        );
-      }
-    } catch (e) {
-      // Close loading dialog if still showing
-      if (Get.isDialogOpen ?? false) Get.back();
-      
-      Get.snackbar(
-        'Error',
-        'An error occurred: $e',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.red.withOpacity(0.1),
-        colorText: Colors.red,
-      );
-    }
+  void _removeVolunteer(Map<String, dynamic> user) {
+    _safeOperation(
+      user, 
+      'remove_volunteer',
+      () => _apiService.removeVolunteer(user['university_id']),
+      (u) => u['isVolunteer'] = 0
+    );
   }
 
-  // Update make volunteer method as well
-  void _makeVolunteer(Map<String, dynamic> user) async {
-    // Prevent multiple clicks
-    if (_isLoading) return;
-    
-    try {
-      // Show loading indicator
-      Get.dialog(
-        const Center(child: CircularProgressIndicator()),
-        barrierDismissible: false,
-      );
-      
-      final success = await _apiService.makeVolunteer(user['university_id']);
-      
-      // Close loading dialog - make sure we handle all code paths
-      if (Get.isDialogOpen ?? false) Get.back();
-      
-      if (success) {
-        Get.snackbar(
-          'Success',
-          'User is now a volunteer',
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.green.withOpacity(0.1),
-          colorText: Colors.green,
-        );
-        
-        // Update the user list using a proper Future
-        await _loadUsers();
-      } else {
-        Get.snackbar(
-          'Error',
-          'Failed to make user a volunteer',
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.red.withOpacity(0.1),
-          colorText: Colors.red,
-        );
+  void _approveVolunteer(Map<String, dynamic> user) {
+    _safeOperation(
+      user, 
+      'approve_volunteer',
+      () => _apiService.makeVolunteer(user['university_id']),
+      (u) {
+        u['isVolunteer'] = 1;
+        u['isWishVolunteer'] = 0;
       }
-    } catch (e) {
-      // Close loading dialog if still showing
-      if (Get.isDialogOpen ?? false) Get.back();
-      
-      Get.snackbar(
-        'Error',
-        'An error occurred: $e',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.red.withOpacity(0.1),
-        colorText: Colors.red,
-      );
-    }
+    );
+  }
+
+  void _rejectVolunteer(Map<String, dynamic> user) {
+    _safeOperation(
+      user, 
+      'reject_volunteer',
+      () => _apiService.rejectVolunteerRequest(user['university_id']),
+      (u) => u['isWishVolunteer'] = 0
+    );
   }
   
-  // Update reject volunteer method
-  void _rejectVolunteer(Map<String, dynamic> user) async {
-    // Prevent multiple clicks
-    if (_isLoading) return;
-    
-    try {
-      // Show loading indicator
-      Get.dialog(
-        const Center(child: CircularProgressIndicator()),
-        barrierDismissible: false,
-      );
-      
-      final success = await _apiService.rejectVolunteerRequest(user['university_id']);
-      
-      // Close loading dialog - make sure we handle all code paths
-      if (Get.isDialogOpen ?? false) Get.back();
-      
-      if (success) {
-        Get.snackbar(
-          'Success',
-          'Volunteer request has been rejected',
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.green.withOpacity(0.1),
-          colorText: Colors.green,
-        );
-        
-        // Update the user list using a proper Future
-        await _loadUsers();
-      } else {
-        Get.snackbar(
-          'Error',
-          'Failed to reject volunteer request',
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.red.withOpacity(0.1),
-          colorText: Colors.red,
-        );
-      }
-    } catch (e) {
-      // Close loading dialog if still showing
-      if (Get.isDialogOpen ?? false) Get.back();
-      
-      Get.snackbar(
-        'Error',
-        'An error occurred: $e',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.red.withOpacity(0.1),
-        colorText: Colors.red,
-      );
-    }
-  }
-
+  // Update the delete user method as well
   void _confirmDeleteUser(Map<String, dynamic> user) {
     // Show confirmation dialog
     Get.dialog(
@@ -643,7 +633,16 @@ class _UsersManagementState extends State<UsersManagement> {
           ),
           TextButton(
             onPressed: () async {
+              if (_isApiCalling) {
+                print('API already in progress, ignoring request');
+                return;
+              }
+              
               Get.back(); // Close confirmation dialog
+              
+              setState(() {
+                _isApiCalling = true;
+              });
               
               // Show loading indicator
               Get.dialog(
@@ -652,12 +651,24 @@ class _UsersManagementState extends State<UsersManagement> {
               );
               
               try {
-                final success = await _apiService.deleteUser(user['university_id']);
+                final universityId = user['university_id'];
+                print('Deleting user: $universityId');
+                
+                final success = await _apiService.deleteUser(universityId);
                 
                 // Close loading dialog
-                Get.back();
+                if (Get.isDialogOpen ?? false) {
+                  Get.back();
+                }
                 
                 if (success) {
+                  // Remove user from list directly instead of reloading
+                  setState(() {
+                    users.removeWhere((u) => u['university_id'] == universityId);
+                    _applyFiltersInternal();
+                    _isApiCalling = false;
+                  });
+                  
                   Get.snackbar(
                     'Success',
                     'User has been deleted',
@@ -665,8 +676,11 @@ class _UsersManagementState extends State<UsersManagement> {
                     backgroundColor: Colors.green.withOpacity(0.1),
                     colorText: Colors.green,
                   );
-                  _loadUsers(); // Refresh the list
                 } else {
+                  setState(() {
+                    _isApiCalling = false;
+                  });
+                  
                   Get.snackbar(
                     'Error',
                     'Failed to delete user',
@@ -677,7 +691,13 @@ class _UsersManagementState extends State<UsersManagement> {
                 }
               } catch (e) {
                 // Close loading dialog if still showing
-                if (Get.isDialogOpen ?? false) Get.back();
+                if (Get.isDialogOpen ?? false) {
+                  Get.back();
+                }
+                
+                setState(() {
+                  _isApiCalling = false;
+                });
                 
                 Get.snackbar(
                   'Error',
