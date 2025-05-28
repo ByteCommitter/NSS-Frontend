@@ -210,22 +210,57 @@ class _ProfilePageState extends State<ProfilePage> {
   // Add method to load achievements
   void _loadAchievements() {
     try {
-      final BadgeService badgeService = Get.find<BadgeService>();
+      // Create default achievements in case badge service isn't available
+      _achievements = [
+        {
+          'name': 'NSS Volunteer',
+          'description': 'Registered as NSS volunteer',
+          'icon': Icons.volunteer_activism,
+          'color': AppColors.success,
+          'level': 1,
+        },
+        {
+          'name': 'Event Participant',
+          'description': 'Participated in NSS events',
+          'icon': Icons.event_available,
+          'color': AppColors.primary,
+          'level': 1,
+        },
+      ];
+      
+      // Try to get the BadgeService
+      BadgeService? badgeService;
+      try {
+        badgeService = Get.find<BadgeService>();
+        print('BadgeService found in _loadAchievements');
+      } catch (e) {
+        print('BadgeService not found, creating a new instance');
+        badgeService = BadgeService();
+        Get.put(badgeService, permanent: true);
+      }
+      
+      // Get badges from the service
       final badges = badgeService.calculateUserBadges();
       
-      setState(() {
-        _achievements = badges.map((badge) => {
-          'name': badge.name,
-          'description': badge.description,
-          'icon': badge.icon,
-          'color': badge.color,
-          'level': badge.level,
-        }).toList();
-      });
+      print('Calculated ${badges.length} badges from BadgeService');
       
-      print('Loaded ${_achievements.length} achievements');
+      // Only update achievements if we got some badges
+      if (badges.isNotEmpty) {
+        setState(() {
+          _achievements = badges.map((badge) => {
+            'name': badge.name,
+            'description': badge.description,
+            'icon': badge.icon,
+            'color': badge.color,
+            'level': badge.level,
+          }).toList();
+        });
+        
+        print('Updated achievements with ${_achievements.length} items');
+      }
     } catch (e) {
       print('Error loading achievements: $e');
+      // We already have default achievements set above
     }
   }
 
@@ -564,23 +599,8 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
   
-  // Modify the _buildEnhancedAchievementsSection to use BadgeService
+  // Modify the _buildEnhancedAchievementsSection to not rely on BadgeService
   Widget _buildEnhancedAchievementsSection() {
-    // Get the badge service
-    final BadgeService badgeService = Get.find<BadgeService>();
-    
-    // Calculate badges based on current user data
-    final List<AchievementBadge> badges = badgeService.calculateUserBadges();
-    
-    // Convert AchievementBadge objects to the Map format expected by _buildAchievementBadge
-    _achievements = badges.map((badge) => {
-      'name': badge.name,
-      'description': badge.description,
-      'icon': badge.icon,
-      'color': badge.color,
-      'level': badge.level,
-    }).toList();
-    
     return Card(
       elevation: 1,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -613,7 +633,7 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
             const SizedBox(height: 16),
             
-            // Enhanced badges - fixed to use _achievements instead of _userData
+            // Enhanced badges
             GridView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),

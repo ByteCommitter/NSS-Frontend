@@ -870,15 +870,45 @@ class _HomePageState extends State<HomePage> {
                           ),
                         )
                       : SizedBox(
-                          height: 210, // Increased from 190 to 210
+                          height: 210,
                           child: _events.isEmpty
                             ? Center(
-                                child: Text(
-                                  'No events available',
-                                  style: TextStyle(
-                                    color: AppColors.textSecondary,
-                                    fontStyle: FontStyle.italic,
-                                  ),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.event_busy,
+                                      size: 40,
+                                      color: Colors.grey.shade400,
+                                    ),
+                                    const SizedBox(height: 12),
+                                    const Text(
+                                      'No events available',
+                                      style: TextStyle(
+                                        color: Colors.grey,
+                                        fontWeight: FontWeight.w500,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      'Please check your internet connection and try again',
+                                      style: TextStyle(
+                                        color: Colors.grey.shade500,
+                                        fontSize: 12,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                    const SizedBox(height: 16),
+                                    TextButton.icon(
+                                      onPressed: _fetchEvents,
+                                      icon: Icon(Icons.refresh, size: 16),
+                                      label: Text('Refresh'),
+                                      style: TextButton.styleFrom(
+                                        foregroundColor: AppColors.primary,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               )
                             : ListView.builder(
@@ -906,22 +936,7 @@ class _HomePageState extends State<HomePage> {
                         SizedBox(
                           height: 210, // Increased from 190 to 210
                           child: _isLoadingRegistered
-                            ? Center(
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    const CircularProgressIndicator(),
-                                    const SizedBox(height: 12),
-                                    Text(
-                                      'Loading your registered events...',
-                                      style: TextStyle(
-                                        color: AppColors.textSecondary,
-                                        fontSize: 14,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              )
+                            ? const Center(child: CircularProgressIndicator())
                             : _registeredEvents.isEmpty
                               ? Center(
                                   child: Column(
@@ -930,25 +945,24 @@ class _HomePageState extends State<HomePage> {
                                       Icon(
                                         Icons.event_note,
                                         size: 40,
-                                        color: AppColors.textSecondary.withOpacity(0.5),
-                                      ),
-                                      const SizedBox(height: 16),
-                                      Text(
-                                        'You haven\'t registered for any events yet',
-                                        style: TextStyle(
-                                          color: AppColors.textSecondary,
-                                          fontSize: 14,
-                                        ),
-                                        textAlign: TextAlign.center,
+                                        color: Colors.grey.shade400,
                                       ),
                                       const SizedBox(height: 8),
-                                      Text(
-                                        'Register for events above to see them here',
+                                      const Text(
+                                        'No registered events',
                                         style: TextStyle(
-                                          color: AppColors.textSecondary.withOpacity(0.7),
+                                          color: Colors.grey,
+                                          fontWeight: FontWeight.w500,
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        'Register for events to see them here',
+                                        style: TextStyle(
+                                          color: Colors.grey.shade500,
                                           fontSize: 12,
                                         ),
-                                        textAlign: TextAlign.center,
                                       ),
                                     ],
                                   ),
@@ -971,31 +985,7 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
       ),
-      // Add a floating action button to test socket connection
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          if (_socketConnected) {
-            _socketNotificationService.sendTestNotification();
-            Get.snackbar(
-              'Test',
-              'Sent test notification request',
-              snackPosition: SnackPosition.BOTTOM,
-            );
-          } else {
-            _socketNotificationService.reconnect();
-            Get.snackbar(
-              'Socket',
-              'Attempting to reconnect to notification server',
-              snackPosition: SnackPosition.BOTTOM,
-            );
-          }
-        },
-        backgroundColor: _socketConnected ? AppColors.success : AppColors.warning,
-        child: Icon(
-          _socketConnected ? Icons.send : Icons.refresh,
-          color: Colors.white,
-        ),
-      ),
+      // Remove the floating action button - it's only for testing notifications
     );
   }
 

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:mentalsustainability/services/badge_service.dart';
 import 'package:mentalsustainability/theme/app_colors.dart';
 import 'package:mentalsustainability/services/api_service.dart';
 import 'package:mentalsustainability/services/auth_service.dart';
@@ -14,6 +15,7 @@ class DashboardPage extends StatefulWidget {
 class _DashboardPageState extends State<DashboardPage> {
   final ApiService _apiService = Get.find<ApiService>();
   final AuthService _authService = Get.find<AuthService>();
+  late final BadgeService _badgeService;
   
   // State variables for API data
   int _totalPoints = 0;
@@ -24,6 +26,10 @@ class _DashboardPageState extends State<DashboardPage> {
   
   List<EventParticipation> _recentParticipations = [];
   bool _isLoadingParticipations = true;
+  
+  // List to store badges from BadgeService
+  List<AchievementBadge> _achievementBadges = [];
+  bool _isLoadingBadges = true;
   
   // Remove the hardcoded participations since we'll load them from API
   // Sample badges earned - kept for now
@@ -51,7 +57,17 @@ class _DashboardPageState extends State<DashboardPage> {
   @override
   void initState() {
     super.initState();
+    // Initialize badge service
+    try {
+      _badgeService = Get.find<BadgeService>();
+    } catch (e) {
+      print('Error finding BadgeService: $e');
+      _badgeService = BadgeService();
+      Get.put(_badgeService, permanent: true);
+    }
+    
     _loadDashboardData();
+    _loadBadges();
   }
   
   // Load all dashboard data
@@ -185,6 +201,30 @@ class _DashboardPageState extends State<DashboardPage> {
       });
     }
   }
+  
+  // Add method to load badges
+  void _loadBadges() {
+    setState(() {
+      _isLoadingBadges = true;
+    });
+    
+    try {
+      // Get badges from the BadgeService
+      _achievementBadges = _badgeService.getBadges(forceRefresh: true);
+      
+      // Update state
+      setState(() {
+        _isLoadingBadges = false;
+      });
+      
+      print('Loaded ${_achievementBadges.length} badges');
+    } catch (e) {
+      print('Error loading badges: $e');
+      setState(() {
+        _isLoadingBadges = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -260,8 +300,8 @@ class _DashboardPageState extends State<DashboardPage> {
               _buildRecentParticipationCard(_recentParticipations),
               const SizedBox(height: 20),
               
-              // Badges Earned
-              _buildBadgesCard(_badges),
+              // Badges Earned - CHANGE THIS LINE to use _achievementBadges instead of _badges
+              _buildBadgesCard(_achievementBadges),
               const SizedBox(height: 32),
             ],
           ),
@@ -648,7 +688,7 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   // Badges card
-  Widget _buildBadgesCard(List<Badge> badges) {
+  Widget _buildBadgesCard(List<AchievementBadge> badges) {
     return Card(
       elevation: 3,
       shadowColor: AppColors.primary.withOpacity(0.3),
@@ -682,108 +722,329 @@ class _DashboardPageState extends State<DashboardPage> {
                     fontSize: 16,
                   ),
                 ),
+                const Spacer(),
+                TextButton(
+                  onPressed: () {
+                    // Show all badges in a dialog
+                    _showAllBadgesDialog();
+                  },
+                  child: const Text('See All'),
+                ),
               ],
             ),
             const SizedBox(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: badges.map((badge) {
-                // Get specific color for each badge type
-                Color badgeColor = _getBadgeColor(badge.title);
-                
-                return Column(
-                  children: [
-                    Container(
-                      width: 70,
-                      height: 70,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [
-                            badgeColor.withOpacity(0.2),
-                            badgeColor.withOpacity(0.05),
-                          ],
-                        ),
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: badgeColor.withOpacity(0.2),
-                            blurRadius: 10,
-                            spreadRadius: 2,
+            _isLoadingBadges
+              ? const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(20.0),
+                    child: CircularProgressIndicator(),
+                  ),
+                )
+              : badges.isEmpty
+                ? const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(20.0),
+                      child: Text(
+                        'No badges earned yet',
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                    ),
+                  )
+                : Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: badges.take(3).map((badge) {
+                      return Column(
+                        children: [
+                          Container(
+                            width: 70,
+                            height: 70,
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [
+                                  badge.color.withOpacity(0.2),
+                                  badge.color.withOpacity(0.05),
+                                ],
+                              ),
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: badge.color.withOpacity(0.2),
+                                  blurRadius: 10,
+                                  spreadRadius: 2,
+                                ),
+                              ],
+                              border: Border.all(
+                                color: badge.color.withOpacity(0.5),
+                                width: 2,
+                              ),
+                            ),
+                            child: Stack(
+                              children: [
+                                Center(
+                                  child: Icon(
+                                    badge.icon,
+                                    color: badge.color,
+                                    size: 32,
+                                  ),
+                                ),
+                                // Level indicator
+                                Positioned(
+                                  right: 0,
+                                  bottom: 0,
+                                  child: Container(
+                                    padding: const EdgeInsets.all(4),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                        color: badge.color,
+                                        width: 1.5,
+                                      ),
+                                    ),
+                                    child: Text(
+                                      badge.level.toString(),
+                                      style: TextStyle(
+                                        color: badge.color,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 10,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Container(
+                            width: 90,
+                            padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+                            decoration: BoxDecoration(
+                              color: badge.color.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: badge.color.withOpacity(0.3),
+                                width: 1,
+                              ),
+                            ),
+                            child: Text(
+                              badge.name,
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: badge.color.withOpacity(0.8),
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
                         ],
-                        border: Border.all(
-                          color: badgeColor.withOpacity(0.5),
-                          width: 2,
-                        ),
-                      ),
-                      child: Center(
-                        child: Icon(
-                          _getBadgeIcon(badge.title),
-                          color: badgeColor,
-                          size: 32,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Container(
-                      width: 90,
-                      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
-                      decoration: BoxDecoration(
-                        color: badgeColor.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: badgeColor.withOpacity(0.3),
-                          width: 1,
-                        ),
-                      ),
-                      child: Text(
-                        badge.title,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: badgeColor.withOpacity(0.8),
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                );
-              }).toList(),
-            ),
+                      );
+                    }).toList(),
+                  ),
           ],
         ),
       ),
     );
   }
-
-  // Helper method to get the appropriate icon for badge types
-  IconData _getBadgeIcon(String badgeTitle) {
-    if (badgeTitle.contains('Mind')) {
-      return Icons.spa;
-    } else if (badgeTitle.contains('Eco')) {
-      return Icons.eco;
-    } else if (badgeTitle.contains('Community')) {
-      return Icons.people;
-    } else {
-      return Icons.star;
-    }
+  
+  // Add new method to show all badges in a dialog
+  void _showAllBadgesDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: AppColors.background,
+              shape: BoxShape.rectangle,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black26,
+                  blurRadius: 10.0,
+                  offset: const Offset(0.0, 10.0),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Header
+                Row(
+                  children: [
+                    Icon(
+                      Icons.emoji_events,
+                      color: AppColors.primary,
+                      size: 28,
+                    ),
+                    const SizedBox(width: 10),
+                    const Text(
+                      'Your Achievements',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
+                  ],
+                ),
+                const Divider(),
+                
+                // Badges grid
+                Container(
+                  constraints: BoxConstraints(
+                    maxHeight: MediaQuery.of(context).size.height * 0.5,
+                  ),
+                  child: _isLoadingBadges
+                    ? const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(20.0),
+                          child: CircularProgressIndicator(),
+                        ),
+                      )
+                    : _achievementBadges.isEmpty
+                      ? const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(20.0),
+                            child: Text(
+                              'No badges earned yet',
+                              style: TextStyle(color: Colors.grey),
+                            ),
+                          ),
+                        )
+                      : GridView.builder(
+                          shrinkWrap: true,
+                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            childAspectRatio: 0.8,
+                            crossAxisSpacing: 16,
+                            mainAxisSpacing: 16,
+                          ),
+                          itemCount: _achievementBadges.length,
+                          itemBuilder: (context, index) {
+                            final badge = _achievementBadges[index];
+                            return _buildBadgeGridItem(badge);
+                          },
+                        ),
+                ),
+                
+                // Footnote about badges
+                const SizedBox(height: 16),
+                Text(
+                  'Badges are earned based on your participation and contributions.',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontStyle: FontStyle.italic,
+                    color: Colors.grey[600],
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
   
-  // Helper method to get appropriate color for badge types
-  Color _getBadgeColor(String badgeTitle) {
-    if (badgeTitle.contains('Mind')) {
-      return Colors.purple;
-    } else if (badgeTitle.contains('Eco')) {
-      return Colors.green[700]!;
-    } else if (badgeTitle.contains('Community')) {
-      return Colors.blue[700]!;
-    } else {
-      return Colors.amber[700]!;
-    }
+  // Helper to build a badge grid item
+  Widget _buildBadgeGridItem(AchievementBadge badge) {
+    return Container(
+      decoration: BoxDecoration(
+        color: badge.color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: badge.color.withOpacity(0.3),
+          width: 2,
+        ),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          // Badge Icon with Level indicator
+          Stack(
+            alignment: Alignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: badge.color.withOpacity(0.2),
+                  border: Border.all(
+                    color: badge.color,
+                    width: 2,
+                  ),
+                ),
+                child: Icon(
+                  badge.icon,
+                  color: badge.color,
+                  size: 32,
+                ),
+              ),
+              Positioned(
+                right: 0,
+                bottom: 0,
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppColors.white,
+                    border: Border.all(
+                      color: badge.color,
+                      width: 1.5,
+                    ),
+                  ),
+                  child: Text(
+                    badge.level.toString(),
+                    style: TextStyle(
+                      color: badge.color,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            badge.name,
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 4),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Text(
+              badge.description,
+              style: TextStyle(
+                fontSize: 10,
+                color: AppColors.textSecondary,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
   }
   
   // Add a variable to store all participations for the history dialog

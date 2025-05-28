@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-// import 'package:firebase_core/firebase_core.dart';
-// import 'firebase_options.dart';
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:mentalsustainability/pages/base_widget.dart';
 import 'package:mentalsustainability/pages/guide_page.dart';
-import 'package:mentalsustainability/pages/admin/admin_panel.dart'; // Add this import
+import 'package:mentalsustainability/pages/admin/admin_panel.dart';
+import 'package:mentalsustainability/services/badge_service.dart'; // Make sure this import exists
 import 'package:mentalsustainability/theme/app_colors.dart';
 import 'package:mentalsustainability/theme/theme_provider.dart';
 import 'pages/auth_wrapper.dart';
@@ -24,6 +24,7 @@ void main() async {
   // DEBUG: Print info about the initialized services
   print('Auth service initialized: ${Get.isRegistered<AuthService>()}');
   print('API service initialized: ${Get.isRegistered<ApiService>()}');
+  print('Badge service initialized: ${Get.isRegistered<BadgeService>()}');
   
   runApp(const MyApp());
 }
@@ -36,6 +37,14 @@ Future<void> initServices() async {
   final authService = Get.put(AuthService());
   Get.put(ThemeProvider());
   Get.put(ApiService());
+  
+  // Initialize BadgeService after auth service is available
+  try {
+    Get.put(BadgeService(), permanent: true);
+    print('BadgeService initialized successfully in initServices');
+  } catch (e) {
+    print('Error initializing BadgeService in initServices: $e');
+  }
   
   // Verify auth status on startup
   await authService.checkAndSetAuthStatus();
