@@ -1276,6 +1276,69 @@ Future<void> debugUserInfo() async {
       return false;
     }
   }
+
+  // Get total points for a user
+Future<int> getUserTotalPoints(String userId) async {
+  try {
+    final token = await _authService.getToken();
+    
+    if (token == null) {
+      print('No auth token available');
+      return 0;
+    }
+    
+    final response = await http.get(
+      Uri.parse('${baseUrl}dashboard/pointsScored?user_id=$userId'),
+      headers: {
+        'Authorization': token,
+      },
+    );
+    
+    if (response.statusCode == 200) {
+      final responseData = json.decode(response.body);
+      return responseData['points'] ?? 0;
+    } else {
+      print('Failed to fetch user points: ${response.statusCode}');
+      return 0;
+    }
+  } catch (e) {
+    print('Error fetching user points: $e');
+    return 0;
+  }
+}
+
+// Get top volunteers
+Future<List<Map<String, dynamic>>> getTopVolunteers() async {
+  try {
+    final token = await _authService.getToken();
+    
+    if (token == null) {
+      print('No auth token available');
+      return [];
+    }
+    
+    final response = await http.get(
+      Uri.parse('${baseUrl}dashboard/topVolunteers/'),
+      headers: {
+        'Authorization': token,
+      },
+    );
+    
+    if (response.statusCode == 200) {
+      final responseData = json.decode(response.body);
+      if (responseData.containsKey('topVolunteers') && responseData['topVolunteers'] is List) {
+        return List<Map<String, dynamic>>.from(responseData['topVolunteers']);
+      }
+      return [];
+    } else {
+      print('Failed to fetch top volunteers: ${response.statusCode}');
+      return [];
+    }
+  } catch (e) {
+    print('Error fetching top volunteers: $e');
+    return [];
+  }
+}
 }
 
 // Custom exception for already registered events

@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:mentalsustainability/theme/app_colors.dart';
+import 'package:mentalsustainability/services/api_service.dart';
+import 'package:mentalsustainability/services/auth_service.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -9,36 +12,17 @@ class DashboardPage extends StatefulWidget {
 }
 
 class _DashboardPageState extends State<DashboardPage> {
-  // TODO: Fetch user points data from backend API
-  // Sample current month points data
-  final int _currentMonthPoints = 180;
+  final ApiService _apiService = Get.find<ApiService>();
+  final AuthService _authService = Get.find<AuthService>();
   
-  // Sample top users by points
-  final List<User> _topUsers = [
-    User(
-      id: 'u1',
-      name: 'Rajesh Kumar',
-      points: 780,
-      imageUrl: 'assets/images/profile1.jpg',
-      rank: 1,
-    ),
-    User(
-      id: 'u2',
-      name: 'Priya Singh',
-      points: 720,
-      imageUrl: 'assets/images/profile2.jpg',
-      rank: 2,
-    ),
-    User(
-      id: 'u3',
-      name: 'Amit Sharma',
-      points: 690,
-      imageUrl: 'assets/images/profile3.jpg',
-      rank: 3,
-    ),
-  ];
+  // State variables for API data
+  int _totalPoints = 0;
+  bool _isLoadingPoints = true;
   
-  // Sample recent event participation
+  List<User> _topUsers = [];
+  bool _isLoadingTopUsers = true;
+  
+  // Sample recent event participation - kept for now
   final List<EventParticipation> _recentParticipations = [
     EventParticipation(
       eventId: 'e1',
@@ -60,7 +44,7 @@ class _DashboardPageState extends State<DashboardPage> {
     ),
   ];
 
-  // Sample badges earned
+  // Sample badges earned - kept for now
   final List<Badge> _badges = [
     Badge(
       id: 'b1',
@@ -81,6 +65,77 @@ class _DashboardPageState extends State<DashboardPage> {
       imageUrl: 'assets/images/badges/community_leader.png',
     ),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDashboardData();
+  }
+  
+  // Load all dashboard data
+  Future<void> _loadDashboardData() async {
+    _loadUserPoints();
+    _loadTopVolunteers();
+  }
+  
+  // Load user's total points
+  Future<void> _loadUserPoints() async {
+    setState(() {
+      _isLoadingPoints = true;
+    });
+    
+    try {
+      final userId = await _authService.getUserId();
+      if (userId != null) {
+        final points = await _apiService.getUserTotalPoints(userId);
+        setState(() {
+          _totalPoints = points;
+          _isLoadingPoints = false;
+        });
+      } else {
+        setState(() {
+          _isLoadingPoints = false;
+        });
+      }
+    } catch (e) {
+      print('Error loading user points: $e');
+      setState(() {
+        _isLoadingPoints = false;
+      });
+    }
+  }
+  
+  // Load top volunteers
+  Future<void> _loadTopVolunteers() async {
+    setState(() {
+      _isLoadingTopUsers = true;
+    });
+    
+    try {
+      final topVolunteers = await _apiService.getTopVolunteers();
+      final List<User> users = [];
+      
+      for (int i = 0; i < topVolunteers.length; i++) {
+        final volunteer = topVolunteers[i];
+        users.add(User(
+          id: i.toString(), // Using index as ID since user_id is no longer provided
+          name: volunteer['username'] ?? 'Unknown User', // Use username instead of user_id
+          points: volunteer['totalPoints'] ?? 0,
+          rank: i + 1,
+        ));
+      }
+      
+      setState(() {
+        _topUsers = users;
+        _isLoadingTopUsers = false;
+      });
+    } catch (e) {
+      print('Error loading top volunteers: $e');
+      setState(() {
+        _isLoadingTopUsers = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -145,7 +200,7 @@ class _DashboardPageState extends State<DashboardPage> {
               const SizedBox(height: 24),
               
               // Monthly Points Card
-              _buildMonthlyPointsCard(_currentMonthPoints),
+              _buildMonthlyPointsCard(_totalPoints),
               const SizedBox(height: 20),
               
               // Leaderboard Card - Top 3 Users
@@ -195,21 +250,30 @@ class _DashboardPageState extends State<DashboardPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'Your Points This Month',
+                  'Your Total Points',  // Changed from "Monthly Points" to "Total Points"
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 const SizedBox(height: 4),
-                Text(
-                  points.toString(),
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.primary,
-                  ),
-                ),
+                _isLoadingPoints
+                  ? SizedBox(
+                      height: 28,
+                      width: 28,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: AppColors.primary,
+                      ),
+                    )
+                  : Text(
+                      points.toString(),
+                      style: TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.primary,
+                      ),
+                    ),
               ],
             ),
             const Spacer(),
@@ -270,90 +334,109 @@ class _DashboardPageState extends State<DashboardPage> {
               ],
             ),
             const SizedBox(height: 16),
-            ...users.map((user) {
-              // Set medal color based on rank
-              Color medalColor;
-              IconData medalIcon;
-              
-              switch (user.rank) {
-                case 1:
-                  medalColor = Colors.amber;
-                  medalIcon = Icons.emoji_events;
-                  break;
-                case 2:
-                  medalColor = Colors.grey.shade400;
-                  medalIcon = Icons.emoji_events;
-                  break;
-                case 3:
-                  medalColor = Colors.brown.shade300;
-                  medalIcon = Icons.emoji_events;
-                  break;
-                default:
-                  medalColor = AppColors.primary;
-                  medalIcon = Icons.star;
-              }
-              
-              return Container(
-                margin: const EdgeInsets.only(bottom: 12),
-                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-                decoration: BoxDecoration(
-                  color: user.rank == 1 
-                    ? Colors.amber.withOpacity(0.05)
-                    : AppColors.background,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: user.rank == 1 
-                      ? Colors.amber.withOpacity(0.3)
-                      : AppColors.divider,
-                    width: 1,
+            _isLoadingTopUsers
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(20.0),
+                    child: CircularProgressIndicator(),
                   ),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 32,
-                      height: 32,
-                      decoration: BoxDecoration(
-                        color: medalColor.withOpacity(0.1),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Center(
-                        child: Icon(
-                          medalIcon,
-                          color: medalColor,
-                          size: 18,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
+                )
+              : users.isEmpty
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(20.0),
                       child: Text(
-                        user.name,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
+                        'No data available',
+                        style: TextStyle(color: Colors.grey),
                       ),
                     ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        '${user.points} pts',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.primary,
+                  )
+                : Column(
+                    children: users.map((user) {
+                      // Set medal color based on rank
+                      Color medalColor;
+                      IconData medalIcon;
+                      
+                      switch (user.rank) {
+                        case 1:
+                          medalColor = Colors.amber;
+                          medalIcon = Icons.emoji_events;
+                          break;
+                        case 2:
+                          medalColor = Colors.grey.shade400;
+                          medalIcon = Icons.emoji_events;
+                          break;
+                        case 3:
+                          medalColor = Colors.brown.shade300;
+                          medalIcon = Icons.emoji_events;
+                          break;
+                        default:
+                          medalColor = AppColors.primary;
+                          medalIcon = Icons.star;
+                      }
+                      
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                        decoration: BoxDecoration(
+                          color: user.rank == 1 
+                            ? Colors.amber.withOpacity(0.05)
+                            : AppColors.background,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: user.rank == 1 
+                              ? Colors.amber.withOpacity(0.3)
+                              : AppColors.divider,
+                            width: 1,
+                          ),
                         ),
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }).toList(),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 32,
+                              height: 32,
+                              decoration: BoxDecoration(
+                                color: medalColor.withOpacity(0.1),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Center(
+                                child: Icon(
+                                  medalIcon,
+                                  color: medalColor,
+                                  size: 18,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                user.name,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                '${user.points} pts',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.primary,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                  ),
           ],
         ),
       ),
