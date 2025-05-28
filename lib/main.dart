@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 // import 'package:firebase_core/firebase_core.dart';
 // import 'firebase_options.dart';
 import 'package:get/get.dart';
@@ -18,10 +19,21 @@ import 'package:mentalsustainability/middleware/admin_middleware.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // Initialize services
-  await initServices();
+  // Add better error handling for web
+  FlutterError.onError = (FlutterErrorDetails details) {
+    FlutterError.presentError(details);
+    print('FLUTTER ERROR: ${details.exception}');
+  };
   
+  // Initialize services with error handling
+  try {
+    await initServices();
+    print('Services initialized successfully');
+  } catch (e) {
+    print('Error initializing services: $e');
+  }
   
+  // Run app with error zone for web
   runApp(const MyApp());
 }
 
@@ -29,11 +41,14 @@ void main() async {
 Future<void> initServices() async {
   print('Starting services initialization...');
   
-  // Initialize other services first
-  // Initialize providers
+  // Initialize providers in correct order
+  final authService = Get.put(AuthService());
   Get.put(ThemeProvider());
-  Get.put(AuthService());
   Get.put(ApiService());
+  
+  // Verify auth status on startup
+  await authService.checkAndSetAuthStatus();
+  print('Auth status: ${authService.isAuthenticated.value}');
   
   // Initialize SocketNotificationService - but don't connect immediately
   print('Initializing SocketNotificationService...');
@@ -74,12 +89,24 @@ class MyApp extends StatelessWidget {
             color: AppColors.divider,
           ),
         ),
-        home: const SplashScreen(),
+        initialRoute: '/',
         getPages: [
-          GetPage(name: '/', page: () => AuthWrapper()),
-          GetPage(name: '/login', page: () => AuthWrapper()),
-          GetPage(name: '/auth', page: () => AuthWrapper()), // Add this for splash navigation
-          GetPage(name: '/home', page: () => const BaseScreen() ),
+          GetPage(
+            name: '/', 
+            page: () => AuthWrapper(),
+            transition: Transition.fadeIn,
+          ),
+          GetPage(
+            name: '/login', 
+            page: () => AuthWrapper(),
+            transition: Transition.fadeIn,
+          ),
+          GetPage(
+            name: '/home', 
+            page: () => const BaseScreen(),
+            middlewares: [AuthMiddleware()],
+            transition: Transition.fadeIn,
+          ),
           GetPage(name: '/guide', page: () => const GuidePage()),
           GetPage(
             name: '/admin',

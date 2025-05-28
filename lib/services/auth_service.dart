@@ -1,17 +1,18 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get/get.dart';
-import 'package:http/http.dart' as http;
 import 'package:mentalsustainability/services/api_service.dart';
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:html' as html; // Import for web localStorage
 
-// Add this extension at the top of the file after imports
+// Remove the problematic conditional import and use proper pattern
+import 'dart:html' if (dart.library.io) 'package:mentalsustainability/services/mock_html.dart' as html_lib;
+
+// Use a safe version of the Base64 extension
 extension Base64Extension on String {
   String normalize() {
     String normalizedPayload = this;
-    switch (length % 4) {
+    switch (normalizedPayload.length % 4) {
       case 1:
         normalizedPayload += '===';
         break;
@@ -50,17 +51,30 @@ class ValidationPatterns {
   static final RegExp idPattern = RegExp(r'^f\d{2}[A-Z0-9]{6}$');
 }
 
-class AuthService extends GetxController {
+class AuthService extends GetxService {
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
   final RxBool isAuthenticated = false.obs;
   
   // Key for storing the JWT token
   static const String _tokenKey = 'jwt_token';
 
-  // Add this field to store the user ID
-  String? _userId;
+  // Additional fields to store user information
+  final Rx<String?> _userId = Rx<String?>(null);
+  final Rx<String?> _username = Rx<String?>(null);
+  final Rx<bool> _isAdmin = Rx<bool>(false);
+  final Rx<bool> _isVolunteer = Rx<bool>(false);
+  final Rx<bool> _isWishVolunteer = Rx<bool>(false);
+  final Rx<int> _points = Rx<int>(0);
   
-  // Add this variable to cache the admin status for synchronous checks
+  // Getters for the new fields
+  String? get userId => _userId.value;
+  String? get username => _username.value;
+  bool get isAdmin => _isAdmin.value;
+  bool get isVolunteer => _isVolunteer.value;
+  bool get isWishVolunteer => _isWishVolunteer.value;
+  int get points => _points.value;
+  
+  // Add this field to store the user ID
   String? _adminStatus;
   
   // Create an observable for admin status
@@ -96,11 +110,10 @@ class AuthService extends GetxController {
   Future<void> storeToken(String token) async {
     try {
       if (kIsWeb) {
-        // Direct localStorage access for web - most reliable method
-        html.window.localStorage[_tokenKey] = token;
+        _setWebLocalStorage(_tokenKey, token);
         print('Token stored in localStorage');
         
-        // Backup in SharedPreferences (attempt)
+        // Backup in SharedPreferences
         try {
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString(_tokenKey, token);
@@ -122,8 +135,8 @@ class AuthService extends GetxController {
   Future<String?> getToken() async {
     try {
       if (kIsWeb) {
-        // First try localStorage directly
-        final token = html.window.localStorage[_tokenKey];
+        // Use helper method
+        final token = _getWebLocalStorage(_tokenKey);
         if (token != null && token.isNotEmpty) {
           return token;
         }
@@ -151,7 +164,7 @@ class AuthService extends GetxController {
     try {
       if (kIsWeb) {
         // Clear from localStorage directly
-        html.window.localStorage.remove(_tokenKey);
+        html_lib.window.localStorage.remove(_tokenKey);
         
         // Also clear from SharedPreferences
         try {
@@ -177,52 +190,94 @@ class AuthService extends GetxController {
   }
   
   // Login method that communicates with your backend
-  Future<bool> login(String id, String password) async {
+  Future<Map<String, dynamic>?> login(String id, String password) async {
     try {
-      final apiService = Get.find<ApiService>();
+      print('Attempting login with ID: $id');
+      final ApiService apiService = Get.find<ApiService>();
       final response = await apiService.login(id, password);
       
-      print('AuthService received login response: $response');
+      print('Raw login response from API: $response');
       
-      if (response != null) {
-        final token = response['token'];
+      if (response != null && response['success'] == true) {
+        print('Login successful for ID: $id');
         
+        // Store token
+        final token = response['token'];
         if (token != null) {
-          // Store the token and user ID
+          print('Storing token: ${token.length > 20 ? token.substring(0, 20) + "..." : token}');
           await storeToken(token);
           
-          // Use the provided user_id or fallback to the login id
-          final userId = response['user_id']?.toString() ?? id;
-          await storeUserId(userId);
-          
-          // Set authentication status
-          isAuthenticated.value = true;
-          
-          // Check for admin status in the response
-          final isAdminFromResponse = response['isAdmin'];
-          if (isAdminFromResponse != null) {
-            // Store admin status from direct response
-            isAdminUser.value = isAdminFromResponse == true;
-            _adminStatus = isAdminFromResponse == true ? 'admin' : 'user';
-            
-            // Store admin status for future reference
-            await _storeAdminStatus(isAdminFromResponse == true);
-            
-            print('Admin status from response: ${isAdminUser.value}');
+          // Also store the token with the auth_token key for compatibility
+          if (kIsWeb) {
+            _setWebLocalStorage('auth_token', token);
           } else {
-            // Fallback: try to decode from JWT
-            await initAdminStatus();
+            await _secureStorage.write(key: 'auth_token', value: token);
           }
-          
-          print('Login successful - User ID: $userId, Is Admin: ${isAdminUser.value}');
-          return true;
+        } else {
+          print('Warning: No token in successful login response');
         }
+        
+        // Store additional user information
+        _userId.value = response['user_id'];
+        _isAdmin.value = response['isAdmin'] ?? false;
+        _isVolunteer.value = response['isVolunteer'] == 1;
+        _isWishVolunteer.value = response['isWishVolunteer'] == 1;
+        
+        // Store username as the user_id for now
+        _username.value = response['user_id'];
+        
+        // Points might be added later, initialize to 0 for now
+        _points.value = response['points'] ?? 0;
+        
+        // IMPORTANT: Explicitly set authenticated state
+        isAuthenticated.value = true;
+        
+        // Update admin status in isAdminUser
+        isAdminUser.value = _isAdmin.value;
+        
+        print('Authentication state set to: ${isAuthenticated.value}');
+        print('Admin status set to: ${isAdminUser.value}');
+        
+        return response;
+      } else {
+        print('Login failed: ${response?.toString() ?? 'null response'}');
+        isAuthenticated.value = false;
+        return null;
       }
-      
-      return false;
     } catch (e) {
-      print('Login error in AuthService: $e');
-      return false;
+      print('Login error: $e');
+      isAuthenticated.value = false;
+      return null;
+    }
+  }
+  
+  // Logout method
+  Future<void> logout() async {
+    try {
+      // Clear token
+      await clearToken();
+      // Clear user ID
+      await clearUserId();
+      // Clear admin status
+      await _clearAdminStatus();
+      
+      // Reset observables
+      isAuthenticated.value = false;
+      isAdminUser.value = false;
+      _adminStatus = null;
+      
+      // Reset user data
+      _userId.value = null;
+      _username.value = null;
+      _isAdmin.value = false;
+      _isVolunteer.value = false;
+      _isWishVolunteer.value = false;
+      _points.value = 0;
+      
+      print('Logout complete - all data cleared');
+    } catch (e) {
+      print('Error during logout: $e');
+      rethrow;
     }
   }
   
@@ -232,7 +287,7 @@ class AuthService extends GetxController {
       final adminValue = isAdmin.toString();
       
       if (kIsWeb) {
-        html.window.localStorage['isAdmin'] = adminValue;
+        html_lib.window.localStorage['isAdmin'] = adminValue;
         try {
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString('isAdmin', adminValue);
@@ -285,7 +340,7 @@ class AuthService extends GetxController {
       String? adminStatus;
       
       if (kIsWeb) {
-        adminStatus = html.window.localStorage['isAdmin'];
+        adminStatus = html_lib.window.localStorage['isAdmin'];
         if (adminStatus == null) {
           try {
             final prefs = await SharedPreferences.getInstance();
@@ -339,33 +394,41 @@ class AuthService extends GetxController {
     }
   }
   
-  // Clear all data (for complete logout)
-  Future<void> logout() async {
-    try {
-      // Clear token
-      await clearToken();
-      // Clear user ID
-      await clearUserId();
-      // Clear admin status
-      await _clearAdminStatus();
+  // // Clear all data (for complete logout)
+  // Future<void> logout() async {
+  //   try {
+  //     // Clear token
+  //     await clearToken();
+  //     // Clear user ID
+  //     await clearUserId();
+  //     // Clear admin status
+  //     await _clearAdminStatus();
       
-      // Reset observables
-      isAuthenticated.value = false;
-      isAdminUser.value = false;
-      _adminStatus = null;
+  //     // Reset observables
+  //     isAuthenticated.value = false;
+  //     isAdminUser.value = false;
+  //     _adminStatus = null;
       
-      print('Logout complete - all data cleared');
-    } catch (e) {
-      print('Error during logout: $e');
-      rethrow;
-    }
-  }
+  //     // Reset user data
+  //     _userId.value = null;
+  //     _username.value = null;
+  //     _isAdmin.value = false;
+  //     _isVolunteer.value = false;
+  //     _isWishVolunteer.value = false;
+  //     _points.value = 0;
+      
+  //     print('Logout complete - all data cleared');
+  //   } catch (e) {
+  //     print('Error during logout: $e');
+  //     rethrow;
+  //   }
+  // }
   
   // Clear admin status
   Future<void> _clearAdminStatus() async {
     try {
       if (kIsWeb) {
-        html.window.localStorage.remove('isAdmin');
+        html_lib.window.localStorage.remove('isAdmin');
         try {
           final prefs = await SharedPreferences.getInstance();
           await prefs.remove('isAdmin');
@@ -385,11 +448,11 @@ class AuthService extends GetxController {
   Future<void> storeUserId(String userId) async {
     try {
       // Store in memory
-      _userId = userId;
+      _userId.value = userId;
       
       if (kIsWeb) {
         // Store in localStorage for web
-        html.window.localStorage['user_id'] = userId;
+        html_lib.window.localStorage['user_id'] = userId;
         try {
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString('user_id', userId);
@@ -410,18 +473,18 @@ class AuthService extends GetxController {
   Future<String?> getUserId() async {
     try {
       // 1. Try memory cache first (fastest)
-      if (_userId != null && _userId!.isNotEmpty) {
+      if (_userId.value != null && _userId.value!.isNotEmpty) {
         print('Using cached user ID: $_userId');
-        return _userId;
+        return _userId.value;
       }
       
       // 2. Try storage
       String? storedId;
       if (kIsWeb) {
         // First try localStorage
-        storedId = html.window.localStorage['user_id'];
+        storedId = html_lib.window.localStorage['user_id'];
         if (storedId != null && storedId.isNotEmpty) {
-          _userId = storedId; // Cache it
+          _userId.value = storedId; // Cache it
           print('Retrieved user ID from localStorage: $storedId');
           return storedId;
         }
@@ -431,7 +494,7 @@ class AuthService extends GetxController {
           final prefs = await SharedPreferences.getInstance();
           storedId = prefs.getString('user_id');
           if (storedId != null && storedId.isNotEmpty) {
-            _userId = storedId; // Cache it
+            _userId.value = storedId; // Cache it
             print('Retrieved user ID from SharedPreferences: $storedId');
             return storedId;
           }
@@ -442,7 +505,7 @@ class AuthService extends GetxController {
         // For mobile, use secure storage
         storedId = await _secureStorage.read(key: 'user_id');
         if (storedId != null && storedId.isNotEmpty) {
-          _userId = storedId; // Cache it
+          _userId.value = storedId; // Cache it
           print('Retrieved user ID from secure storage: $storedId');
           return storedId;
         }
@@ -462,11 +525,11 @@ class AuthService extends GetxController {
             // Usually the user ID is stored in the 'sub' or 'id' field
             final tokenId = data['id'] ?? data['sub'];
             if (tokenId != null) {
-              _userId = tokenId.toString(); // Cache it
+              _userId.value = tokenId.toString(); // Cache it
               // Also store it for future use
-              await storeUserId(_userId!);
+              await storeUserId(_userId.value!);
               print('Extracted user ID from token: $_userId');
-              return _userId;
+              return _userId.value;
             }
           }
         } catch (e) {
@@ -486,11 +549,11 @@ class AuthService extends GetxController {
   Future<void> clearUserId() async {
     try {
       // Clear from memory
-      _userId = null;
+      _userId.value = null;
       
       if (kIsWeb) {
         // Clear from localStorage
-        html.window.localStorage.remove('user_id');
+        html_lib.window.localStorage.remove('user_id');
         
         // Also clear from SharedPreferences
         try {
@@ -596,8 +659,54 @@ class AuthService extends GetxController {
     }
   }
   
-  // Check if the current user is an admin
-  Future<bool> isAdmin() async {
+  // Web localStorage helper methods that safely access localStorage on web only
+  void _setWebLocalStorage(String key, String value) {
+    if (kIsWeb) {
+      try {
+        html_lib.window.localStorage[key] = value;
+      } catch (e) {
+        print('Error accessing localStorage: $e');
+        // Fallback to in-memory storage
+        _inMemoryStorage[key] = value;
+      }
+    }
+  }
+  
+  String? _getWebLocalStorage(String key) {
+    if (kIsWeb) {
+      try {
+        return html_lib.window.localStorage[key];
+      } catch (e) {
+        print('Error reading from localStorage: $e');
+        // Fallback to in-memory storage
+        return _inMemoryStorage[key];
+      }
+    }
+    return null;
+  }
+  
+  void _removeWebLocalStorage(String key) {
+    if (kIsWeb) {
+      try {
+        html_lib.window.localStorage.remove(key);
+      } catch (e) {
+        print('Error removing from localStorage: $e');
+        // Fallback to in-memory storage
+        _inMemoryStorage.remove(key);
+      }
+    }
+  }
+  
+  // Add in-memory fallback storage for web platform
+  final Map<String, String> _inMemoryStorage = {};
+  
+  // Fix: Add updatePoints method
+  void updatePoints(int newPoints) {
+    _points.value = newPoints;
+  }
+  
+  // Fix: Rename second isAdmin method to avoid duplication
+  Future<bool> checkAdminStatus() async {
     // First check if we have a cached value
     if (_adminStatus != null) {
       return _adminStatus == 'admin';
@@ -608,7 +717,7 @@ class AuthService extends GetxController {
       String? adminStatus;
       
       if (kIsWeb) {
-        adminStatus = html.window.localStorage['isAdmin'];
+        adminStatus = html_lib.window.localStorage['isAdmin'];
         if (adminStatus == null) {
           try {
             final prefs = await SharedPreferences.getInstance();
@@ -649,7 +758,7 @@ class AuthService extends GetxController {
       
       // For web, check localStorage
       if (kIsWeb) {
-        final adminStatus = html.window.localStorage['isAdmin'];
+        final adminStatus = html_lib.window.localStorage['isAdmin'];
         return adminStatus == 'true';
       } else {
         // For mobile, we can't use _secureStorage.read() directly as it's async
@@ -659,6 +768,30 @@ class AuthService extends GetxController {
     } catch (e) {
       print('Error checking admin status: $e');
       return false;
+    }
+  }
+  
+  // Add a method to refresh user status after changes
+  Future<void> refreshUserStatus() async {
+    try {
+      // Re-fetch the latest user info from API
+      final userId = await getUserId();
+      if (userId != null) {
+        final ApiService apiService = Get.find<ApiService>();
+        final response = await apiService.login(_userId.value!, 'password');
+        
+        if (response != null && response['success'] == true) {
+          // Update user status
+          _isAdmin.value = response['isAdmin'] ?? false;
+          _isVolunteer.value = response['isVolunteer'] == 1;
+          _isWishVolunteer.value = response['isWishVolunteer'] == 1;
+          
+          // Update admin status in storage
+          await _storeAdminStatus(_isAdmin.value);
+        }
+      }
+    } catch (e) {
+      print('Error refreshing user status: $e');
     }
   }
 }

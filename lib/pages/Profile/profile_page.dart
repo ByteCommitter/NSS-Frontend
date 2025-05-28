@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:mentalsustainability/theme/app_colors.dart'; // Add theme import
+import 'package:mentalsustainability/theme/app_colors.dart';
+import 'package:mentalsustainability/services/auth_service.dart';
+import 'package:mentalsustainability/services/api_service.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -10,99 +12,109 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  // Mock user data
-  final Map<String, dynamic> _userData = {
-    'name': 'Alex Johnson',  // Real name
-    'anonymousName': 'SereneSpirit42',  // Anonymous username for community
-    'email': 'alex.johnson@example.com',
-    'joinDate': 'March 2023',
-    'points': 1250,
-    'completedQuests': 42,
-    'achievements': [
-      {
-        'name': 'Eco Warrior',
-        'description': 'Completed 10 sustainability challenges',
-        'icon': Icons.nature_people,
-        'color': AppColors.success, // Use theme color
-        'level': 2,
-      },
-      {
-        'name': 'Mindfulness Master',
-        'description': 'Practiced mindfulness for 30 days',
-        'icon': Icons.self_improvement,
-        'color': AppColors.info, // Use theme color
-        'level': 3,
-      },
-      {
-        'name': 'Community Leader',
-        'description': 'Helped 5 other community members',
-        'icon': Icons.people,
-        'color': AppColors.warning, // Use theme color
-        'level': 1,
-      },
-      {
-        'name': 'Knowledge Seeker',
-        'description': 'Completed all educational modules',
-        'icon': Icons.school,
-        'color': AppColors.primary, // Use theme color
-        'level': 2,
-      },
-    ],
-    'interests': ['Meditation', 'Sustainability', 'Mental Health'],
-    'avatarColor': AppColors.primary, // Use theme color
-  };
-
-  // For editing profile
-  final _formKey = GlobalKey<FormState>();
-  late TextEditingController _nameController;
-  late TextEditingController _anonymousNameController;
-  bool _isEditing = false;
+  final AuthService _authService = Get.find<AuthService>();
+  final ApiService _apiService = Get.find<ApiService>();
+  
+  bool _isLoading = false;
+  
+  // Use real achievements data from API (will be populated)
+  List<Map<String, dynamic>> _achievements = [
+    // Default achievements until we implement API for real ones
+    {
+      'name': 'NSS Volunteer',
+      'description': 'Registered as NSS volunteer',
+      'icon': Icons.volunteer_activism,
+      'color': AppColors.success,
+      'level': 1,
+    },
+    {
+      'name': 'Event Participant',
+      'description': 'Participated in NSS events',
+      'icon': Icons.event_available,
+      'color': AppColors.primary,
+      'level': 1,
+    },
+  ];
 
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController(text: _userData['name']);
-    _anonymousNameController = TextEditingController(text: _userData['anonymousName']);
+    // Load real user points if needed
+    _refreshUserPoints();
   }
-
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _anonymousNameController.dispose();
-    super.dispose();
+  
+  // Refresh user points from API
+  Future<void> _refreshUserPoints() async {
+    final userId = _authService.userId;
+    if (userId != null) {
+      final points = await _apiService.getUserTotalPoints(userId);
+      _authService.updatePoints(points);
+      setState(() {}); // Refresh UI with updated points
+    }
   }
-
-  void _toggleEditMode() {
+  
+  // Handle volunteer registration
+  Future<void> _registerAsVolunteer() async {
     setState(() {
-      if (_isEditing) {
-        // Save changes
-        if (_formKey.currentState!.validate()) {
-          _userData['anonymousName'] = _anonymousNameController.text;
+      _isLoading = true;
+    });
+    
+    try {
+      final userId = _authService.userId;
+      if (userId != null) {
+        final success = await _apiService.wishToBeVolunteer(userId);
+        
+        if (success) {
+          // Refresh the auth service instead of directly modifying its private field
+          await _authService.refreshUserStatus();
           
           Get.snackbar(
-            'Profile Updated',
-            'Your anonymous username has been updated successfully.',
+            'Request Submitted',
+            'Your volunteer registration request has been submitted for approval.',
             snackPosition: SnackPosition.BOTTOM,
-            backgroundColor: AppColors.success.withOpacity(0.1), // Use theme color
-            colorText: AppColors.success, // Use theme color
+            backgroundColor: AppColors.success.withOpacity(0.1),
+            colorText: AppColors.success,
             margin: const EdgeInsets.all(16),
-            borderRadius: 8,
             duration: const Duration(seconds: 3),
           );
         } else {
-          // Return without toggling if validation fails
-          return;
+          Get.snackbar(
+            'Request Failed',
+            'Unable to submit volunteer registration. Please try again later.',
+            snackPosition: SnackPosition.BOTTOM,
+            backgroundColor: AppColors.error.withOpacity(0.1),
+            colorText: AppColors.error,
+            margin: const EdgeInsets.all(16),
+            duration: const Duration(seconds: 3),
+          );
         }
-      } else {
-        // Reset controllers when entering edit mode
-        _anonymousNameController.text = _userData['anonymousName'];
       }
-      _isEditing = !_isEditing;
-    });
+    } catch (e) {
+      print('Error registering as volunteer: $e');
+      Get.snackbar(
+        'Error',
+        'An error occurred. Please try again later.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: AppColors.error.withOpacity(0.1),
+        colorText: AppColors.error,
+        margin: const EdgeInsets.all(16),
+      );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    // Get user data from AuthService
+    final String name = _authService.username ?? 'User';
+    final String userId = _authService.userId ?? 'Unknown ID';
+    final int points = _authService.points;
+    final bool isVolunteer = _authService.isVolunteer;
+    final bool isWishVolunteer = _authService.isWishVolunteer;
+    
     return Scaffold(
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -110,62 +122,66 @@ class _ProfilePageState extends State<ProfilePage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Profile header with real name
-            _buildProfileHeader(),
+            _buildProfileHeader(name, userId, points),
             
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             
-            // Anonymous username section
-            _buildAnonymousUsernameSection(),
+            // Volunteer status/registration section
+            _buildVolunteerSection(isVolunteer, isWishVolunteer),
             
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             
             // Statistics section
-            _buildStatisticsSection(),
+            _buildStatisticsSection(points),
             
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             
             // Enhanced Achievements section
             _buildEnhancedAchievementsSection(),
-            
-            const SizedBox(height: 12),
-            
-            // Interests section
-            _buildInterestsSection(),
           ],
         ),
       ),
     );
   }
   
-  Widget _buildProfileHeader() {
+  Widget _buildProfileHeader(String name, String userId, int points) {
     return Row(
       children: [
         // Avatar
         CircleAvatar(
           radius: 40,
-          backgroundColor: _userData['avatarColor'],
+          backgroundColor: AppColors.primary,
           child: Text(
-            _userData['name'].substring(0, 1).toUpperCase(),
+            name.isNotEmpty ? name.substring(0, 1).toUpperCase() : 'U',
             style: const TextStyle(
               fontSize: 36,
               fontWeight: FontWeight.bold,
-              color: AppColors.white, // Use theme color
+              color: AppColors.white,
             ),
           ),
         ),
         const SizedBox(width: 20),
         
-        // Real name and points
+        // User info
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Real name
+              // Name
               Text(
-                _userData['name'],
+                name,
                 style: const TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
+                ),
+              ),
+              
+              // User ID
+              Text(
+                'ID: $userId',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: AppColors.textSecondary,
                 ),
               ),
               
@@ -174,13 +190,13 @@ class _ProfilePageState extends State<ProfilePage> {
               // Points display
               Row(
                 children: [
-                  Icon(Icons.stars, color: AppColors.warning, size: 20), // Use theme color
+                  Icon(Icons.stars, color: AppColors.warning, size: 20),
                   const SizedBox(width: 4),
                   Text(
-                    '${_userData['points']} points',
+                    '$points points',
                     style: TextStyle(
                       fontSize: 16,
-                      color: AppColors.primary, // Use theme color
+                      color: AppColors.primary,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -192,9 +208,8 @@ class _ProfilePageState extends State<ProfilePage> {
       ],
     );
   }
-
-  // New method for anonymous username section
-  Widget _buildAnonymousUsernameSection() {
+  
+  Widget _buildVolunteerSection(bool isVolunteer, bool isWishVolunteer) {
     return Card(
       elevation: 1,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -204,90 +219,69 @@ class _ProfilePageState extends State<ProfilePage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  children: [
-                    Icon(Icons.person_outline, color: AppColors.primary), // Use theme color
-                    const SizedBox(width: 8),
-                    const Text(
-                      'Community Username',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
+                Icon(
+                  Icons.volunteer_activism,
+                  color: AppColors.primary,
+                  size: 24,
                 ),
-                IconButton(
-                  onPressed: _toggleEditMode,
-                  icon: Icon(
-                    _isEditing ? Icons.save : Icons.edit,
-                    color: AppColors.primary, // Use theme color
+                const SizedBox(width: 8),
+                const Text(
+                  'Volunteer Status',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
                   ),
-                  tooltip: 'Change anonymous username',
                 ),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 16),
             
-            // Anonymous name display or edit form
-            if (_isEditing)
-              _buildEditForm()
+            // Show different content based on volunteer status
+            if (isVolunteer)
+              _buildVolunteerStatusCard(
+                'Active Volunteer',
+                'You are registered as an NSS volunteer',
+                Icons.check_circle,
+                AppColors.success,
+              )
+            else if (isWishVolunteer)
+              _buildVolunteerStatusCard(
+                'Registration Pending',
+                'Your volunteer registration is awaiting approval',
+                Icons.hourglass_top,
+                AppColors.warning,
+              )
             else
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withOpacity(0.1), // Use theme color
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: AppColors.primary.withOpacity(0.3)), // Use theme color
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.shield, size: 16, color: AppColors.primary), // Use theme color
-                            const SizedBox(width: 6),
-                            Text(
-                              _userData['anonymousName'],
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w500,
-                                color: AppColors.primary, // Use theme color
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: AppColors.success.withOpacity(0.1), // Use theme color
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: AppColors.success.withOpacity(0.3)), // Use theme color
-                        ),
-                        child: Text(
-                          'Anonymous',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: AppColors.success, // Use theme color
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    ],
+                  _buildVolunteerStatusCard(
+                    'Not Registered',
+                    'Register as a volunteer to participate in organizing events',
+                    Icons.info_outline,
+                    AppColors.info,
                   ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'This is your anonymous identity in the community section.',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: AppColors.textSecondary, // Use theme color
+                  const SizedBox(height: 16),
+                  Center(
+                    child: ElevatedButton.icon(
+                      onPressed: _isLoading ? null : _registerAsVolunteer,
+                      icon: _isLoading 
+                        ? SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : Icon(Icons.volunteer_activism),
+                      label: Text(_isLoading ? 'Submitting...' : 'Register as Volunteer'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      ),
                     ),
                   ),
                 ],
@@ -297,95 +291,37 @@ class _ProfilePageState extends State<ProfilePage> {
       ),
     );
   }
-
-  Widget _buildEditForm() {
-    return Form(
-      key: _formKey,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+  
+  Widget _buildVolunteerStatusCard(String title, String message, IconData icon, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Row(
         children: [
-          // Anonymous username field
-          TextFormField(
-            controller: _anonymousNameController,
-            decoration: InputDecoration(
-              labelText: 'Anonymous Username',
-              helperText: 'This name will be visible in the community tab',
-              prefixIcon: const Icon(Icons.person_outline),
-              suffixIcon: IconButton(
-                icon: const Icon(Icons.refresh),
-                tooltip: 'Generate random username',
-                onPressed: () {
-                  // Generate a random username
-                  final options = [
-                    'MindfulWanderer',
-                    'SereneSpirit',
-                    'CalmExplorer',
-                    'PeacefulJourney',
-                    'GentleSoul',
-                    'TransquilThinker',
-                    'QuietObserver',
-                    'ZenPathfinder'
-                  ];
-                  final random = DateTime.now().millisecondsSinceEpoch % options.length;
-                  final randomNum = DateTime.now().second % 100;
-                  setState(() {
-                    _anonymousNameController.text = '${options[random]}$randomNum';
-                  });
-                },
-              ),
-              border: const OutlineInputBorder(),
-            ),
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'Please enter a username';
-              }
-              return null;
-            },
-          ),
-          
-          const SizedBox(height: 16),
-          
-          // Privacy note
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: AppColors.info.withOpacity(0.1), // Use theme color
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: AppColors.info.withOpacity(0.3)), // Use theme color
-            ),
-            child: Row(
+          Icon(icon, color: color, size: 24),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.privacy_tip_outlined, 
-                  color: AppColors.info, // Use theme color
-                  size: 20),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Your real name is never shown to other community members',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: AppColors.info, // Use theme color
-                    ),
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: color,
                   ),
                 ),
+                const SizedBox(height: 4),
+                Text(
+                  message,
+                  style: const TextStyle(fontSize: 14),
+                ),
               ],
-            ),
-          ),
-          
-          const SizedBox(height: 16),
-          
-          // Save button
-          Align(
-            alignment: Alignment.centerRight,
-            child: ElevatedButton.icon(
-              onPressed: _toggleEditMode,
-              icon: const Icon(Icons.check),
-              label: const Text('Save Username'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary, // Use theme color
-                foregroundColor: AppColors.white, // Use theme color
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              ),
             ),
           ),
         ],
@@ -393,7 +329,10 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
   
-  Widget _buildStatisticsSection() {
+  Widget _buildStatisticsSection(int points) {
+    // Get completed events count (hardcoded for now)
+    final int completedEvents = 5; // This should come from API
+    
     return Card(
       elevation: 1,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -414,9 +353,9 @@ class _ProfilePageState extends State<ProfilePage> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildStatItem(Icons.task_alt, 'Quests\nCompleted', _userData['completedQuests'].toString()),
-                _buildStatItem(Icons.stars, 'Total\nPoints', _userData['points'].toString()),
-                _buildStatItem(Icons.emoji_events, 'Achievements', _userData['achievements'].length.toString()),
+                _buildStatItem(Icons.event_available, 'Events\nAttended', completedEvents.toString()),
+                _buildStatItem(Icons.stars, 'Total\nPoints', points.toString()),
+                _buildStatItem(Icons.emoji_events, 'Achievements', _achievements.length.toString()),
               ],
             ),
           ],
@@ -484,7 +423,7 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
             const SizedBox(height: 16),
             
-            // Enhanced badges
+            // Enhanced badges - fixed to use _achievements instead of _userData
             GridView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
@@ -494,9 +433,9 @@ class _ProfilePageState extends State<ProfilePage> {
                 crossAxisSpacing: 16,
                 mainAxisSpacing: 16,
               ),
-              itemCount: _userData['achievements'].length,
+              itemCount: _achievements.length,
               itemBuilder: (context, index) {
-                final achievement = _userData['achievements'][index];
+                final achievement = _achievements[index];
                 return _buildAchievementBadge(achievement);
               },
             ),
@@ -588,41 +527,6 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
           ),
         ],
-      ),
-    );
-  }
-  
-  Widget _buildInterestsSection() {
-    return Card(
-      elevation: 1,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Your Interests',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-            
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: _userData['interests']
-                  .map<Widget>((interest) => Chip(
-                        avatar: Icon(Icons.favorite, color: AppColors.primary, size: 16), // Use theme color
-                        label: Text(interest),
-                        backgroundColor: AppColors.primary.withOpacity(0.1), // Use theme color
-                      ))
-                  .toList(),
-            ),
-          ],
-        ),
       ),
     );
   }

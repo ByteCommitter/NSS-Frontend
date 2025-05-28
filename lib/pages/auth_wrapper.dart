@@ -10,18 +10,27 @@ class AuthWrapper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    print('Building AuthWrapper. Auth state: ${authService.isAuthenticated.value}');
+
     return Obx(() {
       if (authService.isAuthenticated.value) {
-        // If authenticated, check if admin and navigate accordingly
+        print('User is authenticated. Admin: ${authService.isAdminUser.value}');
+
+        // Schedule navigation for next frame to avoid navigation during build
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (authService.isAdminUser.value) {
             print('Navigating to admin panel');
-            Get.offAllNamed('/admin');
+            if (Get.currentRoute != '/admin') {
+              Get.offAllNamed('/admin');
+            }
           } else {
             print('Navigating to home');
-            Get.offAllNamed('/home');
+            if (Get.currentRoute != '/home') {
+              Get.offAllNamed('/home');
+            }
           }
         });
+
         return const Scaffold(
           body: Center(
             child: Column(
@@ -29,12 +38,13 @@ class AuthWrapper extends StatelessWidget {
               children: [
                 CircularProgressIndicator(),
                 SizedBox(height: 16),
-                Text('Loading...'),
+                Text('Loading your dashboard...'),
               ],
             ),
           ),
         );
       } else {
+        print('User is not authenticated. Showing login screen.');
         return const LoginScreen();
       }
     });
@@ -68,22 +78,56 @@ class _LoginScreenState extends State<LoginScreen> {
         _isLoading = true;
       });
 
-      final success = await _authService.login(
-        _usernameController.text,
-        _passwordController.text,
-      );
+      try {
+        final response = await _authService.login(
+          _usernameController.text,
+          _passwordController.text,
+        );
 
-      setState(() {
-        _isLoading = false;
-      });
+        // Add debug output to track login process
+        print('Login response: $response');
 
-      if (success) {
-        // Let the AuthWrapper handle navigation based on admin status
-        // The AuthWrapper will automatically navigate to admin or home
-      } else {
+        // Check if login was successful
+        if (response != null && response['success'] == true) {
+          print('Login successful, setting authenticated to true');
+
+          // Ensure authentication state is set
+          _authService.isAuthenticated.value = true;
+
+          // Delay navigation slightly to ensure state updates
+          await Future.delayed(const Duration(milliseconds: 300));
+
+          // Force a complete navigation reset to home route
+          print('Navigating to home after login');
+          Get.offAllNamed('/');
+        } else {
+          if (mounted) {
+            setState(() {
+              _isLoading = false;
+            });
+          }
+
+          print('Login failed: ${response}');
+          Get.snackbar(
+            'Error',
+            'Invalid username or password',
+            snackPosition: SnackPosition.BOTTOM,
+            backgroundColor: AppColors.error.withOpacity(0.8),
+            colorText: Colors.white,
+          );
+        }
+      } catch (e) {
+        print('Login error exception: $e');
+
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
+
         Get.snackbar(
           'Error',
-          'Invalid username or password',
+          'An error occurred during login: $e',
           snackPosition: SnackPosition.BOTTOM,
           backgroundColor: AppColors.error.withOpacity(0.8),
           colorText: Colors.white,

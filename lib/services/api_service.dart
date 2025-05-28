@@ -1339,6 +1339,39 @@ Future<List<Map<String, dynamic>>> getTopVolunteers() async {
     return [];
   }
 }
+
+// Get recent participations for a user
+Future<List<Map<String, dynamic>>> getRecentParticipations(String userId) async {
+  try {
+    final token = await _authService.getToken();
+    
+    if (token == null) {
+      print('No auth token available');
+      return [];
+    }
+    
+    final response = await http.get(
+      Uri.parse('${baseUrl}dashboard/recentParticipations?user_id=$userId'),
+      headers: {
+        'Authorization': token,
+      },
+    );
+    
+    if (response.statusCode == 200) {
+      final responseData = json.decode(response.body);
+      if (responseData.containsKey('Participations') && responseData['Participations'] is List) {
+        return List<Map<String, dynamic>>.from(responseData['Participations']);
+      }
+      return [];
+    } else {
+      print('Failed to fetch recent participations: ${response.statusCode}');
+      return [];
+    }
+  } catch (e) {
+    print('Error fetching recent participations: $e');
+    return [];
+  }
+}
 }
 
 // Custom exception for already registered events
