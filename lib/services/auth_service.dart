@@ -87,6 +87,21 @@ class AuthService extends GetxService {
     checkAndSetAuthStatus();
     // Also initialize admin status
     initAdminStatus();
+    // Initialize username
+    _initUsername();
+  }
+  
+  // Initialize username from storage - add more debug logs
+  Future<void> _initUsername() async {
+    print('AuthService._initUsername() starting');
+    final username = await getUsername();
+    if (username != null) {
+      print('AuthService._initUsername() found username: $username');
+      _username.value = username;
+      print('Username set in AuthService: $_username');
+    } else {
+      print('AuthService._initUsername() found no username');
+    }
   }
   
   // Initialize auth status from stored token
@@ -159,30 +174,7 @@ class AuthService extends GetxService {
     }
   }
   
-  // Clear JWT token (logout) - handles web vs mobile platforms
-  Future<void> clearToken() async {
-    try {
-      if (kIsWeb) {
-        // Clear from localStorage directly
-        html_lib.window.localStorage.remove(_tokenKey);
-        
-        // Also clear from SharedPreferences
-        try {
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.remove(_tokenKey);
-        } catch (e) {
-          print('SharedPreferences clear failed: $e');
-        }
-      } else {
-        // For mobile, clear from secure storage
-        await _secureStorage.delete(key: _tokenKey);
-      }
-      isAuthenticated.value = false;
-      print('Token cleared successfully');
-    } catch (e) {
-      print('Error clearing token: $e');
-    }
-  }
+  
   
   // Validate ID format (f20XXXXX)
   bool isValidId(String id) {
@@ -219,15 +211,29 @@ class AuthService extends GetxService {
         
         // Store additional user information
         _userId.value = response['user_id'];
+        print('Setting user ID to: ${_userId.value}');
+        
+        // Store username - Make sure to extract it from the response 
+        // and use it as the primary source
+        _username.value = response['username'];
+        print('Setting username to: ${_username.value}');
+        
         _isAdmin.value = response['isAdmin'] ?? false;
         _isVolunteer.value = response['isVolunteer'] == 1;
         _isWishVolunteer.value = response['isWishVolunteer'] == 1;
         
-        // Store username as the user_id for now
-        _username.value = response['user_id'];
-        
         // Points might be added later, initialize to 0 for now
         _points.value = response['points'] ?? 0;
+        
+        // Explicitly store the user ID to secure storage for persistence
+        if (_userId.value != null) {
+          await storeUserId(_userId.value!);
+        }
+        
+        // Also store the username in secure storage to persist it
+        if (_username.value != null) {
+          await _storeUsername(_username.value!);
+        }
         
         // IMPORTANT: Explicitly set authenticated state
         isAuthenticated.value = true;
@@ -250,6 +256,110 @@ class AuthService extends GetxService {
       return null;
     }
   }
+
+  // Add method to store username
+  Future<void> _storeUsername(String username) async {
+    try {
+      if (kIsWeb) {
+        _setWebLocalStorage('username', username);
+        try {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('username', username);
+        } catch (e) {
+          print('SharedPreferences username storage failed: $e');
+        }
+      } else {
+        await _secureStorage.write(key: 'username', value: username);
+      }
+      print('Username stored: $username');
+    } catch (e) {
+      print('Error storing username: $e');
+    }
+  }
+
+  // Enhanced method to get username with better debugging
+  Future<String?> getUsername() async {
+    try {
+      print('AuthService.getUsername() called');
+      
+      // 1. Try memory cache first
+      if (_username.value != null && _username.value!.isNotEmpty) {
+        print('Using cached username: ${_username.value}');
+        return _username.value;
+      }
+      print('No cached username, checking storage');
+      
+      // 2. Try storage
+      String? storedUsername;
+      if (kIsWeb) {
+        // First try localStorage
+        storedUsername = _getWebLocalStorage('username');
+        print('Username from localStorage: $storedUsername');
+        
+        if (storedUsername != null && storedUsername.isNotEmpty) {
+          _username.value = storedUsername; // Cache it
+          return storedUsername;
+        }
+        
+        // Fallback to SharedPreferences
+        try {
+          final prefs = await SharedPreferences.getInstance();
+          storedUsername = prefs.getString('username');
+          print('Username from SharedPreferences: $storedUsername');
+          
+          if (storedUsername != null && storedUsername.isNotEmpty) {
+            _username.value = storedUsername; // Cache it
+            return storedUsername;
+          }
+        } catch (e) {
+          print('SharedPreferences username retrieval failed: $e');
+        }
+      } else {
+        // For mobile, use secure storage
+        storedUsername = await _secureStorage.read(key: 'username');
+        print('Username from secure storage: $storedUsername');
+        
+        if (storedUsername != null && storedUsername.isNotEmpty) {
+          _username.value = storedUsername; // Cache it
+          return storedUsername;
+        }
+      }
+      
+      // 3. Fallback to using ID if we couldn't find a username
+      print('No username found, falling back to user ID: ${_userId.value}');
+      return _userId.value;
+    } catch (e) {
+      print('Error getting username: $e');
+      return _userId.value; // Fallback to ID if we encounter an error
+    }
+  }
+  
+  // Clear JWT token (logout) - handles web vs mobile platforms
+  Future<void> clearToken() async {
+    try {
+      if (kIsWeb) {
+        // Clear from localStorage directly
+        html_lib.window.localStorage.remove(_tokenKey);
+        
+        // Also clear from SharedPreferences
+        try {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.remove(_tokenKey);
+        } catch (e) {
+          print('SharedPreferences clear failed: $e');
+        }
+      } else {
+        // For mobile, clear from secure storage
+        await _secureStorage.delete(key: _tokenKey);
+      }
+      isAuthenticated.value = false;
+      print('Token cleared successfully');
+    } catch (e) {
+      print('Error clearing token: $e');
+    }
+  }
+  
+  
   
   // Logout method
   Future<void> logout() async {
@@ -771,27 +881,46 @@ class AuthService extends GetxService {
     }
   }
   
-  // Add a method to refresh user status after changes
+  // Add a method to refresh user status after changes - UPDATED FOR NEW API
   Future<void> refreshUserStatus() async {
     try {
-      // Re-fetch the latest user info from API
       final userId = await getUserId();
       if (userId != null) {
         final ApiService apiService = Get.find<ApiService>();
-        final response = await apiService.login(_userId.value!, 'password');
         
-        if (response != null && response['success'] == true) {
-          // Update user status
-          _isAdmin.value = response['isAdmin'] ?? false;
-          _isVolunteer.value = response['isVolunteer'] == 1;
-          _isWishVolunteer.value = response['isWishVolunteer'] == 1;
+        // Call the new volunteerStatus endpoint
+        final response = await apiService.getVolunteerStatus(userId);
+        
+        if (response != null) {
+          final int verificationStatus = response['verificationStatus'] ?? -1;
           
-          // Update admin status in storage
-          await _storeAdminStatus(_isAdmin.value);
+          // Update user status based on verificationStatus
+          switch (verificationStatus) {
+            case 1:  // Verified volunteer
+              _isVolunteer.value = true;
+              _isWishVolunteer.value = false;
+              break;
+            case 0:  // Applied but not yet verified
+              _isVolunteer.value = false;
+              _isWishVolunteer.value = true;
+              break;
+            case -1: // Normal user
+            default:
+              _isVolunteer.value = false;
+              _isWishVolunteer.value = false;
+              break;
+          }
+          
+          print('User volunteer status refreshed: verificationStatus=$verificationStatus, Volunteer=${_isVolunteer.value}, WishVolunteer=${_isWishVolunteer.value}');
         }
       }
     } catch (e) {
       print('Error refreshing user status: $e');
     }
+  }
+  
+  // Method to update wish volunteer status
+  void setWishVolunteerStatus(bool status) {
+    _isWishVolunteer.value = status;
   }
 }

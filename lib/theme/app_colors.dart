@@ -114,6 +114,17 @@ class AppColors {
   static const Color blackOpacity30 = Color(0x4D000000);
   static const Color blackOpacity20 = Color(0x33000000);
   static final Color blackOpacity10 = Colors.black.withOpacity(0.1);
+
+  // Add specialized colors for notifications
+  static final Color notificationBackground = primary.withOpacity(0.05);
+  static final Color notificationBorder = primary.withOpacity(0.3);
+  
+  // Add specialized colors for badges
+  static const Color badgeLevel1 = Color(0xFF8BC34A); // Light Green
+  static const Color badgeLevel2 = Color(0xFF4CAF50); // Green
+  static const Color badgeLevel3 = Color(0xFF009688); // Teal
+  static const Color badgeLevel4 = Color(0xFF00BCD4); // Cyan
+  static const Color badgeLevel5 = Color(0xFF2196F3); // Blue
 }
 
 /// Class that holds a complete theme color set

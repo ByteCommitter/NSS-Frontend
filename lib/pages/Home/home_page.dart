@@ -21,31 +21,11 @@ class _HomePageState extends State<HomePage> {
   final Map<String, bool> _eventRegistrationStatus = {};
   bool _isLoadingRegistered = false;
   
-  // Update data is kept as is for now
-  final List<Update> _updates = [
-    Update(
-      id: 'n1',
-      title: 'New Event Registration Open',
-      message: 'Tree Plantation Drive registration is now open. Register before June 3rd.',
-      time: '2 hours ago',
-      isRead: false,
-    ),
-    Update(
-      id: 'n2',
-      title: 'Reminder: NSS Meetup',
-      message: 'Don\'t forget to attend the NSS Annual Meetup on June 12th.',
-      time: '1 day ago',
-      isRead: true,
-    ),
-    Update(
-      id: 'n3',
-      title: 'Certificate Available',
-      message: 'Your participation certificate for Blood Donation Camp is available for download.',
-      time: '3 days ago',
-      isRead: true,
-    ),
-  ];
-
+  // New state for notifications from API
+  List<Update> _updates = [];
+  bool _isLoadingUpdates = false;
+  bool _hasUpdatesError = false;
+  
   // TODO: Fetch top users from backend API
   // Sample top users by points
   final List<User> _topUsers = [
@@ -158,6 +138,7 @@ class _HomePageState extends State<HomePage> {
     Timer(const Duration(milliseconds: 500), () {
       _fetchEvents();
       _fetchRegisteredEventsWithTimeout();
+      _fetchNotifications(); // Add this line to fetch notifications
     });
   }
   
@@ -689,6 +670,70 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  Future<void> _fetchNotifications() async {
+    if (!mounted) return;
+    
+    setState(() {
+      _isLoadingUpdates = true;
+      _hasUpdatesError = false;
+    });
+    
+    try {
+      final notificationsData = await _apiService.getNotifications();
+      
+      if (!mounted) return;
+      
+      // Convert API data to Update objects
+      final List<Update> updates = notificationsData.map((notification) {
+        // Format the timestamp
+        String formattedTime = 'Recently';
+        try {
+          if (notification['time'] != null) {
+            final time = DateTime.parse(notification['time']);
+            final now = DateTime.now();
+            final difference = now.difference(time);
+            
+            if (difference.inMinutes < 60) {
+              formattedTime = '${difference.inMinutes} minutes ago';
+            } else if (difference.inHours < 24) {
+              formattedTime = '${difference.inHours} hours ago';
+            } else if (difference.inDays < 7) {
+              formattedTime = '${difference.inDays} days ago';
+            } else {
+              formattedTime = '${time.day}/${time.month}/${time.year}';
+            }
+          }
+        } catch (e) {
+          print('Error formatting notification time: $e');
+        }
+        
+        return Update(
+          id: notification['id'].toString(),
+          title: notification['title'] ?? 'Notification',
+          message: notification['message'] ?? 'No message',
+          time: formattedTime,
+          isRead: false, // Always set to false to use blue styling
+        );
+      }).toList();
+      
+      setState(() {
+        _updates = updates;
+        _isLoadingUpdates = false;
+      });
+      
+      print('Loaded ${updates.length} notifications from API');
+    } catch (e) {
+      print('Error fetching notifications: $e');
+      if (!mounted) return;
+      
+      setState(() {
+        _isLoadingUpdates = false;
+        _hasUpdatesError = true;
+      });
+    }
+  }
+
+  
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -1002,104 +1047,137 @@ class _HomePageState extends State<HomePage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Row(
+            Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                // Text(
-                //   'Recent Updates',
-                //   style: TextStyle(
-                //     fontWeight: FontWeight.bold,
-                //     fontSize: 16,
-                //     color: AppColors.primary,
-                //   ),
-                // ),
-
-                //Text button to view all
-                // TextButton(
-                //   onPressed: () {
-                //     // TODO: Navigate to all updates page
-                //   },
-                //   child: const Text('View All'),
-                // ),
+                // View All button
+                if (updates.length > 4)
+                  TextButton(
+                    onPressed: () {
+                      // TODO: Navigate to all updates page
+                    },
+                    child: const Text('View All'),
+                  ),
               ],
             ),
-            const SizedBox(height: 10),
-            ...updates.take(3).map((update) {
-              return Container(
-                margin: const EdgeInsets.only(bottom: 12),
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: update.isRead 
-                    ? AppColors.background 
-                    : AppColors.primary.withOpacity(0.05),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: update.isRead 
-                      ? AppColors.divider 
-                      : AppColors.primary.withOpacity(0.3),
-                    width: 1,
+            
+            // Show loading indicator if notifications are being fetched
+            if (_isLoadingUpdates)
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(20.0),
+                  child: CircularProgressIndicator(),
+                ),
+              )
+            // Show error message if failed to load notifications
+            else if (_hasUpdatesError)
+              Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(20.0),
+                  child: Column(
+                    children: [
+                      Icon(
+                        Icons.error_outline,
+                        color: AppColors.error,
+                        size: 40,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Failed to load notifications',
+                        style: TextStyle(color: AppColors.error),
+                      ),
+                      TextButton(
+                        onPressed: _fetchNotifications,
+                        child: const Text('Retry'),
+                      ),
+                    ],
                   ),
                 ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: update.isRead 
-                          ? AppColors.textSecondary.withOpacity(0.1)
-                          : AppColors.primary.withOpacity(0.1),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        Icons.notifications,
-                        color: update.isRead 
-                          ? AppColors.textSecondary
-                          : AppColors.primary,
-                        size: 16,
+              )
+            // Show message if no notifications available
+            else if (updates.isEmpty)
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(20.0),
+                  child: Text(
+                    'No updates available',
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                ),
+              )
+            // Show notifications, limited to first 4
+            else
+              Column(
+                children: updates.take(4).map((update) {
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      // Always use the blue styling (for unread notifications)
+                      color: AppColors.primary.withOpacity(0.05),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: AppColors.primary.withOpacity(0.3),
+                        width: 1,
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withOpacity(0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.notifications,
+                            color: AppColors.primary,
+                            size: 16,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Expanded(
-                                child: Text(
-                                  update.title,
-                                  style: TextStyle(
-                                    fontWeight: update.isRead ? FontWeight.normal : FontWeight.bold,
-                                    fontSize: 14,
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      update.title,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                      ),
+                                    ),
                                   ),
-                                ),
+                                  Text(
+                                    update.time,
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: AppColors.textSecondary,
+                                    ),
+                                  ),
+                                ],
                               ),
+                              const SizedBox(height: 4),
                               Text(
-                                update.time,
+                                update.message,
                                 style: TextStyle(
-                                  fontSize: 11,
+                                  fontSize: 12,
                                   color: AppColors.textSecondary,
                                 ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            update.message,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-              );
-            }).toList(),
+                  );
+                }).toList(),
+              ),
           ],
         ),
       ),

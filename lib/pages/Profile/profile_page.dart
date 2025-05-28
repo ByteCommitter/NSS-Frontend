@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:mentalsustainability/theme/app_colors.dart';
 import 'package:mentalsustainability/services/auth_service.dart';
 import 'package:mentalsustainability/services/api_service.dart';
+import 'package:mentalsustainability/services/badge_service.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -16,6 +17,8 @@ class _ProfilePageState extends State<ProfilePage> {
   final ApiService _apiService = Get.find<ApiService>();
   
   bool _isLoading = false;
+  int _eventsAttended = 0;
+  bool _isLoadingEvents = true;
   
   // Use real achievements data from API (will be populated)
   List<Map<String, dynamic>> _achievements = [
@@ -41,6 +44,30 @@ class _ProfilePageState extends State<ProfilePage> {
     super.initState();
     // Load real user points if needed
     _refreshUserPoints();
+    // Refresh volunteer status
+    _refreshVolunteerStatus();
+    // Load event participation count
+    _loadEventsAttendedCount();
+    // Make sure username is initialized
+    _initUsername();
+    // Load achievements from badge service
+    _loadAchievements();
+  }
+  
+  // Add method to initialize username
+  Future<void> _initUsername() async {
+    print('Starting _initUsername() method');
+    final username = await _authService.getUsername();
+    print('_initUsername received username: $username');
+    
+    if (username != null && mounted) {
+      print('Setting state with username: $username');
+      setState(() {
+        // Force the UI to refresh with the username
+      });
+    } else {
+      print('Username is null or widget not mounted. Username=$username, mounted=$mounted');
+    }
   }
   
   // Refresh user points from API
@@ -53,6 +80,15 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
   
+  // Add a method to refresh volunteer status
+  Future<void> _refreshVolunteerStatus() async {
+    final userId = _authService.userId;
+    if (userId != null) {
+      await _authService.refreshUserStatus();
+      setState(() {}); // Refresh UI with updated status
+    }
+  }
+  
   // Handle volunteer registration
   Future<void> _registerAsVolunteer() async {
     setState(() {
@@ -62,30 +98,52 @@ class _ProfilePageState extends State<ProfilePage> {
     try {
       final userId = _authService.userId;
       if (userId != null) {
-        final success = await _apiService.wishToBeVolunteer(userId);
+        final result = await _apiService.wishToBeVolunteer(userId);
         
-        if (success) {
-          // Refresh the auth service instead of directly modifying its private field
-          await _authService.refreshUserStatus();
+        if (result['success']) {
+          // Update local state immediately to reflect registration
+          _authService.setWishVolunteerStatus(true);
           
+          // Show success snackbar with icon
           Get.snackbar(
-            'Request Submitted',
-            'Your volunteer registration request has been submitted for approval.',
+            'Application Submitted',
+            result['message'],
             snackPosition: SnackPosition.BOTTOM,
             backgroundColor: AppColors.success.withOpacity(0.1),
             colorText: AppColors.success,
             margin: const EdgeInsets.all(16),
             duration: const Duration(seconds: 3),
+            icon: Icon(Icons.check_circle, color: AppColors.success),
+            borderRadius: 10,
+            boxShadows: [
+              BoxShadow(
+                color: AppColors.success.withOpacity(0.2),
+                blurRadius: 10,
+                offset: const Offset(0, 2),
+              )
+            ],
           );
+          
+          // Force state update to show pending status
+          setState(() {
+            // This will refresh UI to show pending status
+          });
+          
+          // Call refreshUserStatus() after a brief delay to ensure server has processed the change
+          Future.delayed(Duration(seconds: 1), () {
+            _refreshVolunteerStatus();
+          });
         } else {
           Get.snackbar(
             'Request Failed',
-            'Unable to submit volunteer registration. Please try again later.',
+            result['message'],
             snackPosition: SnackPosition.BOTTOM,
             backgroundColor: AppColors.error.withOpacity(0.1),
             colorText: AppColors.error,
             margin: const EdgeInsets.all(16),
             duration: const Duration(seconds: 3),
+            icon: Icon(Icons.error_outline, color: AppColors.error),
+            borderRadius: 10,
           );
         }
       }
@@ -98,11 +156,76 @@ class _ProfilePageState extends State<ProfilePage> {
         backgroundColor: AppColors.error.withOpacity(0.1),
         colorText: AppColors.error,
         margin: const EdgeInsets.all(16),
+        icon: Icon(Icons.error_outline, color: AppColors.error),
       );
     } finally {
       setState(() {
         _isLoading = false;
       });
+    }
+  }
+
+  // Add method to load attended events count
+  Future<void> _loadEventsAttendedCount() async {
+    if (!mounted) return;
+    
+    setState(() {
+      _isLoadingEvents = true;
+    });
+    
+    try {
+      final userId = _authService.userId;
+      if (userId != null) {
+        // Use the existing API call - no need for a dedicated endpoint
+        final participations = await _apiService.getRecentParticipations(userId);
+        
+        // Count only verified participations (isParticipated = 1)
+        int verifiedCount = 0;
+        for (var participation in participations) {
+          if (participation['isParticipated'] == 1) {
+            verifiedCount++;
+          }
+        }
+        
+        if (!mounted) return;
+        setState(() {
+          _eventsAttended = verifiedCount;
+          _isLoadingEvents = false;
+        });
+      } else {
+        if (!mounted) return;
+        setState(() {
+          _isLoadingEvents = false;
+        });
+      }
+    } catch (e) {
+      print('Error loading events attended count: $e');
+      if (!mounted) return;
+      setState(() {
+        _isLoadingEvents = false;
+      });
+    }
+  }
+  
+  // Add method to load achievements
+  void _loadAchievements() {
+    try {
+      final BadgeService badgeService = Get.find<BadgeService>();
+      final badges = badgeService.calculateUserBadges();
+      
+      setState(() {
+        _achievements = badges.map((badge) => {
+          'name': badge.name,
+          'description': badge.description,
+          'icon': badge.icon,
+          'color': badge.color,
+          'level': badge.level,
+        }).toList();
+      });
+      
+      print('Loaded ${_achievements.length} achievements');
+    } catch (e) {
+      print('Error loading achievements: $e');
     }
   }
 
@@ -114,6 +237,7 @@ class _ProfilePageState extends State<ProfilePage> {
     final int points = _authService.points;
     final bool isVolunteer = _authService.isVolunteer;
     final bool isWishVolunteer = _authService.isWishVolunteer;
+    
     
     return Scaffold(
       body: SingleChildScrollView(
@@ -292,6 +416,7 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
   
+  // Update the volunteer status card to clearly show applied status
   Widget _buildVolunteerStatusCard(String title, String message, IconData icon, Color color) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -321,6 +446,28 @@ class _ProfilePageState extends State<ProfilePage> {
                   message,
                   style: const TextStyle(fontSize: 14),
                 ),
+                
+                // Add additional info for pending requests
+                if (title == 'Registration Pending')
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8.0),
+                    child: Row(
+                      children: [
+                        Icon(Icons.info_outline, size: 14, color: color),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            'Your application is being reviewed by administrators',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontStyle: FontStyle.italic,
+                              color: color.withOpacity(0.8),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
               ],
             ),
           ),
@@ -330,9 +477,6 @@ class _ProfilePageState extends State<ProfilePage> {
   }
   
   Widget _buildStatisticsSection(int points) {
-    // Get completed events count (hardcoded for now)
-    final int completedEvents = 5; // This should come from API
-    
     return Card(
       elevation: 1,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -353,7 +497,9 @@ class _ProfilePageState extends State<ProfilePage> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildStatItem(Icons.event_available, 'Events\nAttended', completedEvents.toString()),
+                _isLoadingEvents
+                  ? _buildLoadingStatItem(Icons.event_available, 'Events\nAttended')
+                  : _buildStatItem(Icons.event_available, 'Events\nAttended', _eventsAttended.toString()),
                 _buildStatItem(Icons.stars, 'Total\nPoints', points.toString()),
                 _buildStatItem(Icons.emoji_events, 'Achievements', _achievements.length.toString()),
               ],
@@ -364,17 +510,18 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
   
-  Widget _buildStatItem(IconData icon, String label, String value) {
+  // Add a loading state for stat items
+  Widget _buildLoadingStatItem(IconData icon, String label) {
     return Column(
       children: [
-        Icon(icon, size: 28, color: AppColors.primary), // Use theme color
+        Icon(icon, size: 28, color: AppColors.primary),
         const SizedBox(height: 8),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: AppColors.primary, // Use theme color
+        SizedBox(
+          height: 20,
+          width: 20,
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            color: AppColors.primary,
           ),
         ),
         const SizedBox(height: 4),
@@ -383,14 +530,57 @@ class _ProfilePageState extends State<ProfilePage> {
           textAlign: TextAlign.center,
           style: TextStyle(
             fontSize: 12,
-            color: AppColors.textSecondary, // Use theme color
+            color: AppColors.textSecondary,
           ),
         ),
       ],
     );
   }
   
+  // Add the missing method for stat items
+  Widget _buildStatItem(IconData icon, String label, String value) {
+    return Column(
+      children: [
+        Icon(icon, size: 28, color: AppColors.primary),
+        const SizedBox(height: 8),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: AppColors.primary,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 12,
+            color: AppColors.textSecondary,
+          ),
+        ),
+      ],
+    );
+  }
+  
+  // Modify the _buildEnhancedAchievementsSection to use BadgeService
   Widget _buildEnhancedAchievementsSection() {
+    // Get the badge service
+    final BadgeService badgeService = Get.find<BadgeService>();
+    
+    // Calculate badges based on current user data
+    final List<AchievementBadge> badges = badgeService.calculateUserBadges();
+    
+    // Convert AchievementBadge objects to the Map format expected by _buildAchievementBadge
+    _achievements = badges.map((badge) => {
+      'name': badge.name,
+      'description': badge.description,
+      'icon': badge.icon,
+      'color': badge.color,
+      'level': badge.level,
+    }).toList();
+    
     return Card(
       elevation: 1,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

@@ -111,18 +111,8 @@ class ApiService extends GetxService {
         // Debug: Print the full response to see what we're getting
         print('Full login response data: $responseData');
         
-        // Handle the current backend format which only sends {token}
-        if (responseData['token'] != null) {
-          // Create a standardized response format for the frontend
-          return {
-            'success': true,
-            'token': responseData['token'],
-            'user_id': id, // Use the login ID as user_id for now
-            'isAdmin': responseData['isAdmin'] ?? false, // Will be null if not provided
-            'message': 'Login successful'
-          };
-        }
-        
+        // The backend now sends a complete response with all user info
+        // Just return it directly without needing to create a new structure
         return responseData;
       }
       return null;
@@ -1140,13 +1130,13 @@ Future<void> debugUserInfo() async {
   }
   
   // Request to become a volunteer (user action)
-  Future<bool> wishToBeVolunteer(String universityId) async {
+  Future<Map<String, dynamic>> wishToBeVolunteer(String universityId) async {
     try {
       final token = await _authService.getToken();
       
       if (token == null) {
         print('No auth token available');
-        return false;
+        return {'success': false, 'message': 'Authentication required'};
       }
       
       final response = await http.put(
@@ -1164,12 +1154,17 @@ Future<void> debugUserInfo() async {
       
       if (response.statusCode == 200) {
         final responseData = json.decode(response.body);
-        return responseData['isSuccess'] == true;
+        return {
+          'success': responseData['isSuccess'] == true,
+          'message': responseData['Message'] ?? 'Registered to be a volunteer'
+        };
+      } else if (response.statusCode == 501) {
+        return {'success': false, 'message': 'Unable to register as volunteer'};
       }
-      return false;
+      return {'success': false, 'message': 'An unexpected error occurred'};
     } catch (e) {
       print('Error requesting volunteer status: $e');
-      return false;
+      return {'success': false, 'message': 'Error: $e'};
     }
   }
   
@@ -1372,6 +1367,73 @@ Future<List<Map<String, dynamic>>> getRecentParticipations(String userId) async 
     return [];
   }
 }
+  
+  // Get current user info - use this instead of login for refreshing status
+  Future<Map<String, dynamic>?> getUserInfo(String userId) async {
+    try {
+      final token = await _authService.getToken();
+      
+      if (token == null) {
+        print('No auth token available');
+        return null;
+      }
+      
+      // Use the maintenance/user endpoint to get user info
+      final response = await http.get(
+        Uri.parse('${baseUrl}maintenance/user?university_id=$userId'),
+        headers: {
+          'Authorization': token,
+          'Content-Type': 'application/json',
+        },
+      );
+      
+      print('Get user info response: ${response.statusCode}');
+      
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+        return responseData['user'];
+      }
+      
+      return null;
+    } catch (e) {
+      print('Error getting user info: $e');
+      return null;
+    }
+  }
+
+  // Get volunteer status from the new endpoint - FIX URL PATH
+  Future<Map<String, dynamic>> getVolunteerStatus(String universityId) async {
+    try {
+      final token = await _authService.getToken();
+      
+      if (token == null) {
+        print('No auth token available');
+        return {'verificationStatus': -1}; // Default to normal user
+      }
+      
+      // Fix: Added the "dashboard/" prefix to the URL path
+      final response = await http.get(
+        Uri.parse('${baseUrl}maintenance/volunteerStatus?id=$universityId'),
+        headers: {
+          'Authorization': token,
+          'Content-Type': 'application/json',
+        },
+      );
+      
+      print('Get volunteer status response: ${response.statusCode} - ${response.body}');
+      
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+        return responseData;
+      } else {
+        // Default to normal user on error
+        return {'verificationStatus': -1};
+      }
+    } catch (e) {
+      print('Error getting volunteer status: $e');
+      return {'verificationStatus': -1}; // Default to normal user
+    }
+  }
 }
 
 // Custom exception for already registered events

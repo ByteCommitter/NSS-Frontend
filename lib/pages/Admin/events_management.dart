@@ -41,7 +41,7 @@ class _EventsManagementState extends State<EventsManagement> {
         'toTime': event.toTime,
         'location': event.location,
         'imageUrl': event.imageUrl,
-        'points': event.points ?? 50, // Change default from 0 to 50
+        'points': event.points ?? 0, // Add points with fallback to 0
         'capacity': 100, // Default capacity (not provided by API)
         'enrolled': 0, // Default enrolled (not provided by API)
         'status': 'active', // Default status (not provided by API)
@@ -531,7 +531,7 @@ class _EventsManagementState extends State<EventsManagement> {
     final toTimeController = TextEditingController();
     final locationController = TextEditingController();
     final bannerImageController = TextEditingController();
-    final pointsController = TextEditingController(text: '50'); // Change default from 0 to 50
+    final pointsController = TextEditingController(text: '0'); // Add points controller with default value
     
     DateTime selectedDate = DateTime.now();
     TimeOfDay selectedFromTime = TimeOfDay.now();
@@ -794,7 +794,7 @@ class _EventsManagementState extends State<EventsManagement> {
     final toTimeController = TextEditingController(text: event['toTime']);
     final locationController = TextEditingController(text: event['location']);
     final bannerImageController = TextEditingController(text: event['imageUrl'] ?? '');
-    final pointsController = TextEditingController(text: '${event['points'] ?? 50}'); // Change default from 0 to 50
+    final pointsController = TextEditingController(text: '${event['points'] ?? 0}'); // Add points controller
     
     DateTime selectedDate = DateTime.tryParse(event['date'] ?? '') ?? DateTime.now();
     TimeOfDay selectedFromTime = TimeOfDay(

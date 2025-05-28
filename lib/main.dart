@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 // import 'package:firebase_core/firebase_core.dart';
 // import 'firebase_options.dart';
 import 'package:get/get.dart';
@@ -19,21 +18,13 @@ import 'package:mentalsustainability/middleware/admin_middleware.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // Add better error handling for web
-  FlutterError.onError = (FlutterErrorDetails details) {
-    FlutterError.presentError(details);
-    print('FLUTTER ERROR: ${details.exception}');
-  };
+  // Initialize services
+  await initServices();
   
-  // Initialize services with error handling
-  try {
-    await initServices();
-    print('Services initialized successfully');
-  } catch (e) {
-    print('Error initializing services: $e');
-  }
+  // DEBUG: Print info about the initialized services
+  print('Auth service initialized: ${Get.isRegistered<AuthService>()}');
+  print('API service initialized: ${Get.isRegistered<ApiService>()}');
   
-  // Run app with error zone for web
   runApp(const MyApp());
 }
 
