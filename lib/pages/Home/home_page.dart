@@ -27,50 +27,6 @@ class _HomePageState extends State<HomePage> {
   bool _hasUpdatesError = false;
   
  
-  // TODO: Fetch recent event participation from backend API
-  // Sample recent event participation
-  final List<EventParticipation> _recentParticipations = [
-    EventParticipation(
-      eventId: 'e1',
-      eventName: 'Blood Donation Camp',
-      pointsEarned: 50,
-      date: 'May 15, 2023',
-    ),
-    EventParticipation(
-      eventId: 'e2',
-      eventName: 'Food Distribution Drive',
-      pointsEarned: 75,
-      date: 'May 22, 2023',
-    ),
-    EventParticipation(
-      eventId: 'e3',
-      eventName: 'Environmental Awareness Workshop',
-      pointsEarned: 55,
-      date: 'May 28, 2023',
-    ),
-  ];
-
-  // Sample badges earned
-  final List<Badge> _badges = [
-    Badge(
-      id: 'b1',
-      title: 'NSS Volunteer',
-      description: 'Completed 5 NSS activities',
-      imageUrl: 'assets/images/badges/nss_volunteer.png',
-    ),
-    Badge(
-      id: 'b2',
-      title: 'Social Worker',
-      description: 'Participated in 3 social service activities',
-      imageUrl: 'assets/images/badges/social_worker.png',
-    ),
-    Badge(
-      id: 'b3',
-      title: 'Community Leader',
-      description: 'Led community activities',
-      imageUrl: 'assets/images/badges/community_leader.png',
-    ),
-  ];
 
   late final ApiService _apiService;
   late final AuthService _authService;
@@ -205,7 +161,8 @@ class _HomePageState extends State<HomePage> {
             fromTime: e.fromTime,
             toTime: e.toTime,
             location: e.location,
-            imageUrl: e.imageUrl,
+            imageUrl: e.imageUrl, // This now correctly maps from ApiEvent.imageUrl
+            points: e.points, // Add points from API
           )).toList();
           
           _isLoading = false;
@@ -224,6 +181,7 @@ class _HomePageState extends State<HomePage> {
             toTime: e.toTime,
             location: e.location,
             imageUrl: e.imageUrl,
+            points: e.points,
           )).toList();
           
           _isLoading = false;
@@ -245,6 +203,7 @@ class _HomePageState extends State<HomePage> {
           toTime: e.toTime,
           location: e.location,
           imageUrl: e.imageUrl,
+          points: e.points,
         )).toList();
         
         _isLoading = false;
@@ -296,7 +255,8 @@ class _HomePageState extends State<HomePage> {
           fromTime: e.fromTime,
           toTime: e.toTime,
           location: e.location,
-          imageUrl: e.imageUrl,
+          imageUrl: e.imageUrl, // Fixed mapping
+          points: e.points, // Add points
         )).toList();
         
         // Update registration status map
@@ -460,7 +420,7 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  // Show event details dialog
+  // Show event details dialog - UPDATED to show points
   void _showEventDialog(Event event) {
     showDialog(
       context: context,
@@ -489,7 +449,7 @@ class _HomePageState extends State<HomePage> {
                             fit: BoxFit.cover,
                             colorFilter: ColorFilter.mode(
                               Colors.black.withOpacity(0.15),
-                              BlendMode.darken, // Added missing BlendMode parameter
+                              BlendMode.darken,
                             ),
                           )
                         : null,
@@ -499,7 +459,7 @@ class _HomePageState extends State<HomePage> {
                           child: Icon(
                             Icons.event,
                             size: 50,
-                            color: AppColors.primary.withOpacity(0.5), // Remove isRegistered ternary
+                            color: AppColors.primary.withOpacity(0.5),
                           ),
                         )
                       : null,
@@ -520,6 +480,29 @@ class _HomePageState extends State<HomePage> {
                   style: const TextStyle(fontSize: 14),
                 ),
                 const SizedBox(height: 16),
+                
+                // Points section - NEW
+                if (event.points != null && event.points! > 0) ...[
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.stars,
+                        size: 16,
+                        color: AppColors.warning,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Points: ${event.points}',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          color: AppColors.warning,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                ],
                 
                 // Event date and location
                 Row(
@@ -1359,219 +1342,217 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // Update the _buildEnhancedEventCard method to handle image loading better
+  // Update the _buildEnhancedEventCard method to show points
   Widget _buildEnhancedEventCard(Event event, bool isRegistered) {
     return Container(
-      height: 210,
-      width: 240,
-      margin: const EdgeInsets.only(right: 12),
+      height: 220,
+      width: 280,
+      margin: const EdgeInsets.only(right: 16),
       child: Card(
         clipBehavior: Clip.antiAlias,
-        elevation: 3,
-        shadowColor: AppColors.blackOpacity10,
+        elevation: 8,
+        shadowColor: AppColors.primary.withOpacity(0.3),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(20),
         ),
         child: InkWell(
           onTap: () => _showEventDialog(event),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
+          child: Stack(
             children: [
-              // Event image with overlay gradient - IMPROVED ERROR HANDLING
-              Stack(
-                children: [
-                  Container(
-                    height: 100,
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withOpacity(0.15),
-                    ),
-                    child: _buildEventImageWidget(event),
-                  ),
-                  Positioned(
-                    bottom: 0,
-                    left: 0,
-                    right: 0,
-                    child: Container(
-                      height: 30,
+              // Background image with gradient overlay
+              Container(
+                height: 220,
+                width: 280,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Stack(
+                  children: [
+                    // Event image
+                    _buildEventImageWidget(event),
+                    
+                    // Gradient overlay for better text readability
+                    Container(
                       decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(20),
                         gradient: LinearGradient(
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
                           colors: [
                             Colors.transparent,
-                            AppColors.cardBackground.withOpacity(0.9),
+                            Colors.black.withOpacity(0.3),
+                            Colors.black.withOpacity(0.7),
                           ],
+                          stops: const [0.0, 0.5, 1.0],
                         ),
                       ),
                     ),
-                  ),
-                  // Date badge
-                  Positioned(
-                    top: 10,
-                    right: 10,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: AppColors.cardBackground.withOpacity(0.85),
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
-                            blurRadius: 4,
-                            spreadRadius: 1,
-                          ),
-                        ],
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.calendar_today,
-                            size: 12,
-                            color: AppColors.primary,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            event.date,
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.primary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-              // Event details with compact layout to avoid overflow
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 6, 12, 4),
+              
+              // Content overlay
+              Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                child: Container(
+                  padding: const EdgeInsets.all(16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Title
+                      // Event title
                       Text(
                         event.title,
                         style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          fontSize: 13,
                         ),
-                        maxLines: 1,
+                        maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: 2),
+                      const SizedBox(height: 8),
                       
-                      // Time row
+                      // Points badge - NEW
+                      if (event.points != null && event.points! > 0) ...[
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: AppColors.warning.withOpacity(0.9),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.stars,
+                                color: Colors.white,
+                                size: 14,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                '${event.points} pts',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                      ],
+                      
+                      // Date and time
                       Row(
                         children: [
                           Icon(
-                            Icons.access_time,
-                            size: 12,
-                            color: AppColors.textSecondary,
+                            Icons.calendar_today,
+                            color: Colors.white.withOpacity(0.9),
+                            size: 16,
                           ),
-                          const SizedBox(width: 2),
+                          const SizedBox(width: 6),
                           Expanded(
                             child: Text(
-                              _formatEventTime(event.fromTime, event.toTime),
+                              event.date,
                               style: TextStyle(
-                                fontSize: 11,
-                                color: AppColors.textSecondary,
+                                color: Colors.white.withOpacity(0.9),
+                                fontSize: 14,
                               ),
-                              maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 2),
+                      const SizedBox(height: 4),
                       
-                      // Location row
+                      // Location
                       Row(
                         children: [
                           Icon(
-                            Icons.location_on_outlined,
-                            size: 12,
-                            color: AppColors.textSecondary,
+                            Icons.location_on,
+                            color: Colors.white.withOpacity(0.9),
+                            size: 16,
                           ),
-                          const SizedBox(width: 2),
+                          const SizedBox(width: 6),
                           Expanded(
                             child: Text(
                               event.location,
                               style: TextStyle(
-                                fontSize: 11,
-                                color: AppColors.textSecondary,
+                                color: Colors.white.withOpacity(0.9),
+                                fontSize: 14,
                               ),
-                              maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
                         ],
                       ),
+                      const SizedBox(height: 12),
                       
-                      const SizedBox(height: 4),
-                      
-                      const Spacer(), // Push buttons to bottom
-                      
-                      // Button row with both details and register
+                      // Action buttons
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
+                          // Details button
                           TextButton(
                             onPressed: () => _showEventDialog(event),
                             style: TextButton.styleFrom(
-                              foregroundColor: AppColors.primary,
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
-                              visualDensity: VisualDensity.compact,
-                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                              minimumSize: Size.zero,
+                              foregroundColor: Colors.white,
+                              backgroundColor: Colors.white.withOpacity(0.2),
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20),
+                                side: BorderSide(color: Colors.white.withOpacity(0.3)),
+                              ),
                             ),
-                            child: const Text('Details', style: TextStyle(fontSize: 12)),
+                            child: const Text('Details'),
                           ),
-                          // Show different button based on registration status
+                          
+                          // Register/Registered button
                           if (!isRegistered)
                             ElevatedButton(
                               onPressed: () => _registerForEvent(event),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: AppColors.primary,
                                 foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
-                                visualDensity: VisualDensity.compact,
-                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                textStyle: const TextStyle(fontSize: 12),
-                                minimumSize: const Size(60, 24),
+                                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                elevation: 4,
                               ),
                               child: const Text('Register'),
                             )
                           else
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                               decoration: BoxDecoration(
-                                color: AppColors.success.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(4),
-                                border: Border.all(
-                                  color: AppColors.success.withOpacity(0.3),
-                                ),
+                                color: AppColors.success,
+                                borderRadius: BorderRadius.circular(20),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: AppColors.success.withOpacity(0.3),
+                                    blurRadius: 4,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
                               ),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Icon(
-                                    Icons.check_circle_outline,
-                                    color: AppColors.success,
-                                    size: 12,
+                                  const Icon(
+                                    Icons.check_circle,
+                                    color: Colors.white,
+                                    size: 16,
                                   ),
                                   const SizedBox(width: 4),
-                                  Text(
+                                  const Text(
                                     'Registered',
                                     style: TextStyle(
-                                      color: AppColors.success,
-                                      fontSize: 11,
+                                      color: Colors.white,
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
@@ -1580,273 +1561,437 @@ class _HomePageState extends State<HomePage> {
                             ),
                         ],
                       ),
-                      const SizedBox(height: 4),
                     ],
                   ),
                 ),
               ),
+              
+              // Status badge (top right)
+              if (isRegistered)
+                Positioned(
+                  top: 12,
+                  right: 12,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppColors.success,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.2),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: const Text(
+                      'REGISTERED',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
             ],
           ),
         ),
     ));
   }
 
-  // NEW: Helper method to build default asset image
-  Widget _buildDefaultEventImage(String title) {
-    String imagePath;
-    
-    if (title.toLowerCase().contains('tree') || title.toLowerCase().contains('plantation')) {
-      imagePath = 'assets/images/tree_plantation.jpg';
-    } else if (title.toLowerCase().contains('nss') || title.toLowerCase().contains('meetup')) {
-      imagePath = 'assets/images/nss_meetup.jpg';
-    } else if (title.toLowerCase().contains('campus') || title.toLowerCase().contains('cleanup')) {
-      imagePath = 'assets/images/campus_cleanup.jpg';
-    } else {
-      imagePath = 'assets/images/wooden_shelf.png';
-    }
-    
-    return Image.asset(
-      imagePath,
-      width: double.infinity,
-      height: 100,
-      fit: BoxFit.cover,
-      colorBlendMode: BlendMode.darken,
-      color: Colors.black.withOpacity(0.15),
-      errorBuilder: (context, error, stackTrace) {
-        print('Asset image failed to load: $imagePath, error: $error');
-        // Final fallback - just show an icon
-        return Container(
-          width: double.infinity,
-          height: 100,
-          color: AppColors.primary.withOpacity(0.1),
-          child: Center(
-            child: Icon(
-              Icons.event,
-              size: 40,
-              color: AppColors.primary.withOpacity(0.5),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  // NEW: Helper method to build image widget with better error handling
+  // Enhanced image widget with proper banner_image loading - FIXED
   Widget _buildEventImageWidget(Event event) {
-    // If there's a network image URL, try to load it
+    print('Building image widget for event: ${event.title}');
+    print('Image URL: ${event.imageUrl}');
+    
+    // Try to load banner image from API first
     if (event.imageUrl != null && event.imageUrl!.isNotEmpty) {
-      return Image.network(
-        event.imageUrl!,
-        width: double.infinity,
-        height: 100,
-        fit: BoxFit.cover,
-        colorBlendMode: BlendMode.darken,
-        color: Colors.black.withOpacity(0.15),
-        loadingBuilder: (context, child, loadingProgress) {
-          if (loadingProgress == null) return child;
-          return Center(
-            child: CircularProgressIndicator(
-              value: loadingProgress.expectedTotalBytes != null
-                  ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
-                  : null,
-              strokeWidth: 2,
-              color: AppColors.primary,
-            ),
-          );
-        },
-        errorBuilder: (context, error, stackTrace) {
-          print('Network image failed to load: $error');
-          // Fall back to default asset image
-          return _buildDefaultEventImage(event.title);
-        },
+      // Clean and validate the URL
+      String imageUrl = event.imageUrl!.trim();
+      
+      // Add protocol if missing
+      if (!imageUrl.startsWith('http://') && !imageUrl.startsWith('https://')) {
+        if (imageUrl.startsWith('//')) {
+          imageUrl = 'https:$imageUrl';
+        } else if (imageUrl.startsWith('/')) {
+          // Relative URL - might need to prepend your server URL
+          // imageUrl = 'http://localhost:8081$imageUrl'; // Uncomment if needed
+        } else {
+          imageUrl = 'https://$imageUrl';
+        }
+      }
+      
+      print('Cleaned image URL: $imageUrl');
+      
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: Image.network(
+          imageUrl,
+          width: 280,
+          height: 220,
+          fit: BoxFit.cover,
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          },
+          loadingBuilder: (context, child, loadingProgress) {
+            if (loadingProgress == null) {
+              print('Image loaded successfully: $imageUrl');
+              return child;
+            }
+            
+            final progress = loadingProgress.expectedTotalBytes != null
+                ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                : null;
+            
+            print('Loading image: ${(progress ?? 0) * 100}%');
+            
+            return Container(
+              width: 280,
+              height: 220,
+              decoration: BoxDecoration(
+                color: AppColors.primary.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    CircularProgressIndicator(
+                      value: progress,
+                      strokeWidth: 3,
+                      color: AppColors.primary,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Loading image...',
+                      style: TextStyle(
+                        color: AppColors.primary,
+                        fontSize: 12,
+                      ),
+                    ),
+                    if (progress != null)
+                      Text(
+                        '${(progress * 100).toInt()}%',
+                        style: TextStyle(
+                          color: AppColors.primary,
+                          fontSize: 10,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            );
+          },
+          errorBuilder: (context, error, stackTrace) {
+            print('Failed to load banner image: $imageUrl');
+            print('Error: $error');
+            print('Stack trace: $stackTrace');
+            
+            // Try a fallback approach for common image hosting issues
+            if (imageUrl.contains('imgur') || imageUrl.contains('drive.google')) {
+              print('Detected common image host, falling back to default design');
+            }
+            
+            // Fall back to default aesthetic design
+            return _buildDefaultEventDesign(event.title);
+          },
+        ),
       );
     }
     
-    // Use default asset image
-    return _buildDefaultEventImage(event.title);
+    print('No image URL provided, using default design');
+    // Use default design if no banner image
+    return _buildDefaultEventDesign(event.title);
   }
 
-  // MISSING METHOD: Build registered event card
+  // Beautiful default design when no image is available
+  Widget _buildDefaultEventDesign(String title) {
+    // Choose gradient colors based on event type
+    List<Color> gradientColors;
+    IconData eventIcon;
+    
+    if (title.toLowerCase().contains('tree') || title.toLowerCase().contains('plantation') || title.toLowerCase().contains('environment')) {
+      gradientColors = [Colors.green.shade400, Colors.green.shade700];
+      eventIcon = Icons.eco;
+    } else if (title.toLowerCase().contains('blood') || title.toLowerCase().contains('donation') || title.toLowerCase().contains('health')) {
+      gradientColors = [Colors.red.shade400, Colors.red.shade700];
+      eventIcon = Icons.favorite;
+    } else if (title.toLowerCase().contains('education') || title.toLowerCase().contains('teaching') || title.toLowerCase().contains('workshop')) {
+      gradientColors = [Colors.blue.shade400, Colors.blue.shade700];
+      eventIcon = Icons.school;
+    } else if (title.toLowerCase().contains('food') || title.toLowerCase().contains('meal') || title.toLowerCase().contains('nutrition')) {
+      gradientColors = [Colors.orange.shade400, Colors.orange.shade700];
+      eventIcon = Icons.restaurant;
+    } else if (title.toLowerCase().contains('community') || title.toLowerCase().contains('social') || title.toLowerCase().contains('awareness')) {
+      gradientColors = [Colors.purple.shade400, Colors.purple.shade700];
+      eventIcon = Icons.people;
+    } else {
+      // Default NSS theme
+      gradientColors = [AppColors.primary, AppColors.primary.withOpacity(0.7)];
+      eventIcon = Icons.volunteer_activism;
+    }
+    
+    return Container(
+      width: 280,
+      height: 220,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: gradientColors,
+        ),
+      ),
+      child: Stack(
+        children: [
+          // Decorative pattern
+          Positioned(
+            top: -20,
+            right: -20,
+            child: Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withOpacity(0.1),
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: -30,
+            left: -30,
+            child: Container(
+              width: 100,
+              height: 100,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withOpacity(0.05),
+              ),
+            ),
+          ),
+          
+          // Main event icon
+          Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    eventIcon,
+                    size: 48,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: const Text(
+                    'NSS EVENT',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Enhanced registered event card with better styling
   Widget _buildRegisteredEventCard(Event event) {
     return Container(
-      height: 210,
-      width: 240,
-      margin: const EdgeInsets.only(right: 12),
+      height: 220,
+      width: 280,
+      margin: const EdgeInsets.only(right: 16),
       child: Card(
         clipBehavior: Clip.antiAlias,
-        elevation: 3,
+        elevation: 8,
         shadowColor: AppColors.success.withOpacity(0.3),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(20),
           side: BorderSide(
             color: AppColors.success.withOpacity(0.3),
-            width: 1,
+            width: 2,
           ),
         ),
         child: InkWell(
           onTap: () => _showEventDialog(event),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
+          child: Stack(
             children: [
-              // Event image with success overlay
-              Stack(
-                children: [
-                  Container(
-                    height: 100,
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: AppColors.success.withOpacity(0.15),
-                    ),
-                    child: _buildEventImageWidget(event),
-                  ),
-                  Positioned(
-                    bottom: 0,
-                    left: 0,
-                    right: 0,
-                    child: Container(
-                      height: 30,
+              // Background image with green tint
+              Container(
+                height: 220,
+                width: 280,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Stack(
+                  children: [
+                    // Event image
+                    _buildEventImageWidget(event),
+                    
+                    // Green success overlay
+                    Container(
                       decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(20),
                         gradient: LinearGradient(
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
                           colors: [
-                            Colors.transparent,
-                            AppColors.cardBackground.withOpacity(0.9),
+                            AppColors.success.withOpacity(0.1),
+                            AppColors.success.withOpacity(0.3),
+                            Colors.black.withOpacity(0.7),
                           ],
+                          stops: const [0.0, 0.3, 1.0],
                         ),
                       ),
                     ),
-                  ),
-                  // Registered badge
-                  Positioned(
-                    top: 10,
-                    right: 10,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: AppColors.success.withOpacity(0.9),
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
-                            blurRadius: 4,
-                            spreadRadius: 1,
-                          ),
-                        ],
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.check_circle,
-                            size: 12,
-                            color: Colors.white,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            'Registered',
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-              // Event details
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 6, 12, 4),
+              
+              // Content overlay (same as regular event card)
+              Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                child: Container(
+                  padding: const EdgeInsets.all(16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Title
+                      // Event title
                       Text(
                         event.title,
                         style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          fontSize: 13,
                         ),
-                        maxLines: 1,
+                        maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: 2),
+                      const SizedBox(height: 8),
                       
-                      // Time row
+                      // Date and time
                       Row(
                         children: [
                           Icon(
-                            Icons.access_time,
-                            size: 12,
-                            color: AppColors.textSecondary,
+                            Icons.calendar_today,
+                            color: Colors.white.withOpacity(0.9),
+                            size: 16,
                           ),
-                          const SizedBox(width: 2),
+                          const SizedBox(width: 6),
                           Expanded(
                             child: Text(
-                              _formatEventTime(event.fromTime, event.toTime),
+                              event.date,
                               style: TextStyle(
-                                fontSize: 11,
-                                color: AppColors.textSecondary,
+                                color: Colors.white.withOpacity(0.9),
+                                fontSize: 14,
                               ),
-                              maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 2),
+                      const SizedBox(height: 4),
                       
-                      // Location row
+                      // Location
                       Row(
                         children: [
                           Icon(
-                            Icons.location_on_outlined,
-                            size: 12,
-                            color: AppColors.textSecondary,
+                            Icons.location_on,
+                            color: Colors.white.withOpacity(0.9),
+                            size: 16,
                           ),
-                          const SizedBox(width: 2),
+                          const SizedBox(width: 6),
                           Expanded(
                             child: Text(
                               event.location,
                               style: TextStyle(
-                                fontSize: 11,
-                                color: AppColors.textSecondary,
+                                color: Colors.white.withOpacity(0.9),
+                                fontSize: 14,
                               ),
-                              maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
                         ],
                       ),
+                      const SizedBox(height: 12),
                       
-                      const SizedBox(height: 4),
-                      const Spacer(),
-                      
-                      // Bottom action area - only show details button since already registered
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          ElevatedButton(
-                            onPressed: () => _showEventDialog(event),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.success,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                              visualDensity: VisualDensity.compact,
-                              textStyle: const TextStyle(fontSize: 12),
-                              minimumSize: const Size(80, 28),
+                      // View Details button
+                      Center(
+                        child: ElevatedButton.icon(
+                          onPressed: () => _showEventDialog(event),
+                          icon: const Icon(Icons.visibility, size: 18),
+                          label: const Text('View Details'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.success,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
                             ),
-                            child: const Text('View Details'),
+                            elevation: 4,
                           ),
-                        ],
+                        ),
                       ),
-                      const SizedBox(height: 4),
+                    ],
+                  ),
+                ),
+              ),
+              
+              // Registered badge (top right)
+              Positioned(
+                top: 12,
+                right: 12,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: AppColors.success,
+                    borderRadius: BorderRadius.circular(15),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.2),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.check_circle,
+                        color: Colors.white,
+                        size: 14,
+                      ),
+                      const SizedBox(width: 4),
+                      const Text(
+                        'REGISTERED',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -1869,6 +2014,7 @@ class Event {
   final String toTime;
   final String location;
   final String? imageUrl;
+  final int? points; // Add points field
 
   Event({
     required this.id,
@@ -1879,6 +2025,7 @@ class Event {
     required this.toTime,
     required this.location,
     this.imageUrl,
+    this.points,
   });
 }
 

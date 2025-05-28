@@ -177,6 +177,9 @@ class ApiService extends GetxService {
           final events = eventsData.map((eventJson) {
             print('Processing event: ${eventJson['id']} - ${eventJson['title']}');
             
+            // Debug: Print the banner_image field
+            print('Raw banner_image from API: ${eventJson['banner_image']}');
+            
             return ApiEvent(
               id: eventJson['id'].toString(),
               title: eventJson['title'] ?? 'Untitled Event',
@@ -185,9 +188,15 @@ class ApiService extends GetxService {
               fromTime: eventJson['fromTime'] ?? '00:00:00',
               toTime: eventJson['ToTime'] ?? '00:00:00', // Note: API uses 'ToTime' with capital T
               location: eventJson['eventVenue'] ?? 'TBD',
-              imageUrl: eventJson['banner_image'],
+              imageUrl: eventJson['banner_image'], // Map banner_image to imageUrl
+              points: eventJson['points'] != null ? int.tryParse(eventJson['points'].toString()) : 50, // Add points mapping
             );
           }).toList();
+          
+          // Debug: Print the final events with their imageUrls
+          for (var event in events) {
+            print('Event "${event.title}" has imageUrl: "${event.imageUrl}"');
+          }
           
           print('Successfully parsed ${events.length} events');
           return events;
@@ -255,7 +264,8 @@ class ApiService extends GetxService {
           fromTime: eventData['fromTime'] ?? '00:00:00',
           toTime: eventData['ToTime'] ?? '00:00:00',
           location: eventData['eventVenue'] ?? 'TBD',
-          imageUrl: eventData['banner_image'],
+          imageUrl: eventData['banner_image'], // Map banner_image to imageUrl
+          points: eventData['points'] != null ? int.tryParse(eventData['points'].toString()) : 50, // Add points mapping
         );
       } else {
         print('Failed to fetch event $eventId: ${response.statusCode}');
