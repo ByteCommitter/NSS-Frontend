@@ -681,7 +681,7 @@ class _BaseScreenState extends State<BaseScreen> with SingleTickerProviderStateM
                   subtitle: 'View community with moderator permissions',
                   onTap: () {
                     Navigator.pop(context); // Close drawer
-                    Get.to(() => const CommunityPage(isModerator: true));
+                    //Get.to(() => const CommunityPage(isModerator: true));
                   },
                 ),
                 
