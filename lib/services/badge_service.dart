@@ -31,14 +31,7 @@ class BadgeService extends GetxService {
   void _createDefaultBadges() {
     print('Creating default badges');
     final List<AchievementBadge> defaultBadges = [
-      AchievementBadge(
-        id: 'new_member',
-        name: 'NSS Member',
-        description: 'Joined the NSS platform',
-        icon: Icons.person_add,
-        color: Colors.teal,
-        level: 1,
-      ),
+      // Removed NSS Member badge
       AchievementBadge(
         id: 'event_participant',
         name: 'Event Participant',
@@ -79,16 +72,8 @@ class BadgeService extends GetxService {
         print('AuthService not available for badge calculation: $e');
       }
 
-      // 1. NSS Member Badge - everyone gets this
-      badges.add(AchievementBadge(
-        id: 'new_member',
-        name: 'NSS Member',
-        description: 'Joined the NSS platform',
-        icon: Icons.person_add,
-        color: Colors.teal,
-        level: 1,
-      ));
-      
+      // Removed NSS Member Badge
+    
       // Only calculate dynamic badges if we have auth service
       if (authService != null) {
         // 2. Volunteer Badge - based on volunteer status
@@ -184,7 +169,7 @@ class BadgeService extends GetxService {
           ));
         }
       }
-      
+    
       // 5. Community Badge - for all users
       badges.add(AchievementBadge(
         id: 'community_member',

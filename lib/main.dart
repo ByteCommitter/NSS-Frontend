@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
-import 'package:mentalsustainability/pages/base_widget.dart';
+import 'package:mentalsustainability/pages/base_widget.dart' as base_widget;
 import 'package:mentalsustainability/pages/guide_page.dart';
 import 'package:mentalsustainability/pages/admin/admin_panel.dart';
-import 'package:mentalsustainability/services/badge_service.dart'; // Make sure this import exists
+import 'package:mentalsustainability/services/badge_service.dart';
 import 'package:mentalsustainability/theme/app_colors.dart';
 import 'package:mentalsustainability/theme/theme_provider.dart';
 import 'pages/auth_wrapper.dart';
-import 'services/onboarding_screen.dart';
 import 'services/auth_service.dart';
 import 'services/api_service.dart';
 import 'package:mentalsustainability/services/socket_notification_service.dart';
 import 'package:mentalsustainability/middleware/auth_middleware.dart';
 import 'package:mentalsustainability/middleware/admin_middleware.dart';
+import 'package:mentalsustainability/pages/base_widget.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -191,11 +191,36 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Logo image from assets (only showing the logo, no text)
-              Image.asset(
-                'assets/images/Sereine Logo with Brain and Leaf.png',
-                width: 200,
-                height: 200,
+              // Replace SVG with icon and text
+              Container(
+                width: 120,
+                height: 120,
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.volunteer_activism,
+                  size: 60,
+                  color: AppColors.primary,
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'NSS',
+                style: TextStyle(
+                  fontSize: 36,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primary,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'National Service Scheme',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: AppColors.textSecondary,
+                ),
               ),
             ],
           ),

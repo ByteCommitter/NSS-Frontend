@@ -75,11 +75,11 @@ class GuidePage extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Welcome to Sereine',
+          'Welcome to NSS',
           style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.bold,
-            color: AppColors.primary, // Use theme color
+            color: AppColors.primary,
           ),
         ),
         const SizedBox(height: 8),

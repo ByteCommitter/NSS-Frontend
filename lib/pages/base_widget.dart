@@ -7,9 +7,9 @@ import '../services/auth_service.dart';
 import 'Profile/profile_page.dart';
 import 'Community/community_page.dart';
 import 'package:mentalsustainability/pages/guide_page.dart';
-import 'package:mentalsustainability/pages/Dashboard/dashboard_page.dart'; // New import for Dashboard page
+import 'package:mentalsustainability/pages/Dashboard/dashboard_page.dart';
 
-class BaseScreen extends StatefulWidget{
+class BaseScreen extends StatefulWidget {
   const BaseScreen({super.key});
 
   @override
@@ -18,7 +18,6 @@ class BaseScreen extends StatefulWidget{
 
 class _BaseScreenState extends State<BaseScreen> with SingleTickerProviderStateMixin {
   final AuthService _authService = Get.find<AuthService>();
-  bool _isDarkMode = false;
   bool _notificationsEnabled = true;
   late AnimationController _animationController;
   
@@ -26,7 +25,7 @@ class _BaseScreenState extends State<BaseScreen> with SingleTickerProviderStateM
   final ThemeProvider _themeProvider = Get.find<ThemeProvider>();
   
   @override
-  void initState(){
+  void initState() {
     super.initState();
     _animationController = AnimationController(
       vsync: this,
@@ -56,24 +55,6 @@ class _BaseScreenState extends State<BaseScreen> with SingleTickerProviderStateM
     _animationController.forward();
   }
 
-  void _toggleDarkMode(bool value) {
-    setState(() {
-      _isDarkMode = value;
-    });
-    
-    // Show confirmation
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(_isDarkMode 
-          ? 'Dark mode enabled' 
-          : 'Light mode enabled'),
-        duration: const Duration(seconds: 2),
-      ),
-    );
-    
-    // TODO: Implement actual dark mode theme switching
-  }
-  
   void _toggleNotifications(bool value) {
     setState(() {
       _notificationsEnabled = value;
@@ -88,15 +69,12 @@ class _BaseScreenState extends State<BaseScreen> with SingleTickerProviderStateM
         duration: const Duration(seconds: 2),
       ),
     );
-    
-    // TODO: Implement actual notification preference saving
   }
   
   void _retakeOnboardingQuiz() {
-    // TODO: Implement navigation to onboarding quiz
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('Starting onboarding quiz...'),
+        content: Text('Quiz feature coming soon...'),
         duration: Duration(seconds: 2),
       ),
     );
@@ -132,7 +110,7 @@ class _BaseScreenState extends State<BaseScreen> with SingleTickerProviderStateM
       );
       
       // Navigate to auth page
-      Get.offAllNamed('/auth');
+      Get.offAllNamed('/');
     } catch (e) {
       // Close loading dialog if open
       if (Get.isDialogOpen ?? false) {
@@ -153,7 +131,7 @@ class _BaseScreenState extends State<BaseScreen> with SingleTickerProviderStateM
   }
 
   @override
-  Widget build(BuildContext context){
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
       
@@ -162,8 +140,8 @@ class _BaseScreenState extends State<BaseScreen> with SingleTickerProviderStateM
         elevation: 0,
         backgroundColor: AppColors.background,
         scrolledUnderElevation: 0,
-        toolbarHeight: 60, // Reduced from 70 to 60
-        leadingWidth: 65, // Reduced from 70 to 65
+        toolbarHeight: 60,
+        leadingWidth: 65,
         leading: Builder(
           builder: (BuildContext context) {
             return Padding(
@@ -188,25 +166,27 @@ class _BaseScreenState extends State<BaseScreen> with SingleTickerProviderStateM
           },
         ),
         centerTitle: true,
-        title: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Image.asset(
-              'assets/images/sereine_logo.png', // Replace with actual path to your logo
-              width: 75,
-              height: 75,
-              fit: BoxFit.contain,
-            ),
-            // const SizedBox(width: 8),
-            // Text(
-            //   'Sereine',
-            //   style: TextStyle(
-            //     color: AppColors.primary,
-            //     fontWeight: FontWeight.bold,
-            //     fontSize: 20,
-            //   ),
-            // ),
-          ],
+        title: SizedBox(
+          height: 35,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.volunteer_activism,
+                color: AppColors.primary,
+                size: 28,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'NSS',
+                style: TextStyle(
+                  color: AppColors.primary,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
         ),
         actions: [
           Padding(
@@ -238,10 +218,10 @@ class _BaseScreenState extends State<BaseScreen> with SingleTickerProviderStateM
 
       // Body with extra bottom padding for the floating navigation bar
       body: Container(
-        margin: const EdgeInsets.only(bottom: 60), // Space for floating navbar
+        margin: const EdgeInsets.only(bottom: 60),
         child: IndexedStack(
           index: _selectedIndex,
-          children: const <Widget>[ // Removed the 'const' keyword here
+          children: const [
             HomePage(),
             DashboardPage(), 
             CommunityPage(),
@@ -253,13 +233,13 @@ class _BaseScreenState extends State<BaseScreen> with SingleTickerProviderStateM
       // Remove default bottom navigation to replace with custom floating one
       bottomNavigationBar: null,
       
-      // Floating bottom navigation bar using a positioned container
-      extendBody: true, // Important to allow content to flow under the nav bar
+      // Custom bottom navigation bar as a floating element
+      extendBody: true,
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       
       // Custom bottom navigation bar as a floating element
       bottomSheet: Container(
-        height: 85, // Increased from 80 to 85
+        height: 85,
         decoration: const BoxDecoration(
           color: Colors.transparent,
         ),
@@ -268,16 +248,16 @@ class _BaseScreenState extends State<BaseScreen> with SingleTickerProviderStateM
           children: [
             // The actual navigation bar
             Positioned(
-              bottom: 20, // Positioned from bottom to create floating effect
+              bottom: 20,
               child: Container(
-                height: 65, // Increased from 60 to 65
-                width: MediaQuery.of(context).size.width - 32, // Smaller than screen width for floating effect
+                height: 65,
+                width: MediaQuery.of(context).size.width - 32,
                 decoration: BoxDecoration(
                   color: AppColors.cardBackground,
                   borderRadius: BorderRadius.circular(30),
                   boxShadow: const [
                     BoxShadow(
-                      color: Colors.black,
+                      color: Colors.black12,
                       blurRadius: 10,
                       spreadRadius: 3,
                       offset: Offset(0, 5),
@@ -288,7 +268,7 @@ class _BaseScreenState extends State<BaseScreen> with SingleTickerProviderStateM
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     _buildNavItem(Icons.home_rounded, Icons.home_outlined, 'Home', 0),
-                    _buildNavItem(Icons.dashboard_rounded, Icons.dashboard_outlined, 'Dashboard', 1), // Changed from Events to Dashboard
+                    _buildNavItem(Icons.dashboard_rounded, Icons.dashboard_outlined, 'Dashboard', 1),
                     _buildNavItem(Icons.people_rounded, Icons.people_outline_rounded, 'Community', 2),
                     _buildNavItem(Icons.person_rounded, Icons.person_outline_rounded, 'Profile', 3),
                   ],
@@ -378,12 +358,10 @@ class _BaseScreenState extends State<BaseScreen> with SingleTickerProviderStateM
                         color: Colors.white.withOpacity(0.15),
                         shape: BoxShape.circle,
                       ),
-                      child: const Center(
-                        child: Icon(
-                          Icons.psychology,
-                          color: Colors.white,
-                          size: 32,
-                        ),
+                      child: const Icon(
+                        Icons.volunteer_activism,
+                        color: Colors.white,
+                        size: 28,
                       ),
                     ),
                     const SizedBox(width: 15),
@@ -392,7 +370,7 @@ class _BaseScreenState extends State<BaseScreen> with SingleTickerProviderStateM
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Text(
-                            'Sereine',
+                            'NSS',
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 28,
@@ -424,7 +402,7 @@ class _BaseScreenState extends State<BaseScreen> with SingleTickerProviderStateM
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'Mental wellness, simplified',
+                  'Not Me but you',
                   style: TextStyle(
                     color: Colors.white.withOpacity(0.9),
                     fontSize: 16,
@@ -468,7 +446,7 @@ class _BaseScreenState extends State<BaseScreen> with SingleTickerProviderStateM
                   title: 'Take Personalised Quiz',
                   subtitle: 'Customize your experience',
                   onTap: () {
-                    Navigator.pop(context); // Close the drawer first
+                    Navigator.pop(context);
                     _retakeOnboardingQuiz();
                   },
                 ),
@@ -500,47 +478,8 @@ class _BaseScreenState extends State<BaseScreen> with SingleTickerProviderStateM
                   ),
                   onTap: () {
                     _themeProvider.switchToNextTheme();
-                    Navigator.pop(context); // Close drawer
+                    Navigator.pop(context);
                   },
-                ),
-                
-                // Modern toggle switches
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
-                  child: Row(
-                    children: [
-                      // Mode toggle
-                      Expanded(
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                          decoration: BoxDecoration(
-                            color: Colors.purple.withOpacity(0.05),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                _isDarkMode ? Icons.dark_mode : Icons.light_mode,
-                                color: Colors.purple,
-                                size: 20,
-                              ),
-                              const SizedBox(width: 12),
-                              const Text(
-                                'Dark Mode',
-                                style: TextStyle(fontWeight: FontWeight.w500),
-                              ),
-                              const Spacer(),
-                              Switch(
-                                value: _isDarkMode,
-                                onChanged: _toggleDarkMode,
-                                activeColor: Colors.purple,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
                 ),
                 
                 // Notifications toggle
@@ -601,7 +540,8 @@ class _BaseScreenState extends State<BaseScreen> with SingleTickerProviderStateM
                   title: 'User Guide',
                   onTap: () {
                     Navigator.pop(context);
-                    Navigator.of(context).push(
+                    Navigator.push(
+                      context,
                       MaterialPageRoute(builder: (context) => const GuidePage())
                     );
                   },
@@ -622,7 +562,7 @@ class _BaseScreenState extends State<BaseScreen> with SingleTickerProviderStateM
                 _buildDrawerMenuItem(
                   icon: Icons.info,
                   iconColor: Colors.teal,
-                  title: 'About Sereine',
+                  title: 'About NSS',
                   onTap: () {
                     Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -640,8 +580,8 @@ class _BaseScreenState extends State<BaseScreen> with SingleTickerProviderStateM
                     icon: const Icon(Icons.logout, size: 18),
                     label: const Text('Sign Out'),
                     onPressed: () {
-                      Navigator.pop(context); // Close the drawer
-                      _handleLogout(); // Call our logout function
+                      Navigator.pop(context);
+                      _handleLogout();
                     },
                     style: ElevatedButton.styleFrom(
                       foregroundColor: Colors.red[700],
@@ -653,36 +593,6 @@ class _BaseScreenState extends State<BaseScreen> with SingleTickerProviderStateM
                       ),
                     ),
                   ),
-                ),
-                
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 20),
-                  child: Divider(height: 32),
-                ),
-                
-                // Developer options
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-                  child: Text(
-                    'DEVELOPER OPTIONS',
-                    style: TextStyle(
-                      color: AppColors.textSecondary,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1.2,
-                    ),
-                  ),
-                ),
-                
-                _buildDrawerMenuItem(
-                  icon: Icons.admin_panel_settings,
-                  iconColor: Colors.red,
-                  title: 'Moderator Mode (Demo)',
-                  subtitle: 'View community with moderator permissions',
-                  onTap: () {
-                    Navigator.pop(context); // Close drawer
-                    //Get.to(() => const CommunityPage(isModerator: true));
-                  },
                 ),
                 
                 const SizedBox(height: 40),

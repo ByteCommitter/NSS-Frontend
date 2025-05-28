@@ -48,6 +48,7 @@ dependencies:
 
   cupertino_icons: ^1.0.2
   material_design_icons_flutter: ^6.0.7096  # Add this line if using MDI
+  flutter_svg: ^2.1.0
 
 dev_dependencies:
   flutter_test:

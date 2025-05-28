@@ -26,36 +26,7 @@ class _HomePageState extends State<HomePage> {
   bool _isLoadingUpdates = false;
   bool _hasUpdatesError = false;
   
-  // TODO: Fetch top users from backend API
-  // Sample top users by points
-  final List<User> _topUsers = [
-    User(
-      id: 'u1',
-      name: 'Rajesh Kumar',
-      points: 780,
-      imageUrl: 'assets/images/profile1.jpg',
-      rank: 1,
-    ),
-    User(
-      id: 'u2',
-      name: 'Priya Singh',
-      points: 720,
-      imageUrl: 'assets/images/profile2.jpg',
-      rank: 2,
-    ),
-    User(
-      id: 'u3',
-      name: 'Amit Sharma',
-      points: 690,
-      imageUrl: 'assets/images/profile3.jpg',
-      rank: 3,
-    ),
-  ];
-
-  // TODO: Fetch user points data from backend API
-  // Sample current month points data
-  final int _currentMonthPoints = 180;
-  
+ 
   // TODO: Fetch recent event participation from backend API
   // Sample recent event participation
   final List<EventParticipation> _recentParticipations = [
@@ -503,7 +474,7 @@ class _HomePageState extends State<HomePage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Event image placeholder
+                // Event image - UPDATED to use imageUrl
                 Container(
                   height: 150,
                   width: double.infinity,
@@ -512,51 +483,26 @@ class _HomePageState extends State<HomePage> {
                         ? AppColors.success.withOpacity(0.1)
                         : AppColors.primary.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
+                    image: event.imageUrl != null && event.imageUrl!.isNotEmpty
+                        ? DecorationImage(
+                            image: NetworkImage(event.imageUrl!),
+                            fit: BoxFit.cover,
+                            colorFilter: ColorFilter.mode(
+                              Colors.black.withOpacity(0.15),
+                              BlendMode.darken, // Added missing BlendMode parameter
+                            ),
+                          )
+                        : null,
                   ),
-                  child: Stack(
-                    children: [
-                      Center(
-                        child: Icon(
-                          Icons.event,
-                          size: 50,
-                          color: isRegistered 
-                              ? AppColors.success.withOpacity(0.5)
-                              : AppColors.primary.withOpacity(0.5),
-                        ),
-                      ),
-                      if (isRegistered)
-                        Positioned(
-                          top: 8,
-                          right: 8,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: AppColors.success.withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.check_circle,
-                                  size: 12,
-                                  color: AppColors.success,
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  'Registered',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.bold,
-                                    color: AppColors.success,
-                                  ),
-                                ),
-                              ],
-                            ),
+                  child: event.imageUrl == null || event.imageUrl!.isEmpty
+                      ? Center(
+                          child: Icon(
+                            Icons.event,
+                            size: 50,
+                            color: AppColors.primary.withOpacity(0.5), // Remove isRegistered ternary
                           ),
-                        ),
-                    ],
-                  ),
+                        )
+                      : null,
                 ),
                 const SizedBox(height: 16),
                 
@@ -733,6 +679,48 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  // Update the _formatEventTime method to handle both a single time or a time range
+  String _formatEventTime(String fromTime, [String? toTime]) {
+    // Format the fromTime
+    String formattedFromTime = _formatSingleTime(fromTime);
+    
+    // If toTime is provided, format it and return a range
+    if (toTime != null && toTime.isNotEmpty && toTime != '00:00:00') {
+      String formattedToTime = _formatSingleTime(toTime);
+      return '$formattedFromTime - $formattedToTime';
+    }
+    
+    // Otherwise just return the formatted fromTime
+    return formattedFromTime;
+  }
+
+  // Helper method to format a single time string
+  String _formatSingleTime(String time) {
+    // Check if the time is in the expected format
+    if (time == '00:00:00' || time.isEmpty) {
+      return 'TBD';
+    }
+    
+    try {
+      // Parse the time string (expected format: HH:MM:SS)
+      final parts = time.split(':');
+      if (parts.length >= 2) {
+        // Convert to 12-hour format
+        int hour = int.parse(parts[0]);
+        final minutes = parts[1];
+        final period = hour >= 12 ? 'PM' : 'AM';
+        
+        // Convert hour to 12-hour format
+        hour = hour > 12 ? hour - 12 : (hour == 0 ? 12 : hour);
+        
+        return '$hour:$minutes $period';
+      }
+      return time; // Return as-is if not in expected format
+    } catch (e) {
+      print('Error formatting time: $e');
+      return time; // Return original string if parsing fails
+    }
+  }
   
   @override
   Widget build(BuildContext context) {
@@ -1308,19 +1296,54 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // Helper method to get event images based on title
-  DecorationImage? _getEventImage(String title) {
+  // Helper method to get event images based on title - FIXED
+  DecorationImage? _getEventImage(String title, String? imageUrl) {
+    // If there's a valid image URL, try to use it
+    if (imageUrl != null && imageUrl.isNotEmpty) {
+      try {
+        return DecorationImage(
+          image: NetworkImage(imageUrl),
+          fit: BoxFit.cover,
+          colorFilter: ColorFilter.mode(
+            Colors.black.withOpacity(0.15),
+            BlendMode.darken,
+          ),
+        );
+      } catch (e) {
+        print('Error with network image: $e');
+        // Fall back to default image
+        return _getDefaultEventImage(title);
+      }
+    }
+    
+    // Use default image logic
+    return _getDefaultEventImage(title);
+  }
+
+  // Helper method to get default event images based on title - SIMPLIFIED
+  DecorationImage _getDefaultEventImage(String title) {
     String imagePath;
     
-    if (title.contains('Tree')) {
+    // Simplified logic with fallback to a known working image
+    if (title.toLowerCase().contains('tree') || title.toLowerCase().contains('plantation')) {
       imagePath = 'assets/images/tree_plantation.jpg';
-    } else if (title.contains('NSS')) {
+    } else if (title.toLowerCase().contains('nss') || title.toLowerCase().contains('meetup')) {
       imagePath = 'assets/images/nss_meetup.jpg';
-    } else if (title.contains('Campus')) {
+    } else if (title.toLowerCase().contains('campus') || title.toLowerCase().contains('cleanup')) {
       imagePath = 'assets/images/campus_cleanup.jpg';
     } else {
-      // Default image
-      imagePath = 'assets/images/wooden_shelf.png';
+      // Use a simple color background instead of potentially missing image
+      return DecorationImage(
+        image: AssetImage('assets/images/wooden_shelf.png'),
+        fit: BoxFit.cover,
+        colorFilter: ColorFilter.mode(
+          Colors.black.withOpacity(0.15),
+          BlendMode.darken,
+        ),
+        onError: (exception, stackTrace) {
+          print('Error loading default image: $exception');
+        },
+      );
     }
     
     return DecorationImage(
@@ -1330,41 +1353,16 @@ class _HomePageState extends State<HomePage> {
         Colors.black.withOpacity(0.15),
         BlendMode.darken,
       ),
+      onError: (exception, stackTrace) {
+        print('Error loading asset image $imagePath: $exception');
+      },
     );
   }
 
-  // Helper method to format event time
-  String _formatEventTime(String fromTime, String toTime) {
-    // Convert API time format to more readable format
-    String formatTimeString(String time) {
-      if (time.isEmpty) return '';
-      
-      // If it's already in readable format, return as is
-      if (!time.contains(':')) return time;
-      
-      try {
-        final parts = time.split(':');
-        if (parts.length >= 2) {
-          int hour = int.parse(parts[0]);
-          final minutes = parts[1];
-          final amPm = hour >= 12 ? 'PM' : 'AM';
-          hour = hour % 12;
-          if (hour == 0) hour = 12;
-          return '$hour:$minutes $amPm';
-        }
-      } catch (e) {
-        print('Error formatting time: $e');
-      }
-      return time;
-    }
-    
-    return '${formatTimeString(fromTime)} - ${formatTimeString(toTime)}';
-  }
-  
-  // Fix the closing parentheses in these methods
+  // Update the _buildEnhancedEventCard method to handle image loading better
   Widget _buildEnhancedEventCard(Event event, bool isRegistered) {
     return Container(
-      height: 210, // Increased from 195 to 210
+      height: 210,
       width: 240,
       margin: const EdgeInsets.only(right: 12),
       child: Card(
@@ -1378,9 +1376,9 @@ class _HomePageState extends State<HomePage> {
           onTap: () => _showEventDialog(event),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min, // Use min to avoid stretching
+            mainAxisSize: MainAxisSize.min,
             children: [
-              // Event image with overlay gradient
+              // Event image with overlay gradient - IMPROVED ERROR HANDLING
               Stack(
                 children: [
                   Container(
@@ -1388,8 +1386,8 @@ class _HomePageState extends State<HomePage> {
                     width: double.infinity,
                     decoration: BoxDecoration(
                       color: AppColors.primary.withOpacity(0.15),
-                      image: _getEventImage(event.title),
                     ),
+                    child: _buildEventImageWidget(event),
                   ),
                   Positioned(
                     bottom: 0,
@@ -1452,10 +1450,10 @@ class _HomePageState extends State<HomePage> {
               // Event details with compact layout to avoid overflow
               Expanded(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 6, 12, 4), // Reduced padding
+                  padding: const EdgeInsets.fromLTRB(12, 6, 12, 4),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min, // Use min size
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       // Title
                       Text(
@@ -1467,7 +1465,7 @@ class _HomePageState extends State<HomePage> {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: 2), // Reduced from 4
+                      const SizedBox(height: 2),
                       
                       // Time row
                       Row(
@@ -1516,7 +1514,7 @@ class _HomePageState extends State<HomePage> {
                         ],
                       ),
                       
-                      const SizedBox(height: 4), // Reduced spacing
+                      const SizedBox(height: 4),
                       
                       const Spacer(), // Push buttons to bottom
                       
@@ -1528,7 +1526,7 @@ class _HomePageState extends State<HomePage> {
                             onPressed: () => _showEventDialog(event),
                             style: TextButton.styleFrom(
                               foregroundColor: AppColors.primary,
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0), // Reduced vertical padding
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
                               visualDensity: VisualDensity.compact,
                               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                               minimumSize: Size.zero,
@@ -1542,7 +1540,7 @@ class _HomePageState extends State<HomePage> {
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: AppColors.primary,
                                 foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0), // Reduced vertical padding
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
                                 visualDensity: VisualDensity.compact,
                                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                 textStyle: const TextStyle(fontSize: 12),
@@ -1582,7 +1580,7 @@ class _HomePageState extends State<HomePage> {
                             ),
                         ],
                       ),
-                      const SizedBox(height: 4), // Added small bottom padding
+                      const SizedBox(height: 4),
                     ],
                   ),
                 ),
@@ -1593,11 +1591,83 @@ class _HomePageState extends State<HomePage> {
     ));
   }
 
-  // Registered event card with confirmation UI
-  Widget _buildRegisteredEventCard(Event event) {
-    bool isPlaceholder = event.title.contains('Details Unavailable') || 
-                        event.title.contains('Registered Event #');
+  // NEW: Helper method to build default asset image
+  Widget _buildDefaultEventImage(String title) {
+    String imagePath;
     
+    if (title.toLowerCase().contains('tree') || title.toLowerCase().contains('plantation')) {
+      imagePath = 'assets/images/tree_plantation.jpg';
+    } else if (title.toLowerCase().contains('nss') || title.toLowerCase().contains('meetup')) {
+      imagePath = 'assets/images/nss_meetup.jpg';
+    } else if (title.toLowerCase().contains('campus') || title.toLowerCase().contains('cleanup')) {
+      imagePath = 'assets/images/campus_cleanup.jpg';
+    } else {
+      imagePath = 'assets/images/wooden_shelf.png';
+    }
+    
+    return Image.asset(
+      imagePath,
+      width: double.infinity,
+      height: 100,
+      fit: BoxFit.cover,
+      colorBlendMode: BlendMode.darken,
+      color: Colors.black.withOpacity(0.15),
+      errorBuilder: (context, error, stackTrace) {
+        print('Asset image failed to load: $imagePath, error: $error');
+        // Final fallback - just show an icon
+        return Container(
+          width: double.infinity,
+          height: 100,
+          color: AppColors.primary.withOpacity(0.1),
+          child: Center(
+            child: Icon(
+              Icons.event,
+              size: 40,
+              color: AppColors.primary.withOpacity(0.5),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  // NEW: Helper method to build image widget with better error handling
+  Widget _buildEventImageWidget(Event event) {
+    // If there's a network image URL, try to load it
+    if (event.imageUrl != null && event.imageUrl!.isNotEmpty) {
+      return Image.network(
+        event.imageUrl!,
+        width: double.infinity,
+        height: 100,
+        fit: BoxFit.cover,
+        colorBlendMode: BlendMode.darken,
+        color: Colors.black.withOpacity(0.15),
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) return child;
+          return Center(
+            child: CircularProgressIndicator(
+              value: loadingProgress.expectedTotalBytes != null
+                  ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                  : null,
+              strokeWidth: 2,
+              color: AppColors.primary,
+            ),
+          );
+        },
+        errorBuilder: (context, error, stackTrace) {
+          print('Network image failed to load: $error');
+          // Fall back to default asset image
+          return _buildDefaultEventImage(event.title);
+        },
+      );
+    }
+    
+    // Use default asset image
+    return _buildDefaultEventImage(event.title);
+  }
+
+  // MISSING METHOD: Build registered event card
+  Widget _buildRegisteredEventCard(Event event) {
     return Container(
       height: 210,
       width: 240,
@@ -1605,15 +1675,11 @@ class _HomePageState extends State<HomePage> {
       child: Card(
         clipBehavior: Clip.antiAlias,
         elevation: 3,
-        shadowColor: isPlaceholder 
-            ? AppColors.warning.withOpacity(0.3)
-            : AppColors.success.withOpacity(0.3),
+        shadowColor: AppColors.success.withOpacity(0.3),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
           side: BorderSide(
-            color: isPlaceholder 
-                ? AppColors.warning.withOpacity(0.3)
-                : AppColors.success.withOpacity(0.3),
+            color: AppColors.success.withOpacity(0.3),
             width: 1,
           ),
         ),
@@ -1621,38 +1687,46 @@ class _HomePageState extends State<HomePage> {
           onTap: () => _showEventDialog(event),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              // Event image with registration badge
+              // Event image with success overlay
               Stack(
                 children: [
                   Container(
                     height: 100,
                     width: double.infinity,
                     decoration: BoxDecoration(
-                      color: isPlaceholder 
-                          ? AppColors.warning.withOpacity(0.05)
-                          : AppColors.success.withOpacity(0.05),
-                      image: isPlaceholder ? null : _getEventImage(event.title),
+                      color: AppColors.success.withOpacity(0.15),
                     ),
-                    child: isPlaceholder 
-                        ? Icon(
-                            Icons.event_note,
-                            size: 40,
-                            color: AppColors.warning.withOpacity(0.5),
-                          )
-                        : null,
+                    child: _buildEventImageWidget(event),
                   ),
-                  // Registration badge
+                  Positioned(
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    child: Container(
+                      height: 30,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.transparent,
+                            AppColors.cardBackground.withOpacity(0.9),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  // Registered badge
                   Positioned(
                     top: 10,
                     right: 10,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                       decoration: BoxDecoration(
-                        color: isPlaceholder 
-                            ? AppColors.warning.withOpacity(0.2)
-                            : AppColors.success.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(12),
+                        color: AppColors.success.withOpacity(0.9),
+                        borderRadius: BorderRadius.circular(20),
                         boxShadow: [
                           BoxShadow(
                             color: Colors.black.withOpacity(0.1),
@@ -1665,156 +1739,112 @@ class _HomePageState extends State<HomePage> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(
-                            isPlaceholder ? Icons.warning : Icons.check_circle,
+                            Icons.check_circle,
                             size: 12,
-                            color: isPlaceholder ? AppColors.warning : AppColors.success,
+                            color: Colors.white,
                           ),
                           const SizedBox(width: 4),
                           Text(
                             'Registered',
                             style: TextStyle(
-                              fontSize: 11,
+                              fontSize: 10,
                               fontWeight: FontWeight.bold,
-                              color: isPlaceholder ? AppColors.warning : AppColors.success,
+                              color: Colors.white,
                             ),
                           ),
                         ],
                       ),
                     ),
                   ),
-                  // Date badge - only show if not placeholder
-                  if (!isPlaceholder && event.date != 'TBD')
-                    Positioned(
-                      bottom: 10,
-                      left: 10,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: AppColors.cardBackground.withOpacity(0.85),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.calendar_today,
-                              size: 12,
-                              color: AppColors.primary,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              event.date,
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.primary,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
                 ],
               ),
               // Event details
               Expanded(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 6, 12, 4), // Reduced padding
+                  padding: const EdgeInsets.fromLTRB(12, 6, 12, 4),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
+                      // Title
                       Text(
                         event.title,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 13,
-                          color: isPlaceholder ? AppColors.warning : null,
                         ),
-                        maxLines: 2,
+                        maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 2),
-                      if (!isPlaceholder && event.fromTime != '00:00:00') ...[
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.access_time,
-                              size: 12,
-                              color: AppColors.textSecondary,
-                            ),
-                            const SizedBox(width: 4),
-                            Expanded(
-                              child: Text(
-                                _formatEventTime(event.fromTime, event.toTime),
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: AppColors.textSecondary,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 2),
-                      ],
-                      if (!isPlaceholder && event.location != 'TBD') ...[
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.location_on_outlined,
-                              size: 12,
-                              color: AppColors.textSecondary,
-                            ),
-                            const SizedBox(width: 4),
-                            Expanded(
-                              child: Text(
-                                event.location,
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: AppColors.textSecondary,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ] else if (isPlaceholder) ...[
-                        Text(
-                          'Event details temporarily unavailable',
-                          style: TextStyle(
-                            fontSize: 11,
+                      
+                      // Time row
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.access_time,
+                            size: 12,
                             color: AppColors.textSecondary,
-                            fontStyle: FontStyle.italic,
                           ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                      const Spacer(),
-                      Center(
-                        child: TextButton.icon(
-                          onPressed: () => _showEventDialog(event),
-                          icon: Icon(
-                            isPlaceholder ? Icons.info_outline : Icons.visibility, 
-                            size: 14, 
-                            color: isPlaceholder ? AppColors.warning : AppColors.primary
-                          ),
-                          label: Text(
-                            isPlaceholder ? 'View Info' : 'View Details',
-                            style: TextStyle(
-                              color: isPlaceholder ? AppColors.warning : AppColors.primary, 
-                              fontSize: 12
+                          const SizedBox(width: 2),
+                          Expanded(
+                            child: Text(
+                              _formatEventTime(event.fromTime, event.toTime),
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: AppColors.textSecondary,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                          style: TextButton.styleFrom(
-                            padding: EdgeInsets.zero,
-                            minimumSize: Size.zero,
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                            visualDensity: VisualDensity.compact,
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+                      
+                      // Location row
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.location_on_outlined,
+                            size: 12,
+                            color: AppColors.textSecondary,
                           ),
-                        ),
+                          const SizedBox(width: 2),
+                          Expanded(
+                            child: Text(
+                              event.location,
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: AppColors.textSecondary,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                      
+                      const SizedBox(height: 4),
+                      const Spacer(),
+                      
+                      // Bottom action area - only show details button since already registered
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          ElevatedButton(
+                            onPressed: () => _showEventDialog(event),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.success,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              visualDensity: VisualDensity.compact,
+                              textStyle: const TextStyle(fontSize: 12),
+                              minimumSize: const Size(80, 28),
+                            ),
+                            child: const Text('View Details'),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 4),
                     ],

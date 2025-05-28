@@ -13,27 +13,24 @@ class LoginScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.white, // Use theme color
+      backgroundColor: AppColors.white,
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(24.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Logo or app name
-              Text(
-                "R N T",
-                style: TextStyle(
-                  fontSize: 40,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.primary, // Use theme color
-                ),
+              // NSS Logo
+              Image.asset(
+                'assets/images/NSS.png',
+                width: 120,
+                height: 120,
               ),
               const SizedBox(height: 40),
               
               // Welcome text
               const Text(
-                "How they Vibes Bussing?",
+                "Not Me but you",
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
@@ -46,7 +43,7 @@ class LoginScreen extends StatelessWidget {
                 "Sign in to access your dashboard and resources",
                 style: TextStyle(
                   fontSize: 16,
-                  color: AppColors.textSecondary, // Use theme color
+                  color: AppColors.textSecondary,
                 ),
                 textAlign: TextAlign.center,
               ),

@@ -359,15 +359,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // Use the Sereine logo
+          // Use the NSS logo
           Image.asset(
-            'assets/images/Sereine Logo with Brain and Leaf.png',
+            'assets/images/NSS.png',
             width: 120,
             height: 120,
           ),
           const SizedBox(height: 30),
           Text(
-            'Welcome to Sereine',
+            'Welcome to NSS',
             style: TextStyle(
               fontSize: 28,
               fontWeight: FontWeight.bold,

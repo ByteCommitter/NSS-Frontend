@@ -17,7 +17,7 @@ class AdminHomePage extends StatelessWidget {
         foregroundColor: Colors.white,
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout, semanticLabel: 'Logout'),  // Updated for clarity
+            icon: const Icon(Icons.logout, semanticLabel: 'Logout'),
             onPressed: () => authService.logout(),
           ),
         ],
