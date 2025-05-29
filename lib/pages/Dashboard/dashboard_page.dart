@@ -206,7 +206,7 @@ class _DashboardPageState extends State<DashboardPage> {
     }
   }
   
-  // SHARED BADGE LOADING CODE - IDENTICAL TO PROFILE
+  // FORCE USE OF SHARED METHOD - No other calls allowed
   void _loadBadges() {
     print('=== DASHBOARD: _loadBadges START ===');
     if (!mounted) return;
@@ -216,21 +216,10 @@ class _DashboardPageState extends State<DashboardPage> {
     });
     
     try {
-      // IDENTICAL logic to profile page
-      BadgeService? badgeService;
-      try {
-        badgeService = Get.find<BadgeService>();
-        print('Dashboard: Found existing BadgeService');
-      } catch (e) {
-        print('Dashboard: BadgeService not found, creating new instance');
-        badgeService = BadgeService();
-        Get.put(badgeService, permanent: true);
-      }
+      // FORCE USE SHARED METHOD - Remove any other badge calls
+      final badges = BadgeService.getSharedBadges();
       
-      // IDENTICAL call - no differences
-      final badges = badgeService.calculateUserBadges();
-      
-      print('Dashboard: Got ${badges.length} badges from BadgeService');
+      print('Dashboard: Got ${badges.length} badges from SHARED method');
       for (var badge in badges) {
         print('Dashboard Badge: ${badge.name} (Level ${badge.level})');
       }
@@ -242,6 +231,7 @@ class _DashboardPageState extends State<DashboardPage> {
         });
         
         print('Dashboard: UI updated with ${_badges.length} badges');
+        print('Dashboard: Badge names: ${_badges.map((b) => b.name).join(', ')}');
       }
     } catch (e) {
       print('Dashboard: Error loading badges: $e');

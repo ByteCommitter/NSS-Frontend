@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:mentalsustainability/theme/app_colors.dart';
 import 'package:mentalsustainability/services/auth_service.dart';
 import 'package:mentalsustainability/services/api_service.dart';
 
@@ -69,9 +68,15 @@ class BadgeService extends GetxService {
     calculateUserBadges();
   }
 
-  // Calculate badges based on user data
+  // REMOVE the old calculateUserBadges method - replace with getSharedBadges call
   List<AchievementBadge> calculateUserBadges() {
-    print('=== BadgeService: calculateUserBadges START ===');
+    print('=== BadgeService: calculateUserBadges redirecting to SHARED method ===');
+    return getSharedBadges();
+  }
+
+  // SHARED METHOD - Both pages use this EXACT same function
+  static List<AchievementBadge> getSharedBadges() {
+    print('=== SHARED: getSharedBadges START ===');
     
     final List<AchievementBadge> badges = [];
     
@@ -79,15 +84,15 @@ class BadgeService extends GetxService {
       AuthService? authService;
       try {
         authService = Get.find<AuthService>();
-        print('BadgeService: Found AuthService - isVolunteer=${authService.isVolunteer}, points=${authService.points}');
+        print('SHARED: Found AuthService - isVolunteer=${authService.isVolunteer}, points=${authService.points}');
       } catch (e) {
-        print('BadgeService: AuthService not available: $e');
+        print('SHARED: AuthService not available: $e');
         return [];
       }
 
-      // 1. Volunteer Badge - ONLY for active volunteers (not wishVolunteers)
+      // 1. Volunteer Badge - ONLY for active volunteers
       if (authService.isVolunteer) {
-        print('BadgeService: Adding NSS Volunteer badge (isVolunteer=true)');
+        print('SHARED: Adding NSS Volunteer badge');
         badges.add(AchievementBadge(
           id: 'volunteer',
           name: 'NSS Volunteer',
@@ -96,53 +101,126 @@ class BadgeService extends GetxService {
           color: Colors.green,
           level: 1,
         ));
-      } else {
-        print('BadgeService: NOT adding NSS Volunteer badge (isVolunteer=false)');
       }
       
-      // 2. Points Badge - based on total points
+      // 2. Points Badge System
       final int points = authService.points;
-      print('BadgeService: User has $points points');
-      if (points > 0) {
-        print('BadgeService: Adding points badge for $points points');
+      print('SHARED: User has $points points');
+      
+      if (points >= 50) {
+        String badgeName = 'Bronze Starter';
+        String badgeDescription = 'Getting started with NSS activities';
+        Color badgeColor = Colors.brown;
+        int badgeLevel = 1;
+        
+        if (points >= 2500) {
+          badgeName = 'Diamond Legend';
+          badgeDescription = 'Elite NSS contributor with 2500+ points';
+          badgeColor = Colors.cyan;
+          badgeLevel = 50 + ((points - 2500) / 100).floor();
+        } else if (points >= 1000) {
+          badgeName = 'Platinum Champion';
+          badgeDescription = 'Outstanding contributor with 1000+ points';
+          badgeColor = Colors.blueGrey;
+          badgeLevel = 20 + ((points - 1000) / 50).floor();
+        } else if (points >= 500) {
+          badgeName = 'Gold Star';
+          badgeDescription = 'Exceptional contributor with 500+ points';
+          badgeColor = Colors.amber;
+          badgeLevel = 10 + ((points - 500) / 50).floor();
+        } else if (points >= 200) {
+          badgeName = 'Silver Achiever';
+          badgeDescription = 'Active contributor with 200+ points';
+          badgeColor = Colors.grey.shade600;
+          badgeLevel = 4 + ((points - 200) / 50).floor();
+        } else if (points >= 50) {
+          badgeLevel = 1 + ((points - 50) / 50).floor();
+        }
+        
+        print('SHARED: Adding $badgeName badge (Level $badgeLevel)');
         badges.add(AchievementBadge(
-          id: 'points',
-          name: points >= 100 ? 'Star Contributor' : 'Point Collector',
-          description: 'Earned $points NSS points',
+          id: 'points_tier',
+          name: badgeName,
+          description: badgeDescription,
           icon: Icons.stars,
-          color: points >= 100 ? Colors.amber : Colors.orange,
-          level: (points / 50).floor() + 1,
+          color: badgeColor,
+          level: badgeLevel,
         ));
-      } else {
-        print('BadgeService: NOT adding points badge (points=0)');
       }
       
-      // 3. Community Badge - for ALL users (always)
-      print('BadgeService: Adding Community Member badge (always added)');
+      // 3. Event Participation Badge
+      final int estimatedEvents = (points / 50).floor();
+      if (estimatedEvents >= 1) {
+        String eventBadgeName = 'First Steps';
+        String eventDescription = 'Started participating in NSS events';
+        Color eventColor = Colors.teal;
+        int eventLevel = 1;
+        
+        if (estimatedEvents >= 20) {
+          eventBadgeName = 'Event Master';
+          eventDescription = 'Participated in 20+ NSS events';
+          eventColor = Colors.deepPurple;
+          eventLevel = 5;
+        } else if (estimatedEvents >= 10) {
+          eventBadgeName = 'Event Expert';
+          eventDescription = 'Participated in 10+ NSS events';
+          eventColor = Colors.indigo;
+          eventLevel = 4;
+        } else if (estimatedEvents >= 5) {
+          eventBadgeName = 'Event Enthusiast';
+          eventDescription = 'Participated in 5+ NSS events';
+          eventColor = Colors.blue;
+          eventLevel = 3;
+        } else if (estimatedEvents >= 3) {
+          eventBadgeName = 'Regular Participant';
+          eventDescription = 'Participated in 3+ NSS events';
+          eventColor = Colors.lightBlue;
+          eventLevel = 2;
+        }
+        
+        print('SHARED: Adding $eventBadgeName badge (Level $eventLevel)');
+        badges.add(AchievementBadge(
+          id: 'events',
+          name: eventBadgeName,
+          description: eventDescription,
+          icon: Icons.event_available,
+          color: eventColor,
+          level: eventLevel,
+        ));
+      }
+      
+      // 4. Community Badge - for ALL users
+      print('SHARED: Adding Community Member badge');
       badges.add(AchievementBadge(
         id: 'community',
         name: 'Community Member',
-        description: 'Part of the NSS community',
+        description: 'Welcome to the NSS community!',
         icon: Icons.people,
         color: Colors.purple,
         level: 1,
       ));
       
-      // Update cache
-      _cachedBadges.clear();
-      _cachedBadges.addAll(badges);
-      _lastCalculated = DateTime.now();
+      // 5. Top Performer Badge
+      if (points >= 1000) {
+        print('SHARED: Adding Top Performer badge');
+        badges.add(AchievementBadge(
+          id: 'top_performer',
+          name: 'Top Performer',
+          description: 'Among the top contributors in NSS',
+          icon: Icons.emoji_events,
+          color: Colors.orange,
+          level: (points / 500).floor(),
+        ));
+      }
       
-      print('BadgeService: FINAL RESULT - ${badges.length} badges: ${badges.map((b) => b.name).join(', ')}');
+      print('SHARED: FINAL RESULT - ${badges.length} badges: ${badges.map((b) => '${b.name} (L${b.level})').join(', ')}');
     } catch (e) {
-      print('BadgeService: Error calculating badges: $e');
+      print('SHARED: Error calculating badges: $e');
     }
     
-    print('=== BadgeService: calculateUserBadges END (${badges.length} badges) ===');
+    print('=== SHARED: getSharedBadges END (${badges.length} badges) ===');
     return badges;
   }
-  
-  // Force refresh badges when user status changes
 }
 
 // Badge model class

@@ -27,11 +27,8 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   void initState() {
     super.initState();
-    _refreshUserPoints();
-    _refreshVolunteerStatus();
-    _loadEventsAttendedCount();
     _initUsername();
-    _loadAchievements();
+    _loadProfileData(); // Load data in proper sequence
   }
   
   // Add method to initialize username
@@ -48,6 +45,15 @@ class _ProfilePageState extends State<ProfilePage> {
     } else {
       print('Username is null or widget not mounted. Username=$username, mounted=$mounted');
     }
+  }
+  
+  // Add method to load profile data in correct sequence - like dashboard
+  Future<void> _loadProfileData() async {
+    // FIXED: Load points first, then badges - same sequence as dashboard
+    await _refreshUserPoints(); // Wait for points to load first
+    await _refreshVolunteerStatus(); // Wait for volunteer status
+    await _loadEventsAttendedCount(); // Load events count
+    _loadAchievements(); // Then load badges with fresh data
   }
   
   // Refresh user points from API
@@ -217,7 +223,7 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
   
-  // SHARED BADGE LOADING CODE - IDENTICAL TO DASHBOARD
+  // FORCE USE OF SHARED METHOD - No other calls allowed
   void _loadAchievements() {
     print('=== PROFILE: _loadAchievements START ===');
     if (!mounted) return;
@@ -227,21 +233,10 @@ class _ProfilePageState extends State<ProfilePage> {
     });
     
     try {
-      // IDENTICAL logic to dashboard page
-      BadgeService? badgeService;
-      try {
-        badgeService = Get.find<BadgeService>();
-        print('Profile: Found existing BadgeService');
-      } catch (e) {
-        print('Profile: BadgeService not found, creating new instance');
-        badgeService = BadgeService();
-        Get.put(badgeService, permanent: true);
-      }
+      // FORCE USE SHARED METHOD - Remove any other badge calls
+      final badges = BadgeService.getSharedBadges();
       
-      // IDENTICAL call - no differences
-      final badges = badgeService.calculateUserBadges();
-      
-      print('Profile: Got ${badges.length} badges from BadgeService');
+      print('Profile: Got ${badges.length} badges from SHARED method');
       for (var badge in badges) {
         print('Profile Badge: ${badge.name} (Level ${badge.level})');
       }
@@ -253,6 +248,7 @@ class _ProfilePageState extends State<ProfilePage> {
         });
         
         print('Profile: UI updated with ${_achievements.length} badges');
+        print('Profile: Badge names: ${_achievements.map((b) => b.name).join(', ')}');
       }
     } catch (e) {
       print('Profile: Error loading achievements: $e');
@@ -266,12 +262,14 @@ class _ProfilePageState extends State<ProfilePage> {
     print('=== PROFILE: _loadAchievements END ===');
   }
 
-  // FIXED: Update refresh method to match dashboard
+  // FIXED: Update refresh method to match dashboard sequence
   Future<void> _refreshAllData() async {
     print('Profile: Refreshing profile data and badges');
-    await _refreshUserPoints();
-    await _refreshVolunteerStatus();
-    await _loadEventsAttendedCount();
+    
+    // SAME SEQUENCE AS DASHBOARD - Load points first, then badges
+    await _refreshUserPoints(); // Load fresh points from API
+    await _refreshVolunteerStatus(); // Refresh volunteer status
+    await _loadEventsAttendedCount(); // Load events count
     
     // Force badge service to refresh user data - SAME as dashboard
     try {
@@ -319,6 +317,7 @@ class _ProfilePageState extends State<ProfilePage> {
               
               // Enhanced Achievements section
               _buildEnhancedAchievementsSection(),
+              
             ],
           ),
         ),
