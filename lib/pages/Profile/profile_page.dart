@@ -73,24 +73,30 @@ class _ProfilePageState extends State<ProfilePage> {
   // Refresh user points from API
   Future<void> _refreshUserPoints() async {
     final userId = _authService.userId;
-    if (userId != null) {
+    if (userId != null && mounted) {
       final points = await _apiService.getUserTotalPoints(userId);
-      _authService.updatePoints(points);
-      setState(() {}); // Refresh UI with updated points
+      if (mounted) {
+        _authService.updatePoints(points);
+        setState(() {}); // Refresh UI with updated points
+      }
     }
   }
   
   // Add a method to refresh volunteer status
   Future<void> _refreshVolunteerStatus() async {
     final userId = _authService.userId;
-    if (userId != null) {
+    if (userId != null && mounted) {
       await _authService.refreshUserStatus();
-      setState(() {}); // Refresh UI with updated status
+      if (mounted) {
+        setState(() {}); // Refresh UI with updated status
+      }
     }
   }
   
   // Handle volunteer registration
   Future<void> _registerAsVolunteer() async {
+    if (!mounted) return;
+    
     setState(() {
       _isLoading = true;
     });
@@ -101,10 +107,8 @@ class _ProfilePageState extends State<ProfilePage> {
         final result = await _apiService.wishToBeVolunteer(userId);
         
         if (result['success']) {
-          // Update local state immediately to reflect registration
           _authService.setWishVolunteerStatus(true);
           
-          // Show success snackbar with icon
           Get.snackbar(
             'Application Submitted',
             result['message'],
@@ -124,14 +128,17 @@ class _ProfilePageState extends State<ProfilePage> {
             ],
           );
           
-          // Force state update to show pending status
-          setState(() {
-            // This will refresh UI to show pending status
-          });
+          if (mounted) {
+            setState(() {
+              // This will refresh UI to show pending status
+            });
+          }
           
-          // Call refreshUserStatus() after a brief delay to ensure server has processed the change
+          // Call refreshUserStatus() after a brief delay
           Future.delayed(Duration(seconds: 1), () {
-            _refreshVolunteerStatus();
+            if (mounted) {
+              _refreshVolunteerStatus();
+            }
           });
         } else {
           Get.snackbar(
@@ -159,9 +166,11 @@ class _ProfilePageState extends State<ProfilePage> {
         icon: Icon(Icons.error_outline, color: AppColors.error),
       );
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 

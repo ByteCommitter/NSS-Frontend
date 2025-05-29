@@ -43,6 +43,10 @@ class _HomePageState extends State<HomePage> {
   final List<SocketNotification> _socketNotifications = [];
   StreamSubscription? _notificationSubscription;
   
+  // Add cancellation tokens for async operations
+  bool _isDisposed = false;
+  List<Timer> _activeTimers = [];
+  
   @override
   void initState() {
     super.initState();
@@ -57,16 +61,21 @@ class _HomePageState extends State<HomePage> {
       print('Error initializing socket notification service: $e');
     }
 
-    Timer(const Duration(milliseconds: 1000), () {
-      _apiService.debugUserInfo(); // Add this line for debugging
-    });
+    // Use safer timer management
+    _activeTimers.add(Timer(const Duration(milliseconds: 1000), () {
+      if (mounted && !_isDisposed) {
+        _apiService.debugUserInfo();
+      }
+    }));
     
     // Delay fetch to ensure all services are fully initialized
-    Timer(const Duration(milliseconds: 500), () {
-      _fetchEvents();
-      _fetchRegisteredEventsWithTimeout();
-      _fetchNotifications(); // Add this line to fetch notifications
-    });
+    _activeTimers.add(Timer(const Duration(milliseconds: 500), () {
+      if (mounted && !_isDisposed) {
+        _fetchEvents();
+        _fetchRegisteredEventsWithTimeout();
+        _fetchNotifications();
+      }
+    }));
   }
   
   void _connectAndListenToSocket() {
@@ -75,7 +84,7 @@ class _HomePageState extends State<HomePage> {
     
     // Listen for connection status changes
     _socketNotificationService.isConnected.listen((connected) {
-      if (mounted) {
+      if (mounted && !_isDisposed) {
         setState(() {
           _socketConnected = connected;
           print('Socket connection status: ${connected ? "Connected" : "Disconnected"}');
@@ -87,7 +96,7 @@ class _HomePageState extends State<HomePage> {
     _notificationSubscription = _socketNotificationService.notificationStream.listen(
       (data) {
         print('Received notification data: $data');
-        if (mounted) {
+        if (mounted && !_isDisposed) {
           setState(() {
             // Add to the beginning of our list
             _socketNotifications.insert(0, SocketNotification.fromMap(data));
@@ -124,6 +133,14 @@ class _HomePageState extends State<HomePage> {
   
   @override
   void dispose() {
+    _isDisposed = true;
+    
+    // Cancel all active timers
+    for (final timer in _activeTimers) {
+      timer.cancel();
+    }
+    _activeTimers.clear();
+    
     // Clean up socket subscription
     _notificationSubscription?.cancel();
     
@@ -138,6 +155,8 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _fetchEvents() async {
+    if (!mounted || _isDisposed) return;
+    
     setState(() {
       _isLoading = true;
       _hasLoadingError = false;
@@ -150,6 +169,9 @@ class _HomePageState extends State<HomePage> {
       // First try to get events from the API
       final apiEvents = await _apiService.getEvents();
       
+      // Check if widget is still mounted before setState
+      if (!mounted || _isDisposed) return;
+      
       setState(() {
         if (apiEvents.isNotEmpty) {
           // Convert the API events to our local Event type
@@ -161,8 +183,8 @@ class _HomePageState extends State<HomePage> {
             fromTime: e.fromTime,
             toTime: e.toTime,
             location: e.location,
-            imageUrl: e.imageUrl, // This now correctly maps from ApiEvent.imageUrl
-            points: e.points, // Add points from API
+            imageUrl: e.imageUrl,
+            points: e.points,
           )).toList();
           
           _isLoading = false;
@@ -191,6 +213,10 @@ class _HomePageState extends State<HomePage> {
       });
     } catch (e) {
       print('Error in _fetchEvents: $e');
+      
+      // Check if widget is still mounted before setState
+      if (!mounted || _isDisposed) return;
+      
       setState(() {
         // Use test data on error
         final testEvents = _apiService.getTestEvents();
@@ -216,14 +242,19 @@ class _HomePageState extends State<HomePage> {
 
   // Modified method to fetch registered events with timeout
   Future<void> _fetchRegisteredEventsWithTimeout() async {
+    if (!mounted || _isDisposed) return;
+    
     setState(() {
       _isLoadingRegistered = true;
       _hasLoadingError = false;
       _errorMessage = '';
     });
     
-    // Create a timeout
-    Timer timeoutTimer = Timer(const Duration(seconds: 15), () {
+    // Create a timeout with cancellation check
+    Timer? timeoutTimer;
+    timeoutTimer = Timer(const Duration(seconds: 15), () {
+      if (!mounted || _isDisposed) return;
+      
       if (_isLoadingRegistered) {
         setState(() {
           _isLoadingRegistered = false;
@@ -241,9 +272,11 @@ class _HomePageState extends State<HomePage> {
       if (timeoutTimer.isActive) {
         timeoutTimer.cancel();
       } else {
-        // Timer already fired, so we're already showing an error
-        return;
+        return; // Timer already fired
       }
+      
+      // Check if widget is still mounted before setState
+      if (!mounted || _isDisposed) return;
       
       setState(() {
         // Convert API events to our local Event type
@@ -255,8 +288,8 @@ class _HomePageState extends State<HomePage> {
           fromTime: e.fromTime,
           toTime: e.toTime,
           location: e.location,
-          imageUrl: e.imageUrl, // Fixed mapping
-          points: e.points, // Add points
+          imageUrl: e.imageUrl,
+          points: e.points,
         )).toList();
         
         // Update registration status map
@@ -278,11 +311,14 @@ class _HomePageState extends State<HomePage> {
       if (timeoutTimer.isActive) {
         timeoutTimer.cancel();
       } else {
-        // Timer already fired
         return;
       }
       
       print('Error fetching registered events: $e');
+      
+      // Check if widget is still mounted before setState
+      if (!mounted || _isDisposed) return;
+      
       setState(() {
         _isLoadingRegistered = false;
         _hasLoadingError = true;
@@ -600,7 +636,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _fetchNotifications() async {
-    if (!mounted) return;
+    if (!mounted || _isDisposed) return;
     
     setState(() {
       _isLoadingUpdates = true;
@@ -610,7 +646,7 @@ class _HomePageState extends State<HomePage> {
     try {
       final notificationsData = await _apiService.getNotifications();
       
-      if (!mounted) return;
+      if (!mounted || _isDisposed) return;
       
       // Convert API data to Update objects
       final List<Update> updates = notificationsData.map((notification) {
@@ -653,7 +689,7 @@ class _HomePageState extends State<HomePage> {
       print('Loaded ${updates.length} notifications from API');
     } catch (e) {
       print('Error fetching notifications: $e');
-      if (!mounted) return;
+      if (!mounted || _isDisposed) return;
       
       setState(() {
         _isLoadingUpdates = false;
@@ -1602,8 +1638,8 @@ class _HomePageState extends State<HomePage> {
 
   // Enhanced image widget with proper banner_image loading - FIXED
   Widget _buildEventImageWidget(Event event) {
-    print('Building image widget for event: ${event.title}');
-    print('Image URL: ${event.imageUrl}');
+    // print('Building image widget for event: ${event.title}');
+    // print('Image URL: ${event.imageUrl}');
     
     // Try to load banner image from API first
     if (event.imageUrl != null && event.imageUrl!.isNotEmpty) {
@@ -1644,7 +1680,7 @@ class _HomePageState extends State<HomePage> {
                 ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
                 : null;
             
-            print('Loading image: ${(progress ?? 0) * 100}%');
+            //print('Loading image: ${(progress ?? 0) * 100}%');
             
             return Container(
               width: 280,

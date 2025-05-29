@@ -794,7 +794,7 @@ class _EventsManagementState extends State<EventsManagement> {
     final toTimeController = TextEditingController(text: event['toTime']);
     final locationController = TextEditingController(text: event['location']);
     final bannerImageController = TextEditingController(text: event['imageUrl'] ?? '');
-    final pointsController = TextEditingController(text: '${event['points'] ?? 0}'); // Add points controller
+    final pointsController = TextEditingController(text: '${event['points'] ?? 0}');
     
     DateTime selectedDate = DateTime.tryParse(event['date'] ?? '') ?? DateTime.now();
     TimeOfDay selectedFromTime = TimeOfDay(
@@ -827,7 +827,8 @@ class _EventsManagementState extends State<EventsManagement> {
         initialTime: initialTime,
       );
       if (picked != null) {
-        controller.text = '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}:00';
+        // Format time as HH:MM (without seconds as per API spec)
+        controller.text = '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
       }
     }
     
@@ -929,7 +930,6 @@ class _EventsManagementState extends State<EventsManagement> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                // Add points field before banner image
                 TextField(
                   controller: pointsController,
                   decoration: const InputDecoration(
@@ -937,7 +937,7 @@ class _EventsManagementState extends State<EventsManagement> {
                     hintText: 'Points awarded for attending this event',
                     border: OutlineInputBorder(),
                   ),
-                  keyboardType: TextInputType.number, // Numeric keyboard
+                  keyboardType: TextInputType.number,
                 ),
                 const SizedBox(height: 16),
                 TextField(
@@ -959,15 +959,29 @@ class _EventsManagementState extends State<EventsManagement> {
                     const SizedBox(width: 16),
                     ElevatedButton(
                       onPressed: () async {
-                        if (titleController.text.isEmpty || 
-                            descriptionController.text.isEmpty || 
-                            dateController.text.isEmpty || 
-                            fromTimeController.text.isEmpty || 
-                            toTimeController.text.isEmpty || 
-                            locationController.text.isEmpty) {
+                        // Validate required fields
+                        if (titleController.text.trim().isEmpty || 
+                            descriptionController.text.trim().isEmpty || 
+                            dateController.text.trim().isEmpty || 
+                            fromTimeController.text.trim().isEmpty || 
+                            toTimeController.text.trim().isEmpty || 
+                            locationController.text.trim().isEmpty) {
                           Get.snackbar(
                             'Error',
-                            'Please fill in all fields',
+                            'Please fill in all required fields',
+                            snackPosition: SnackPosition.BOTTOM,
+                            backgroundColor: Colors.red.withOpacity(0.1),
+                            colorText: Colors.red,
+                          );
+                          return;
+                        }
+
+                        // Validate points field
+                        final pointsValue = int.tryParse(pointsController.text.trim());
+                        if (pointsValue == null || pointsValue < 0) {
+                          Get.snackbar(
+                            'Error',
+                            'Please enter a valid number for points',
                             snackPosition: SnackPosition.BOTTOM,
                             backgroundColor: Colors.red.withOpacity(0.1),
                             colorText: Colors.red,
@@ -984,37 +998,63 @@ class _EventsManagementState extends State<EventsManagement> {
                         );
                         
                         try {
-                          // Update including points
-                          await _apiService.updateEvent(
+                          print('Calling updateEvent API with:');
+                          print('ID: ${event['id']}');
+                          print('Title: ${titleController.text.trim()}');
+                          print('Description: ${descriptionController.text.trim()}');
+                          print('Date: ${dateController.text.trim()}');
+                          print('From Time: ${fromTimeController.text.trim()}');
+                          print('To Time: ${toTimeController.text.trim()}');
+                          print('Location: ${locationController.text.trim()}');
+                          print('Banner Image: ${bannerImageController.text.trim()}');
+                          print('Points: $pointsValue');
+
+                          final success = await _apiService.updateEvent(
                             event['id'].toString(),
-                            titleController.text,
-                            descriptionController.text,
-                            dateController.text,
-                            fromTimeController.text,
-                            toTimeController.text,
-                            locationController.text,
-                            bannerImageController.text,
-                            int.tryParse(pointsController.text) ?? 0, // Add points parameter
+                            titleController.text.trim(),
+                            descriptionController.text.trim(),
+                            dateController.text.trim(),
+                            fromTimeController.text.trim(),
+                            toTimeController.text.trim(),
+                            locationController.text.trim(),
+                            bannerImageController.text.trim().isEmpty ? null : bannerImageController.text.trim(),
+                            pointsValue,
                           );
                           
                           Get.back(); // Close loading dialog
                           
-                          Get.snackbar(
-                            'Success',
-                            'Event updated successfully',
-                            snackPosition: SnackPosition.BOTTOM,
-                            backgroundColor: Colors.green.withOpacity(0.1),
-                            colorText: Colors.green,
-                          );
-                          _loadEvents(); // Refresh the list
+                          if (success) {
+                            Get.snackbar(
+                              'Success',
+                              'Event updated successfully',
+                              snackPosition: SnackPosition.BOTTOM,
+                              backgroundColor: Colors.green.withOpacity(0.1),
+                              colorText: Colors.green,
+                              duration: const Duration(seconds: 3),
+                            );
+                            
+                            // Refresh the events list
+                            await _loadEvents();
+                          } else {
+                            Get.snackbar(
+                              'Error',
+                              'Failed to update event. Please try again.',
+                              snackPosition: SnackPosition.BOTTOM,
+                              backgroundColor: Colors.red.withOpacity(0.1),
+                              colorText: Colors.red,
+                              duration: const Duration(seconds: 3),
+                            );
+                          }
                         } catch (e) {
                           Get.back(); // Close loading dialog
+                          print('Exception during event update: $e');
                           Get.snackbar(
                             'Error',
                             'An error occurred: $e',
                             snackPosition: SnackPosition.BOTTOM,
                             backgroundColor: Colors.red.withOpacity(0.1),
                             colorText: Colors.red,
+                            duration: const Duration(seconds: 3),
                           );
                         }
                       },

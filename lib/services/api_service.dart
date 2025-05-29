@@ -66,6 +66,11 @@ class ApiService extends GetxService {
   
   final AuthService _authService = Get.find<AuthService>();
   
+  // Add the missing getToken method
+  Future<String?> getToken() async {
+    return await _authService.getToken();
+  }
+  
   // Authentication APIs
   
   Future<Map<String, dynamic>?> register(String universityId, String username, String password) async {
@@ -751,37 +756,68 @@ Future<void> debugUserInfo() async {
 
   // Updated updateEvent method to include points
   Future<bool> updateEvent(
-    String id,
+    String eventId,
     String title,
     String description,
     String date,
     String fromTime,
     String toTime,
     String location,
-    String imageUrl,
+    String? bannerImage,
     int points,
   ) async {
     try {
-      final token = await _authService.getToken();
-      
+      final token = await getToken(); // Now this method exists
+      if (token == null) {
+        print('No token available for updating event');
+        return false;
+      }
+
+      print('Updating event with ID: $eventId');
+      print('Request data: {');
+      print('  id: $eventId,');
+      print('  title: $title,');
+      print('  description: $description,');
+      print('  date: $date,');
+      print('  fromTime: $fromTime,');
+      print('  ToTime: $toTime,');
+      print('  eventVenue: $location,');
+      print('  banner_image: $bannerImage,');
+      print('  points: $points');
+      print('}');
+
       final response = await http.put(
-        Uri.parse('${baseUrl}events/$id'),
+        Uri.parse('${baseUrl}events'),
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': token ?? '',
+          'Authorization': token,
         },
-        body: json.encode({
+        body: jsonEncode({
+          'id': int.tryParse(eventId) ?? eventId, // Ensure it's an integer if possible
           'title': title,
           'description': description,
           'date': date,
           'fromTime': fromTime,
-          'toTime': toTime,
-          'eventVenue': location,     // Changed from 'location' to 'eventVenue'
-          'banner_image': imageUrl,   // Changed from 'imageUrl' to 'banner_image'
+          'ToTime': toTime, // Note: API expects "ToTime" not "toTime"
+          'eventVenue': location, // Note: API expects "eventVenue" not "location"
+          'banner_image': bannerImage,
           'points': points,
         }),
       );
-      return response.statusCode == 200;
+
+      print('Update event response status: ${response.statusCode}');
+      print('Update event response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final responseData = jsonDecode(response.body);
+        if (responseData['message'] == 'Event Updated') {
+          print('Event updated successfully');
+          return true;
+        }
+      }
+
+      print('Failed to update event: ${response.statusCode} - ${response.body}');
+      return false;
     } catch (e) {
       print('Error updating event: $e');
       return false;
