@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
-import 'package:mentalsustainability/pages/base_widget.dart' as base_widget;
 import 'package:mentalsustainability/pages/guide_page.dart';
 import 'package:mentalsustainability/pages/admin/admin_panel.dart';
 import 'package:mentalsustainability/services/badge_service.dart';
@@ -162,7 +161,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     
     // Navigate to the auth page after splash animation
     Future.delayed(const Duration(seconds: 2), () {
-      Get.offAllNamed('/auth'); // Changed back to '/auth'
+      Get.offAllNamed('/'); // Changed to '/' since that's the auth wrapper route
     });
   }
   

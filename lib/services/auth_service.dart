@@ -32,15 +32,26 @@ class ApiConfig {
   // Base URL for API requests - different for various platforms
   static String get apiBase {
     if (kIsWeb) {
-      // For web testing
+      // For web testing - check for production URL first
+      const String? prodUrl = String.fromEnvironment('WEB_API_URL');
+      if (prodUrl != null && prodUrl.isNotEmpty) {
+        return prodUrl;
+      }
       return 'http://localhost:8081/';
     } else {
-      // For Android emulator use 10.0.2.2 instead of localhost
-      // For iOS simulator use 127.0.0.1
-      // For physical devices, use your computer's IP address on the same network
-      return 'http://10.0.2.2:8081/'; // Use this for Android emulator
-      // return 'http://127.0.0.1:8081/'; // Use this for iOS simulator
-      // return 'http://YOUR_COMPUTER_IP:8081/'; // Use this for physical devices
+      // Check if we're in production/staging mode
+      const String? prodUrl = String.fromEnvironment('API_URL');
+      if (prodUrl != null && prodUrl.isNotEmpty) {
+        return prodUrl;
+      }
+      
+      // For Android development - use your actual server IP or domain
+      return 'http://10.0.2.2:8081/';  // For Android emulator
+      // return 'http://192.168.1.100:8081/';  // For physical device (replace with your IP)
+      // Deployment examples:
+      // return 'https://your-ec2-instance.ap-south-1.compute.amazonaws.com/';  // AWS EC2
+      // return 'https://your-backend.onrender.com/';  // Render
+      // return 'https://your-backend.up.railway.app/';  // Railway
     }
   }
 }
@@ -358,8 +369,6 @@ class AuthService extends GetxService {
       print('Error clearing token: $e');
     }
   }
-  
-  
   
   // Logout method
   Future<void> logout() async {
