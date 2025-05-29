@@ -4,6 +4,7 @@ import 'package:mentalsustainability/services/badge_service.dart';
 import 'package:mentalsustainability/theme/app_colors.dart';
 import 'package:mentalsustainability/services/api_service.dart';
 import 'package:mentalsustainability/services/auth_service.dart';
+import 'dart:async';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -17,6 +18,9 @@ class _DashboardPageState extends State<DashboardPage> {
   final AuthService _authService = Get.find<AuthService>();
   late final BadgeService _badgeService;
   
+  // Add timer for periodic badge refresh
+  Timer? _badgeRefreshTimer;
+  
   // State variables for API data
   int _totalPoints = 0;
   bool _isLoadingPoints = true;
@@ -27,47 +31,47 @@ class _DashboardPageState extends State<DashboardPage> {
   List<EventParticipation> _recentParticipations = [];
   bool _isLoadingParticipations = true;
   
-  // List to store badges from BadgeService
-  List<AchievementBadge> _achievementBadges = [];
+  // Replace the _achievementBadges with proper BadgeService integration
+  List<AchievementBadge> _badges = [];
   bool _isLoadingBadges = true;
   
-  // Remove the hardcoded participations since we'll load them from API
-  // Sample badges earned - kept for now
-  final List<Badge> _badges = [
-    Badge(
-      id: 'b1',
-      title: 'NSS Volunteer',
-      description: 'Completed 5 NSS activities',
-      imageUrl: 'assets/images/badges/nss_volunteer.png',
-    ),
-    Badge(
-      id: 'b2',
-      title: 'Social Worker',
-      description: 'Participated in 3 social service activities',
-      imageUrl: 'assets/images/badges/social_worker.png',
-    ),
-    Badge(
-      id: 'b3',
-      title: 'Community Leader',
-      description: 'Led community activities',
-      imageUrl: 'assets/images/badges/community_leader.png',
-    ),
-  ];
+  // Remove the hardcoded badges - we'll use BadgeService instead
 
   @override
   void initState() {
     super.initState();
-    // Initialize badge service
+    // Initialize badge service - SAME as profile page
     try {
       _badgeService = Get.find<BadgeService>();
+      print('Found existing BadgeService in Dashboard');
     } catch (e) {
-      print('Error finding BadgeService: $e');
+      print('BadgeService not found in Dashboard, creating new instance');
       _badgeService = BadgeService();
       Get.put(_badgeService, permanent: true);
     }
     
+    // FIXED: Start periodic badge refresh timer
+    _startBadgeRefreshTimer();
+    
     _loadDashboardData();
     _loadBadges();
+  }
+
+  @override
+  void dispose() {
+    // FIXED: Cancel timer when disposing
+    _badgeRefreshTimer?.cancel();
+    super.dispose();
+  }
+
+  // FIXED: Add periodic badge refresh timer
+  void _startBadgeRefreshTimer() {
+    _badgeRefreshTimer = Timer.periodic(Duration(seconds: 3), (timer) {
+      if (mounted) {
+        print('Dashboard: Periodic badge refresh');
+        _loadBadges();
+      }
+    });
   }
   
   // Load all dashboard data
@@ -202,28 +206,69 @@ class _DashboardPageState extends State<DashboardPage> {
     }
   }
   
-  // Add method to load badges
+  // SHARED BADGE LOADING CODE - IDENTICAL TO PROFILE
   void _loadBadges() {
+    print('=== DASHBOARD: _loadBadges START ===');
+    if (!mounted) return;
+    
     setState(() {
       _isLoadingBadges = true;
     });
     
     try {
-      // Get badges from the BadgeService
-      _achievementBadges = _badgeService.getBadges(forceRefresh: true);
+      // IDENTICAL logic to profile page
+      BadgeService? badgeService;
+      try {
+        badgeService = Get.find<BadgeService>();
+        print('Dashboard: Found existing BadgeService');
+      } catch (e) {
+        print('Dashboard: BadgeService not found, creating new instance');
+        badgeService = BadgeService();
+        Get.put(badgeService, permanent: true);
+      }
       
-      // Update state
-      setState(() {
-        _isLoadingBadges = false;
-      });
+      // IDENTICAL call - no differences
+      final badges = badgeService.calculateUserBadges();
       
-      print('Loaded ${_achievementBadges.length} badges');
+      print('Dashboard: Got ${badges.length} badges from BadgeService');
+      for (var badge in badges) {
+        print('Dashboard Badge: ${badge.name} (Level ${badge.level})');
+      }
+      
+      if (mounted) {
+        setState(() {
+          _badges = badges;
+          _isLoadingBadges = false;
+        });
+        
+        print('Dashboard: UI updated with ${_badges.length} badges');
+      }
     } catch (e) {
-      print('Error loading badges: $e');
-      setState(() {
-        _isLoadingBadges = false;
-      });
+      print('Dashboard: Error loading badges: $e');
+      if (mounted) {
+        setState(() {
+          _isLoadingBadges = false;
+        });
+      }
     }
+    
+    print('=== DASHBOARD: _loadBadges END ===');
+  }
+
+  // FIXED: Add method to refresh all dashboard data including badges
+  Future<void> _refreshDashboard() async {
+    print('Refreshing dashboard data and badges');
+    await _loadDashboardData();
+    
+    // Force badge service to refresh user data
+    try {
+      final authService = Get.find<AuthService>();
+      await authService.refreshUserStatus(); // Refresh user status first
+    } catch (e) {
+      print('Error refreshing user status in dashboard: $e');
+    }
+    
+    _loadBadges(); // Then refresh badges with updated data
   }
 
   @override
@@ -240,70 +285,73 @@ class _DashboardPageState extends State<DashboardPage> {
             ],
           ),
         ),
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Dashboard header
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(14),
+        child: RefreshIndicator(
+          onRefresh: _refreshDashboard,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Dashboard header
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Icon(
+                        Icons.dashboard_rounded,
+                        color: AppColors.primary,
+                        size: 26,
+                      ),
                     ),
-                    child: Icon(
-                      Icons.dashboard_rounded,
-                      color: AppColors.primary,
-                      size: 26,
-                    ),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Your Dashboard',
-                          style: TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Your Dashboard',
+                            style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Track your progress and achievements',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: AppColors.textSecondary,
+                          const SizedBox(height: 4),
+                          Text(
+                            'Track your progress and achievements',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: AppColors.textSecondary,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
+                  ],
+                ),
+                const SizedBox(height: 24),
               
-              // Monthly Points Card
-              _buildMonthlyPointsCard(_totalPoints),
-              const SizedBox(height: 20),
+                // Monthly Points Card
+                _buildMonthlyPointsCard(_totalPoints),
+                const SizedBox(height: 20),
               
-              // Leaderboard Card - Top 3 Users
-              _buildLeaderboardCard(_topUsers),
-              const SizedBox(height: 20),
+                // Leaderboard Card - Top 3 Users
+                _buildLeaderboardCard(_topUsers),
+                const SizedBox(height: 20),
               
-              // Recent Event Participation
-              _buildRecentParticipationCard(_recentParticipations),
-              const SizedBox(height: 20),
+                // Recent Event Participation
+                _buildRecentParticipationCard(_recentParticipations),
+                const SizedBox(height: 20),
               
-              // Badges Earned - CHANGE THIS LINE to use _achievementBadges instead of _badges
-              _buildBadgesCard(_achievementBadges),
-              const SizedBox(height: 32),
-            ],
+                // Badges Earned - Now using the same badges as profile page
+                _buildBadgesCard(_badges),
+                const SizedBox(height: 32),
+              ],
+            ),
           ),
         ),
       ),
@@ -715,9 +763,9 @@ class _DashboardPageState extends State<DashboardPage> {
                   ),
                 ),
                 const SizedBox(width: 12),
-                const Text(
-                  'Badges Earned',
-                  style: TextStyle(
+                Text(
+                  'Badges Earned (${badges.length})', // Show count to verify sync
+                  style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
                   ),
@@ -850,7 +898,7 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
   
-  // Add new method to show all badges in a dialog
+  // Update the dialog to use AchievementBadge instead of old Badge type
   void _showAllBadgesDialog() {
     showDialog(
       context: context,
@@ -915,7 +963,7 @@ class _DashboardPageState extends State<DashboardPage> {
                           child: CircularProgressIndicator(),
                         ),
                       )
-                    : _achievementBadges.isEmpty
+                    : _badges.isEmpty
                       ? const Center(
                           child: Padding(
                             padding: EdgeInsets.all(20.0),
@@ -933,9 +981,9 @@ class _DashboardPageState extends State<DashboardPage> {
                             crossAxisSpacing: 16,
                             mainAxisSpacing: 16,
                           ),
-                          itemCount: _achievementBadges.length,
+                          itemCount: _badges.length,
                           itemBuilder: (context, index) {
-                            final badge = _achievementBadges[index];
+                            final badge = _badges[index];
                             return _buildBadgeGridItem(badge);
                           },
                         ),

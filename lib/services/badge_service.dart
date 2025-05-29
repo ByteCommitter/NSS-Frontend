@@ -12,6 +12,9 @@ class BadgeService extends GetxService {
   // Cache for badges
   final RxList<AchievementBadge> _cachedBadges = RxList<AchievementBadge>([]);
   
+  // Add a timestamp to track when badges were last calculated
+  DateTime? _lastCalculated;
+  
   // Initialize with services
   BadgeService() {
     print('BadgeService constructor called');
@@ -57,122 +60,67 @@ class BadgeService extends GetxService {
     return _cachedBadges.toList();
   }
 
+  // FIXED: Add method to force refresh and clear cache
+  void refreshBadges() {
+    print('BadgeService: Force refreshing badges and clearing cache');
+    _cachedBadges.clear();
+    _lastCalculated = null;
+    // Trigger recalculation on next access
+    calculateUserBadges();
+  }
+
   // Calculate badges based on user data
   List<AchievementBadge> calculateUserBadges() {
-    print('Calculating user badges');
+    print('=== BadgeService: calculateUserBadges START ===');
+    
     final List<AchievementBadge> badges = [];
     
     try {
-      // Try to access the auth service - might be null in early init
       AuthService? authService;
       try {
         authService = Get.find<AuthService>();
-        print('Found AuthService for badge calculation');
+        print('BadgeService: Found AuthService - isVolunteer=${authService.isVolunteer}, points=${authService.points}');
       } catch (e) {
-        print('AuthService not available for badge calculation: $e');
+        print('BadgeService: AuthService not available: $e');
+        return [];
       }
 
-      // Removed NSS Member Badge
-    
-      // Only calculate dynamic badges if we have auth service
-      if (authService != null) {
-        // 2. Volunteer Badge - based on volunteer status
-        if (authService.isVolunteer) {
-          badges.add(AchievementBadge(
-            id: 'volunteer',
-            name: 'NSS Volunteer',
-            description: 'Registered as an NSS volunteer',
-            icon: Icons.volunteer_activism,
-            color: Colors.green,
-            level: 1,
-          ));
-        } else if (authService.isWishVolunteer) {
-          badges.add(AchievementBadge(
-            id: 'volunteer_pending',
-            name: 'Volunteer Applicant',
-            description: 'Applied to become an NSS volunteer',
-            icon: Icons.hourglass_top,
-            color: Colors.orange,
-            level: 1,
-          ));
-        }
-        
-        // 3. Points Badge - based on total points
-        final int points = authService.points;
-        print('User has $points points for badge calculation');
-        if (points > 0) {
-          int level = 1;
-          String name = 'Point Collector';
-          String description = 'Earned NSS points through participation';
-          
-          if (points >= 2500) {
-            level = 5;
-            name = 'Diamond Contributor';
-            description = 'Earned 2500+ NSS points';
-          } else if (points >= 1000) {
-            level = 4;
-            name = 'Platinum Contributor';
-            description = 'Earned 1000-2499 NSS points';
-          } else if (points >= 500) {
-            level = 3;
-            name = 'Gold Contributor';
-            description = 'Earned 500-999 NSS points';
-          } else if (points >= 200) {
-            level = 2;
-            name = 'Silver Contributor';
-            description = 'Earned 200-499 NSS points';
-          }
-          
-          badges.add(AchievementBadge(
-            id: 'points_$level',
-            name: name,
-            description: description,
-            icon: Icons.stars,
-            color: Colors.amber,
-            level: level,
-          ));
-        }
-        
-        // 4. Event Participation Badge - estimate based on points
-        final int eventsAttended = (points / 50).floor(); // Assuming 50 points per event
-        print('Estimated $eventsAttended events attended based on points');
-        if (eventsAttended > 0) {
-          int level = 1;
-          String name = 'Event Participant';
-          String description = 'Participated in NSS events';
-          
-          if (eventsAttended >= 15) {
-            level = 5;
-            name = 'Event Master';
-            description = 'Participated in 15+ NSS events';
-          } else if (eventsAttended >= 10) {
-            level = 4;
-            name = 'Event Expert';
-            description = 'Participated in 10-14 NSS events';
-          } else if (eventsAttended >= 5) {
-            level = 3;
-            name = 'Event Enthusiast';
-            description = 'Participated in 5-9 NSS events';
-          } else if (eventsAttended >= 3) {
-            level = 2;
-            name = 'Event Attendee';
-            description = 'Participated in 3-4 NSS events';
-          }
-          
-          badges.add(AchievementBadge(
-            id: 'event_participation_$level',
-            name: name,
-            description: description,
-            icon: Icons.event_available,
-            color: Colors.blue,
-            level: level,
-          ));
-        }
+      // 1. Volunteer Badge - ONLY for active volunteers (not wishVolunteers)
+      if (authService.isVolunteer) {
+        print('BadgeService: Adding NSS Volunteer badge (isVolunteer=true)');
+        badges.add(AchievementBadge(
+          id: 'volunteer',
+          name: 'NSS Volunteer',
+          description: 'Registered as an NSS volunteer',
+          icon: Icons.volunteer_activism,
+          color: Colors.green,
+          level: 1,
+        ));
+      } else {
+        print('BadgeService: NOT adding NSS Volunteer badge (isVolunteer=false)');
       }
-    
-      // 5. Community Badge - for all users
+      
+      // 2. Points Badge - based on total points
+      final int points = authService.points;
+      print('BadgeService: User has $points points');
+      if (points > 0) {
+        print('BadgeService: Adding points badge for $points points');
+        badges.add(AchievementBadge(
+          id: 'points',
+          name: points >= 100 ? 'Star Contributor' : 'Point Collector',
+          description: 'Earned $points NSS points',
+          icon: Icons.stars,
+          color: points >= 100 ? Colors.amber : Colors.orange,
+          level: (points / 50).floor() + 1,
+        ));
+      } else {
+        print('BadgeService: NOT adding points badge (points=0)');
+      }
+      
+      // 3. Community Badge - for ALL users (always)
+      print('BadgeService: Adding Community Member badge (always added)');
       badges.add(AchievementBadge(
-        id: 'community_member',
+        id: 'community',
         name: 'Community Member',
         description: 'Part of the NSS community',
         icon: Icons.people,
@@ -180,21 +128,21 @@ class BadgeService extends GetxService {
         level: 1,
       ));
       
-      // Update cached badges
-      _cachedBadges.value = badges;
-      print('Calculated ${badges.length} badges');
+      // Update cache
+      _cachedBadges.clear();
+      _cachedBadges.addAll(badges);
+      _lastCalculated = DateTime.now();
       
+      print('BadgeService: FINAL RESULT - ${badges.length} badges: ${badges.map((b) => b.name).join(', ')}');
     } catch (e) {
-      print('Error calculating badges: $e');
-      // Return default badges if calculation fails
-      if (badges.isEmpty) {
-        _createDefaultBadges();
-        return _cachedBadges;
-      }
+      print('BadgeService: Error calculating badges: $e');
     }
     
+    print('=== BadgeService: calculateUserBadges END (${badges.length} badges) ===');
     return badges;
   }
+  
+  // Force refresh badges when user status changes
 }
 
 // Badge model class

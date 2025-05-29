@@ -20,37 +20,17 @@ class _ProfilePageState extends State<ProfilePage> {
   int _eventsAttended = 0;
   bool _isLoadingEvents = true;
   
-  // Use real achievements data from API (will be populated)
-  List<Map<String, dynamic>> _achievements = [
-    // Default achievements until we implement API for real ones
-    {
-      'name': 'NSS Volunteer',
-      'description': 'Registered as NSS volunteer',
-      'icon': Icons.volunteer_activism,
-      'color': AppColors.success,
-      'level': 1,
-    },
-    {
-      'name': 'Event Participant',
-      'description': 'Participated in NSS events',
-      'icon': Icons.event_available,
-      'color': AppColors.primary,
-      'level': 1,
-    },
-  ];
+  // FIXED: Remove default achievements - use only BadgeService
+  List<AchievementBadge> _achievements = [];
+  bool _isLoadingAchievements = true;
 
   @override
   void initState() {
     super.initState();
-    // Load real user points if needed
     _refreshUserPoints();
-    // Refresh volunteer status
     _refreshVolunteerStatus();
-    // Load event participation count
     _loadEventsAttendedCount();
-    // Make sure username is initialized
     _initUsername();
-    // Load achievements from badge service
     _loadAchievements();
   }
   
@@ -88,6 +68,16 @@ class _ProfilePageState extends State<ProfilePage> {
     if (userId != null && mounted) {
       await _authService.refreshUserStatus();
       if (mounted) {
+        // FIXED: Force BadgeService to refresh when volunteer status changes
+        try {
+          final badgeService = Get.find<BadgeService>();
+          badgeService.refreshBadges();
+        } catch (e) {
+          print('Error refreshing badge service: $e');
+        }
+        
+        // Refresh badges when volunteer status changes
+        _loadAchievements();
         setState(() {}); // Refresh UI with updated status
       }
     }
@@ -108,6 +98,17 @@ class _ProfilePageState extends State<ProfilePage> {
         
         if (result['success']) {
           _authService.setWishVolunteerStatus(true);
+          
+          // FIXED: Force immediate badge refresh in BadgeService
+          try {
+            final badgeService = Get.find<BadgeService>();
+            badgeService.refreshBadges();
+          } catch (e) {
+            print('Error refreshing badge service after volunteer registration: $e');
+          }
+          
+          // Refresh achievements immediately to show new badge
+          _loadAchievements();
           
           Get.snackbar(
             'Application Submitted',
@@ -216,61 +217,71 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
   
-  // Add method to load achievements
+  // SHARED BADGE LOADING CODE - IDENTICAL TO DASHBOARD
   void _loadAchievements() {
+    print('=== PROFILE: _loadAchievements START ===');
+    if (!mounted) return;
+    
+    setState(() {
+      _isLoadingAchievements = true;
+    });
+    
     try {
-      // Create default achievements in case badge service isn't available
-      _achievements = [
-        {
-          'name': 'NSS Volunteer',
-          'description': 'Registered as NSS volunteer',
-          'icon': Icons.volunteer_activism,
-          'color': AppColors.success,
-          'level': 1,
-        },
-        {
-          'name': 'Event Participant',
-          'description': 'Participated in NSS events',
-          'icon': Icons.event_available,
-          'color': AppColors.primary,
-          'level': 1,
-        },
-      ];
-      
-      // Try to get the BadgeService
+      // IDENTICAL logic to dashboard page
       BadgeService? badgeService;
       try {
         badgeService = Get.find<BadgeService>();
-        print('BadgeService found in _loadAchievements');
+        print('Profile: Found existing BadgeService');
       } catch (e) {
-        print('BadgeService not found, creating a new instance');
+        print('Profile: BadgeService not found, creating new instance');
         badgeService = BadgeService();
         Get.put(badgeService, permanent: true);
       }
       
-      // Get badges from the service
+      // IDENTICAL call - no differences
       final badges = badgeService.calculateUserBadges();
       
-      print('Calculated ${badges.length} badges from BadgeService');
+      print('Profile: Got ${badges.length} badges from BadgeService');
+      for (var badge in badges) {
+        print('Profile Badge: ${badge.name} (Level ${badge.level})');
+      }
       
-      // Only update achievements if we got some badges
-      if (badges.isNotEmpty) {
+      if (mounted) {
         setState(() {
-          _achievements = badges.map((badge) => {
-            'name': badge.name,
-            'description': badge.description,
-            'icon': badge.icon,
-            'color': badge.color,
-            'level': badge.level,
-          }).toList();
+          _achievements = badges;
+          _isLoadingAchievements = false;
         });
         
-        print('Updated achievements with ${_achievements.length} items');
+        print('Profile: UI updated with ${_achievements.length} badges');
       }
     } catch (e) {
-      print('Error loading achievements: $e');
-      // We already have default achievements set above
+      print('Profile: Error loading achievements: $e');
+      if (mounted) {
+        setState(() {
+          _isLoadingAchievements = false;
+        });
+      }
     }
+    
+    print('=== PROFILE: _loadAchievements END ===');
+  }
+
+  // FIXED: Update refresh method to match dashboard
+  Future<void> _refreshAllData() async {
+    print('Profile: Refreshing profile data and badges');
+    await _refreshUserPoints();
+    await _refreshVolunteerStatus();
+    await _loadEventsAttendedCount();
+    
+    // Force badge service to refresh user data - SAME as dashboard
+    try {
+      final authService = Get.find<AuthService>();
+      await authService.refreshUserStatus(); // Refresh user status first
+    } catch (e) {
+      print('Profile: Error refreshing user status: $e');
+    }
+    
+    _loadAchievements(); // Then refresh badges with updated data
   }
 
   @override
@@ -282,31 +293,34 @@ class _ProfilePageState extends State<ProfilePage> {
     final bool isVolunteer = _authService.isVolunteer;
     final bool isWishVolunteer = _authService.isWishVolunteer;
     
-    
     return Scaffold(
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Profile header with real name
-            _buildProfileHeader(name, userId, points),
-            
-            const SizedBox(height: 16),
-            
-            // Volunteer status/registration section
-            _buildVolunteerSection(isVolunteer, isWishVolunteer),
-            
-            const SizedBox(height: 16),
-            
-            // Statistics section
-            _buildStatisticsSection(points),
-            
-            const SizedBox(height: 16),
-            
-            // Enhanced Achievements section
-            _buildEnhancedAchievementsSection(),
-          ],
+      body: RefreshIndicator(
+        onRefresh: _refreshAllData,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Profile header with real name
+              _buildProfileHeader(name, userId, points),
+              
+              const SizedBox(height: 16),
+              
+              // Volunteer status/registration section
+              _buildVolunteerSection(isVolunteer, isWishVolunteer),
+              
+              const SizedBox(height: 16),
+              
+              // Statistics section - THIS SHOWS THE REAL ACHIEVEMENT COUNT
+              _buildStatisticsSection(points),
+              
+              const SizedBox(height: 16),
+              
+              // Enhanced Achievements section
+              _buildEnhancedAchievementsSection(),
+            ],
+          ),
         ),
       ),
     );
@@ -545,7 +559,10 @@ class _ProfilePageState extends State<ProfilePage> {
                   ? _buildLoadingStatItem(Icons.event_available, 'Events\nAttended')
                   : _buildStatItem(Icons.event_available, 'Events\nAttended', _eventsAttended.toString()),
                 _buildStatItem(Icons.stars, 'Total\nPoints', points.toString()),
-                _buildStatItem(Icons.emoji_events, 'Achievements', _achievements.length.toString()),
+                // FIXED: Show loading state and use correct count
+                _isLoadingAchievements
+                  ? _buildLoadingStatItem(Icons.emoji_events, 'Achievements')
+                  : _buildStatItem(Icons.emoji_events, 'Achievements', _achievements.length.toString()),
               ],
             ),
           ],
@@ -608,7 +625,7 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
   
-  // Modify the _buildEnhancedAchievementsSection to not rely on BadgeService
+  // FIXED: Show achievement count in header for verification
   Widget _buildEnhancedAchievementsSection() {
     return Card(
       elevation: 1,
@@ -621,9 +638,9 @@ class _ProfilePageState extends State<ProfilePage> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  'Achievements',
-                  style: TextStyle(
+                Text(
+                  'Achievements (${_achievements.length})', // Show count to verify sync
+                  style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                   ),
@@ -635,42 +652,60 @@ class _ProfilePageState extends State<ProfilePage> {
                     // Future enhancement: Navigate to full achievements page
                   },
                   style: TextButton.styleFrom(
-                    foregroundColor: AppColors.primary, // Use theme color
+                    foregroundColor: AppColors.primary,
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 16),
             
-            // Enhanced badges
-            GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                childAspectRatio: 1.0,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-              ),
-              itemCount: _achievements.length,
-              itemBuilder: (context, index) {
-                final achievement = _achievements[index];
-                return _buildAchievementBadge(achievement);
-              },
-            ),
+            // Show loading or badges
+            _isLoadingAchievements
+              ? const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(20.0),
+                    child: CircularProgressIndicator(),
+                  ),
+                )
+              : _achievements.isEmpty
+                ? const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(20.0),
+                      child: Text(
+                        'No achievements earned yet',
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                    ),
+                  )
+                : GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      childAspectRatio: 1.0,
+                      crossAxisSpacing: 16,
+                      mainAxisSpacing: 16,
+                    ),
+                    itemCount: _achievements.length,
+                    itemBuilder: (context, index) {
+                      final achievement = _achievements[index];
+                      return _buildAchievementBadge(achievement);
+                    },
+                  ),
           ],
         ),
       ),
     );
   }
   
-  Widget _buildAchievementBadge(Map<String, dynamic> achievement) {
+  // FIXED: Update to work with AchievementBadge objects
+  Widget _buildAchievementBadge(AchievementBadge achievement) {
     return Container(
       decoration: BoxDecoration(
-        color: achievement['color'].withOpacity(0.1),
+        color: achievement.color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: achievement['color'].withOpacity(0.3),
+          color: achievement.color.withOpacity(0.3),
           width: 2,
         ),
       ),
@@ -685,15 +720,15 @@ class _ProfilePageState extends State<ProfilePage> {
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: achievement['color'].withOpacity(0.2),
+                  color: achievement.color.withOpacity(0.2),
                   border: Border.all(
-                    color: achievement['color'],
+                    color: achievement.color,
                     width: 2,
                   ),
                 ),
                 child: Icon(
-                  achievement['icon'],
-                  color: achievement['color'],
+                  achievement.icon,
+                  color: achievement.color,
                   size: 32,
                 ),
               ),
@@ -704,16 +739,16 @@ class _ProfilePageState extends State<ProfilePage> {
                   padding: const EdgeInsets.all(4),
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: AppColors.white, // Use theme color
+                    color: AppColors.white,
                     border: Border.all(
-                      color: achievement['color'],
+                      color: achievement.color,
                       width: 1.5,
                     ),
                   ),
                   child: Text(
-                    achievement['level'].toString(),
+                    achievement.level.toString(),
                     style: TextStyle(
-                      color: achievement['color'],
+                      color: achievement.color,
                       fontWeight: FontWeight.bold,
                       fontSize: 12,
                     ),
@@ -724,7 +759,7 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
           const SizedBox(height: 8),
           Text(
-            achievement['name'],
+            achievement.name,
             style: const TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 14,
@@ -735,10 +770,10 @@ class _ProfilePageState extends State<ProfilePage> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8),
             child: Text(
-              achievement['description'],
+              achievement.description,
               style: TextStyle(
                 fontSize: 10,
-                color: AppColors.textSecondary, // Use theme color
+                color: AppColors.textSecondary,
               ),
               textAlign: TextAlign.center,
               maxLines: 2,
