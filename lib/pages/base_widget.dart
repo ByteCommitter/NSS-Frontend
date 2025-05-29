@@ -8,6 +8,8 @@ import 'Profile/profile_page.dart';
 import 'Community/community_page.dart';
 import 'package:mentalsustainability/pages/guide_page.dart';
 import 'package:mentalsustainability/pages/Dashboard/dashboard_page.dart';
+import 'package:mentalsustainability/pages/about_nss_page.dart';
+import 'package:mentalsustainability/pages/privacy_policy_page.dart';
 
 class BaseScreen extends StatefulWidget {
   const BaseScreen({super.key});
@@ -439,23 +441,6 @@ class _BaseScreenState extends State<BaseScreen> with SingleTickerProviderStateM
                       )
                     : const SizedBox.shrink()),
                 
-                // Take Personalised Quiz
-                _buildDrawerMenuItem(
-                  icon: Icons.quiz,
-                  iconColor: AppColors.warning,
-                  title: 'Take Personalised Quiz',
-                  subtitle: 'Customize your experience',
-                  onTap: () {
-                    Navigator.pop(context);
-                    _retakeOnboardingQuiz();
-                  },
-                ),
-                
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 20),
-                  child: Divider(height: 32),
-                ),
-                
                 // Theme selector with modern styling
                 _buildDrawerMenuItem(
                   icon: Icons.color_lens,
@@ -548,25 +533,27 @@ class _BaseScreenState extends State<BaseScreen> with SingleTickerProviderStateM
                 ),
                 
                 _buildDrawerMenuItem(
-                  icon: Icons.privacy_tip,
-                  iconColor: Colors.indigo,
-                  title: 'Privacy Policy',
-                  onTap: () {
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Opening privacy policy...')),
-                    );
-                  },
-                ),
-                
-                _buildDrawerMenuItem(
                   icon: Icons.info,
                   iconColor: Colors.teal,
                   title: 'About NSS',
                   onTap: () {
                     Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Opening about page...')),
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const AboutNSSPage())
+                    );
+                  },
+                ),
+                
+                _buildDrawerMenuItem(
+                  icon: Icons.privacy_tip,
+                  iconColor: Colors.indigo,
+                  title: 'Privacy Policy',
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const PrivacyPolicyPage())
                     );
                   },
                 ),

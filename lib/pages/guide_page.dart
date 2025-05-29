@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:mentalsustainability/theme/app_colors.dart'; // Add theme import
+import 'package:mentalsustainability/theme/app_colors.dart';
 
 class GuidePage extends StatelessWidget {
   const GuidePage({super.key});
@@ -10,16 +10,16 @@ class GuidePage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          '🧭 App Guide',
+          '📘 App Guide',
           style: TextStyle(
             fontWeight: FontWeight.bold,
-            color: AppColors.primary, // Use theme color
+            color: AppColors.primary,
           ),
         ),
-        backgroundColor: AppColors.background, // Use theme color
+        backgroundColor: AppColors.background,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: AppColors.primary), // Use theme color
+          icon: Icon(Icons.arrow_back, color: AppColors.primary),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -33,32 +33,32 @@ class GuidePage extends StatelessWidget {
           // App Features
           _buildSection(
             title: 'App Navigation',
-            icon: Icons.tablet_android,
+            icon: Icons.navigation,
             content: _buildTabInformation(),
           ),
           
           _buildSection(
-            title: 'Seremate Explained',
-            icon: Icons.people,
-            content: _buildSeremateExplanation(),
+            title: 'NSS Events & Participation',
+            icon: Icons.event,
+            content: _buildEventsExplanation(),
           ),
           
           _buildSection(
-            title: 'Connecting with Sereine Team',
-            icon: Icons.support_agent,
-            content: _buildSATeamExplanation(),
+            title: 'Becoming a Volunteer',
+            icon: Icons.volunteer_activism,
+            content: _buildVolunteerExplanation(),
           ),
           
           _buildSection(
-            title: 'Privacy & Anonymity',
-            icon: Icons.privacy_tip,
-            content: _buildPrivacyInformation(),
-          ),
-          
-          _buildSection(
-            title: 'Achievements & Points',
+            title: 'Points & Achievements',
             icon: Icons.emoji_events,
-            content: _buildGamificationExplanation(),
+            content: _buildPointsExplanation(),
+          ),
+          
+          _buildSection(
+            title: 'Community Features (Coming Soon)',
+            icon: Icons.people,
+            content: _buildCommunityExplanation(),
           ),
           
           // Contact support
@@ -75,7 +75,7 @@ class GuidePage extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Welcome to NSS',
+          'Welcome to NSS App',
           style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.bold,
@@ -84,10 +84,19 @@ class GuidePage extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Text(
-          'This guide will help you navigate the app and make the most of its features.',
+          'National Service Scheme - "Not Me But You"',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w500,
+            color: AppColors.primary,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'This guide will help you navigate the app and understand how to participate in NSS activities.',
           style: TextStyle(
             fontSize: 16,
-            color: AppColors.textSecondary, // Use theme color
+            color: AppColors.textSecondary,
           ),
         ),
         const SizedBox(height: 16),
@@ -95,20 +104,20 @@ class GuidePage extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           child: Container(
             padding: const EdgeInsets.all(12),
-            color: AppColors.primary.withOpacity(0.1), // Use theme color
+            color: AppColors.primary.withOpacity(0.1),
             child: Row(
               children: [
                 Icon(
-                  Icons.tips_and_updates,
-                  color: AppColors.primary, // Use theme color
+                  Icons.info_outline,
+                  color: AppColors.primary,
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'Tap on any section below to learn more about that feature',
+                    'To participate in NSS events, you need to register as a volunteer first',
                     style: TextStyle(
-                      fontStyle: FontStyle.italic,
-                      color: AppColors.primary, // Use theme color
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.primary,
                     ),
                   ),
                 ),
@@ -133,7 +142,7 @@ class GuidePage extends StatelessWidget {
       child: ExpansionTile(
         title: Row(
           children: [
-            Icon(icon, color: AppColors.primary), // Use theme color
+            Icon(icon, color: AppColors.primary),
             const SizedBox(width: 12),
             Text(
               title,
@@ -144,8 +153,8 @@ class GuidePage extends StatelessWidget {
             ),
           ],
         ),
-        collapsedBackgroundColor: AppColors.cardBackground, // Use theme color
-        backgroundColor: AppColors.primary.withOpacity(0.05), // Use theme color
+        collapsedBackgroundColor: AppColors.cardBackground,
+        backgroundColor: AppColors.primary.withOpacity(0.05),
         childrenPadding: const EdgeInsets.all(16),
         children: [content],
       ),
@@ -159,121 +168,166 @@ class GuidePage extends StatelessWidget {
         _buildFeatureItem(
           icon: Icons.home,
           title: 'Home Tab',
-          description: 'Your dashboard for daily wellness activities, mood tracking, and personalized recommendations.',
+          description: 'View upcoming NSS events, register for events, and see recent announcements from the NSS team.',
         ),
         const Divider(),
         _buildFeatureItem(
-          icon: Icons.assignment,
-          title: 'Quests Tab',
-          description: 'Complete challenges to improve your mental health and sustainability habits, earning points and badges.',
+          icon: Icons.dashboard,
+          title: 'Dashboard Tab',
+          description: 'Track your participation points, view your achievements, see leaderboard of top volunteers, and monitor your NSS journey.',
         ),
         const Divider(),
         _buildFeatureItem(
           icon: Icons.people,
           title: 'Community Tab',
-          description: 'Connect with peers through discussion threads, chat with support team members, or find activities with fellow students via Seremate.',
+          description: 'Access mental health support features including anonymous teams, finding counselors, and connecting with potential seremates for student wellbeing.',
         ),
         const Divider(),
         _buildFeatureItem(
           icon: Icons.person,
           title: 'Profile Tab',
-          description: 'View your achievements, statistics, and customize your personal preferences.',
+          description: 'Manage your volunteer status, view your achievements and statistics, and register as a volunteer.',
         ),
       ],
     );
   }
 
-  Widget _buildSeremateExplanation() {
+  Widget _buildEventsExplanation() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Seremate connects you with fellow students who share similar interests or are looking for companions for various activities.',
-          style: TextStyle(fontSize: 15, color: AppColors.textPrimary), // Use theme color
+          'NSS organizes various community service events throughout the academic year. Here\'s how to participate:',
+          style: TextStyle(fontSize: 15, color: AppColors.textPrimary),
         ),
+        const SizedBox(height: 16),
+        
+        _buildNumberedStep(
+          number: 1,
+          text: 'Browse upcoming events on the Home tab',
+        ),
+        _buildNumberedStep(
+          number: 2,
+          text: 'Register as a volunteer (required for event participation)',
+        ),
+        _buildNumberedStep(
+          number: 3,
+          text: 'Register for specific events you want to attend',
+        ),
+        _buildNumberedStep(
+          number: 4,
+          text: 'Attend the event and participate actively',
+        ),
+        _buildNumberedStep(
+          number: 5,
+          text: 'Your participation will be verified by event coordinators',
+        ),
+        _buildNumberedStep(
+          number: 6,
+          text: 'Earn points and achievements based on your participation',
+        ),
+        
         const SizedBox(height: 16),
         ClipRRect(
           borderRadius: BorderRadius.circular(8),
           child: Container(
             padding: const EdgeInsets.all(12),
-            color: AppColors.info.withOpacity(0.1), // Use theme color
+            color: AppColors.info.withOpacity(0.1),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'Available Activities:',
+                  'Types of NSS Events:',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 15,
                   ),
                 ),
                 const SizedBox(height: 8),
-                _buildBulletPoint('Have casual conversations with peers'),
-                _buildBulletPoint('Find walking buddies around campus'),
-                _buildBulletPoint('Share meals with fellow students'),
-                _buildBulletPoint('Form study groups in the library'),
+                _buildBulletPoint('Community service projects'),
+                _buildBulletPoint('Educational workshops'),
+                _buildBulletPoint('Environmental conservation activities'),
+                _buildBulletPoint('Health and hygiene campaigns'),
+                _buildBulletPoint('Rural development programs'),
+                _buildBulletPoint('Social awareness drives'),
               ],
             ),
           ),
-        ),
-        const SizedBox(height: 16),
-        Text(
-          'Your identity remains anonymous until you choose to share more information with your matched peers.',
-          style: TextStyle(fontSize: 15, color: AppColors.textPrimary), // Use theme color
         ),
       ],
     );
   }
 
-  Widget _buildSATeamExplanation() {
+  Widget _buildVolunteerExplanation() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'The Sereine Team consists of trained peer supporters who can help with various challenges you might face.',
-          style: TextStyle(fontSize: 15, color: AppColors.textPrimary), // Use theme color
+          'To participate in NSS events, you must first register as a volunteer. Here\'s the process:',
+          style: TextStyle(fontSize: 15, color: AppColors.textPrimary),
         ),
         const SizedBox(height: 16),
+        
         const Text(
-          'How to Connect:',
+          'How to Register as a Volunteer:',
           style: TextStyle(
             fontWeight: FontWeight.bold,
-            fontSize: 15,
+            fontSize: 16,
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 12),
+        
         _buildNumberedStep(
           number: 1,
-          text: 'Go to the Community tab',
+          text: 'Go to your Profile tab',
         ),
         _buildNumberedStep(
           number: 2,
-          text: 'Select the "Sereine Team" section',
+          text: 'Click on "Register as Volunteer" button',
         ),
         _buildNumberedStep(
           number: 3,
-          text: 'Browse the Human Library and click on a support team member who specializes in your area of concern',
+          text: 'Your application will be submitted for review',
         ),
         _buildNumberedStep(
           number: 4,
-          text: 'Start a chat session - all conversations are confidential',
+          text: 'Wait for admin approval (status will show as "Pending")',
         ),
+        _buildNumberedStep(
+          number: 5,
+          text: 'Once approved, you can register for and participate in events',
+        ),
+        
         const SizedBox(height: 16),
+        
         ClipRRect(
           borderRadius: BorderRadius.circular(8),
           child: Container(
             padding: const EdgeInsets.all(12),
-            color: AppColors.primary.withOpacity(0.1), // Use theme color
-            child: Row(
+            color: AppColors.success.withOpacity(0.1),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.lightbulb, color: AppColors.warning), // Use theme color
-                const SizedBox(width: 12),
-                const Expanded(
-                  child: Text(
-                    'Team members have expertise in areas like anxiety, academic pressure, grief, relationships, and more.',
-                    style: TextStyle(fontStyle: FontStyle.italic),
-                  ),
+                Row(
+                  children: [
+                    Icon(Icons.check_circle, color: AppColors.success),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'Volunteer Benefits:',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                      ),
+                    ),
+                  ],
                 ),
+                const SizedBox(height: 8),
+                _buildBulletPoint('Access to all NSS events'),
+                _buildBulletPoint('Earn points for participation'),
+                _buildBulletPoint('Get special volunteer achievements'),
+                _buildBulletPoint('Contribute to community development'),
+                _buildBulletPoint('Develop leadership skills'),
+                _buildBulletPoint('NSS certificate upon completion'),
               ],
             ),
           ),
@@ -282,86 +336,142 @@ class GuidePage extends StatelessWidget {
     );
   }
 
-  Widget _buildPrivacyInformation() {
+  Widget _buildPointsExplanation() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Your privacy is our priority. Sereine is designed to provide support while protecting your personal information.',
-          style: TextStyle(fontSize: 15, color: AppColors.textPrimary), // Use theme color
+          'The NSS app uses a points system to track and reward your participation in various activities.',
+          style: TextStyle(fontSize: 15, color: AppColors.textPrimary),
         ),
         const SizedBox(height: 16),
-        _buildFeatureItem(
-          icon: Icons.person_outline,
-          title: 'Anonymous Username',
-          description: 'You can use any username without revealing your real identity.',
-        ),
-        const Divider(),
-        _buildFeatureItem(
-          icon: Icons.chat_bubble_outline,
-          title: 'Confidential Chats',
-          description: 'Conversations with the Sereine Team and Seremate peers are confidential.',
-        ),
-        const Divider(),
-        _buildFeatureItem(
-          icon: Icons.settings_outlined,
-          title: 'Privacy Controls',
-          description: 'Control what information is shared with the community through your profile settings.',
-        ),
-        const Divider(),
-        _buildFeatureItem(
-          icon: Icons.delete_outline,
-          title: 'Data Management',
-          description: 'You can delete your account and associated data at any time through settings.',
-        ),
-      ],
-    );
-  }
-
-  Widget _buildGamificationExplanation() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Sereine uses gamification to make your wellness journey more engaging and rewarding.',
-          style: TextStyle(fontSize: 15, color: AppColors.textPrimary), // Use theme color
-        ),
-        const SizedBox(height: 16),
+        
         _buildFeatureItem(
           icon: Icons.stars,
-          title: 'Points',
-          description: 'Earn points by completing quests, engaging with the community, and tracking your daily habits.',
+          title: 'Earning Points',
+          description: 'Participate in NSS events to earn points. Points are awarded after your participation is verified by event coordinators.',
         ),
         const Divider(),
         _buildFeatureItem(
           icon: Icons.emoji_events,
-          title: 'Achievements',
-          description: 'Unlock badges as you hit milestones in your wellness journey, like meditation streaks or sustainability goals.',
+          title: 'Achievement Badges',
+          description: 'Unlock various badges based on your point milestones: Bronze Starter (50+ pts), Silver Achiever (200+ pts), Gold Star (500+ pts), and more.',
         ),
         const Divider(),
         _buildFeatureItem(
           icon: Icons.leaderboard,
-          title: 'Progress Tracking',
-          description: 'Monitor your growth and development through visual progress indicators on your profile.',
+          title: 'Leaderboard',
+          description: 'See how you rank among other volunteers in the dashboard. Top contributors are recognized for their service.',
         ),
+        const Divider(),
+        _buildFeatureItem(
+          icon: Icons.volunteer_activism,
+          title: 'Volunteer Badge',
+          description: 'Get a special NSS Volunteer badge once your volunteer application is approved.',
+        ),
+        
         const SizedBox(height: 16),
         ClipRRect(
           borderRadius: BorderRadius.circular(8),
           child: Container(
             padding: const EdgeInsets.all(12),
             color: Colors.amber.withOpacity(0.1),
-            child: const Row(
+            child: Row(
               children: [
-                Icon(Icons.lightbulb, color: Colors.amber),
-                SizedBox(width: 12),
-                Expanded(
+                const Icon(Icons.lightbulb, color: Colors.amber),
+                const SizedBox(width: 12),
+                const Expanded(
                   child: Text(
-                    'Achievement levels increase as you continue to engage with different aspects of wellness and sustainability!',
+                    'Points and achievements are updated within 24 hours after event participation is verified.',
                     style: TextStyle(fontStyle: FontStyle.italic),
                   ),
                 ),
               ],
             ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCommunityExplanation() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'The Community tab focuses on mental health and student wellbeing support through various features.',
+          style: TextStyle(fontSize: 15, color: AppColors.textPrimary),
+        ),
+        const SizedBox(height: 16),
+        
+        ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: Container(
+            padding: const EdgeInsets.all(12),
+            color: AppColors.info.withOpacity(0.1),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Community Features:',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                _buildBulletPoint('Anonymous Teams - Connect with peers for support'),
+                _buildBulletPoint('Seremate Matching - Find compatible study/life partners'),
+                _buildBulletPoint('Mental Health Resources - Access counseling services'),
+                _buildBulletPoint('Student Wellbeing Support - Campus mental health initiatives'),
+                _buildBulletPoint('Anonymous Communication - Safe space for sharing'),
+                _buildBulletPoint('Peer Support Networks - Connect with like-minded students'),
+              ],
+            ),
+          ),
+        ),
+        
+        const SizedBox(height: 16),
+        
+        ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: Container(
+            padding: const EdgeInsets.all(12),
+            color: AppColors.success.withOpacity(0.1),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.psychology, color: AppColors.success),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'Mental Health Focus:',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                _buildBulletPoint('Anonymous support for sensitive topics'),
+                _buildBulletPoint('Professional counselor connections'),
+                _buildBulletPoint('Peer-to-peer mental health support'),
+                _buildBulletPoint('Safe and confidential environment'),
+                _buildBulletPoint('Campus-wide wellness initiatives'),
+              ],
+            ),
+          ),
+        ),
+        
+        const SizedBox(height: 16),
+        Text(
+          'These features help create a supportive campus environment where students can find help, connect with peers, and access mental health resources in a safe and anonymous way.',
+          style: TextStyle(
+            fontSize: 14,
+            fontStyle: FontStyle.italic,
+            color: AppColors.textSecondary,
           ),
         ),
       ],
@@ -372,7 +482,7 @@ class GuidePage extends StatelessWidget {
     return Card(
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: AppColors.primary.withOpacity(0.3)), // Use theme color
+        side: BorderSide(color: AppColors.primary.withOpacity(0.3)),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -381,45 +491,71 @@ class GuidePage extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(Icons.support_agent, color: AppColors.primary), // Use theme color
+                Icon(Icons.support_agent, color: AppColors.primary),
                 const SizedBox(width: 12),
                 Text(
-                  'Still Need Help?',
+                  'Need Help?',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: AppColors.primary, // Use theme color
+                    color: AppColors.primary,
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 12),
             Text(
-              'If you have any questions or need assistance navigating the app, our support team is here to help.',
-              style: TextStyle(fontSize: 15, color: AppColors.textPrimary), // Use theme color
+              'If you have questions about NSS activities, volunteer registration, or need technical support with the app, contact us:',
+              style: TextStyle(fontSize: 15, color: AppColors.textPrimary),
             ),
             const SizedBox(height: 16),
-            ElevatedButton.icon(
-              icon: const Icon(Icons.email),
-              label: const Text('Contact Support'),
-              onPressed: () {
-                // TODO: Implement contact support functionality
-                Get.snackbar(
-                  'Contact Support',
-                  'Support email: support@sereine.app',
-                  snackPosition: SnackPosition.BOTTOM,
-                  backgroundColor: AppColors.primary.withOpacity(0.1), // Use theme color
-                  colorText: AppColors.primary, // Use theme color
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary, // Use theme color
-                foregroundColor: AppColors.white, // Use theme color
-                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+            
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    icon: const Icon(Icons.email),
+                    label: const Text('Email Support'),
+                    onPressed: () {
+                      Get.snackbar(
+                        'Contact NSS',
+                        'Email: nss@hyderabad.bits-pilani.ac.in',
+                        snackPosition: SnackPosition.BOTTOM,
+                        backgroundColor: AppColors.primary.withOpacity(0.1),
+                        colorText: AppColors.primary,
+                        duration: const Duration(seconds: 4),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: AppColors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                  ),
                 ),
-              ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    icon: const Icon(Icons.language),
+                    label: const Text('Visit Website'),
+                    onPressed: () {
+                      Get.snackbar(
+                        'NSS Website',
+                        'Visit: www.nssbphc.in',
+                        snackPosition: SnackPosition.BOTTOM,
+                        backgroundColor: AppColors.info.withOpacity(0.1),
+                        colorText: AppColors.info,
+                        duration: const Duration(seconds: 4),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.info,
+                      foregroundColor: AppColors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -437,7 +573,7 @@ class GuidePage extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: AppColors.primary, size: 20), // Use theme color
+          Icon(icon, color: AppColors.primary, size: 20),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -455,7 +591,7 @@ class GuidePage extends StatelessWidget {
                   description,
                   style: TextStyle(
                     fontSize: 14,
-                    color: AppColors.textSecondary, // Use theme color
+                    color: AppColors.textSecondary,
                   ),
                 ),
               ],
@@ -477,7 +613,7 @@ class GuidePage extends StatelessWidget {
             style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.bold,
-              color: AppColors.info, // Use theme color
+              color: AppColors.primary,
             ),
           ),
           Expanded(
@@ -501,7 +637,7 @@ class GuidePage extends StatelessWidget {
             width: 22,
             height: 22,
             decoration: BoxDecoration(
-              color: AppColors.primary, // Use theme color
+              color: AppColors.primary,
               shape: BoxShape.circle,
             ),
             child: Center(
@@ -521,7 +657,7 @@ class GuidePage extends StatelessWidget {
               text,
               style: TextStyle(
                 fontSize: 14,
-                color: AppColors.textPrimary, // Use theme color
+                color: AppColors.textPrimary,
               ),
             ),
           ),
