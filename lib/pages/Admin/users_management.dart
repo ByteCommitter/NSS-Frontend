@@ -63,29 +63,33 @@ class _UsersManagementState extends State<UsersManagement> {
     try {
       print('Making API call to load users');
       
-      // Use a try-catch to fetch mock data if the API fails for any reason
+      // Use a try-catch to fetch data from API
       List<Map<String, dynamic>> allUsers = [];
       try {
         allUsers = await _apiService.getAllUsers();
         print('Successfully loaded ${allUsers.length} users from API');
+        
+        // Debug: Print the first user's data if available
+        if (allUsers.isNotEmpty) {
+          print('First user sample: ${allUsers[0]}');
+        }
       } catch (apiError) {
         print('API error: $apiError - Using mock data instead');
-        // Fall back to mock data
+        // Fall back to mock data only if API completely fails
         allUsers = [
           {
             'id': 1,
             'university_id': 'f20220123',
             'username': 'John Doe',
-            'points': 150,
             'isVolunteer': 1,
             'isWishVolunteer': 0,
             'isAdmin': 0,
+            // Don't include points in mock data since we don't know if API provides it
           },
           {
             'id': 2,
             'university_id': 'f20220456',
             'username': 'Jane Smith',
-            'points': 75,
             'isVolunteer': 0,
             'isWishVolunteer': 1,
             'isAdmin': 0,
@@ -139,13 +143,18 @@ class _UsersManagementState extends State<UsersManagement> {
   void _applyFiltersInternal() {
     List<Map<String, dynamic>> result = List<Map<String, dynamic>>.from(users);
     
-    // Apply tab filter
+    // FIXED: Apply tab filter with proper boolean logic
     switch (_selectedTab) {
       case 'volunteers':
-        result = result.where((user) => user['isVolunteer'] == 1).toList();
+        result = result.where((user) => 
+          (user['isVolunteer'] == 1 || user['isVolunteer'] == true)
+        ).toList();
         break;
       case 'pending':
-        result = result.where((user) => user['isWishVolunteer'] == 1 && user['isVolunteer'] == 0).toList();
+        result = result.where((user) => 
+          (user['isWishVolunteer'] == 1 || user['isWishVolunteer'] == true) && 
+          !(user['isVolunteer'] == 1 || user['isVolunteer'] == true)
+        ).toList();
         break;
     }
     
@@ -433,6 +442,13 @@ class _UsersManagementState extends State<UsersManagement> {
     final universityId = user['university_id'];
     final isOperationInProgress = _isApiCalling;
     
+    // FIXED: Parse volunteer status properly - handle both int and bool values
+    final isVolunteer = (user['isVolunteer'] == 1 || user['isVolunteer'] == true);
+    final isWishVolunteer = (user['isWishVolunteer'] == 1 || user['isWishVolunteer'] == true);
+    final isAdmin = (user['isAdmin'] == 1 || user['isAdmin'] == true);
+    
+    print('User ${user['username']}: isVolunteer=$isVolunteer, isWishVolunteer=$isWishVolunteer');
+    
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       elevation: 2,
@@ -469,7 +485,7 @@ class _UsersManagementState extends State<UsersManagement> {
                     ],
                   ),
                 ),
-                if (user['isAdmin'] == 1)
+                if (isAdmin)
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
@@ -485,7 +501,7 @@ class _UsersManagementState extends State<UsersManagement> {
                       ),
                     ),
                   ),
-                if (user['isVolunteer'] == 1)
+                if (isVolunteer)
                   Container(
                     margin: const EdgeInsets.only(left: 8),
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -502,14 +518,23 @@ class _UsersManagementState extends State<UsersManagement> {
                       ),
                     ),
                   ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Icon(Icons.star, size: 16, color: Colors.amber),
-                const SizedBox(width: 4),
-                Text('${user['points'] ?? 50} points'), // Set default to 50 points
+                if (isWishVolunteer && !isVolunteer)
+                  Container(
+                    margin: const EdgeInsets.only(left: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.orange,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Text(
+                      'PENDING',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
               ],
             ),
             const SizedBox(height: 16),
@@ -527,7 +552,8 @@ class _UsersManagementState extends State<UsersManagement> {
                       ),
                     ),
                   ),
-                ] else if (user['isWishVolunteer'] == 1 && user['isVolunteer'] == 0) ...[
+                ] else if (isWishVolunteer && !isVolunteer) ...[
+                  // FIXED: User has requested to be volunteer - show approve/reject options
                   ElevatedButton.icon(
                     onPressed: () => _approveVolunteer(user),
                     icon: const Icon(Icons.check, size: 16),
@@ -546,7 +572,8 @@ class _UsersManagementState extends State<UsersManagement> {
                       foregroundColor: Colors.red,
                     ),
                   ),
-                ] else if (user['isVolunteer'] == 1) ...[
+                ] else if (isVolunteer) ...[
+                  // FIXED: User is already a volunteer - show remove option
                   OutlinedButton.icon(
                     onPressed: () => _removeVolunteer(user),
                     icon: const Icon(Icons.remove_circle, size: 16),
@@ -556,6 +583,7 @@ class _UsersManagementState extends State<UsersManagement> {
                     ),
                   ),
                 ] else ...[
+                  // FIXED: User is not a volunteer and hasn't requested - show make volunteer option
                   OutlinedButton.icon(
                     onPressed: () => _makeVolunteer(user),
                     icon: const Icon(Icons.add_circle, size: 16),
@@ -569,7 +597,7 @@ class _UsersManagementState extends State<UsersManagement> {
                 IconButton(
                   icon: const Icon(Icons.delete, color: Colors.red),
                   tooltip: 'Delete User',
-                  onPressed: () => _confirmDeleteUser(user),
+                  onPressed: isOperationInProgress ? null : () => _confirmDeleteUser(user),
                 ),
               ],
             ),

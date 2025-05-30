@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:mentalsustainability/pages/guide_page.dart';
 import 'package:mentalsustainability/pages/admin/admin_panel.dart';

@@ -221,7 +221,7 @@ class _DashboardPageState extends State<DashboardPage> {
       
       print('Dashboard: Got ${badges.length} badges from SHARED method');
       for (var badge in badges) {
-        print('Dashboard Badge: ${badge.name} (Level ${badge.level})');
+        //print('Dashboard Badge: ${badge.name} (Level ${badge.level})');
       }
       
       if (mounted) {
@@ -230,8 +230,8 @@ class _DashboardPageState extends State<DashboardPage> {
           _isLoadingBadges = false;
         });
         
-        print('Dashboard: UI updated with ${_badges.length} badges');
-        print('Dashboard: Badge names: ${_badges.map((b) => b.name).join(', ')}');
+        //print('Dashboard: UI updated with ${_badges.length} badges');
+        //print('Dashboard: Badge names: ${_badges.map((b) => b.name).join(', ')}');
       }
     } catch (e) {
       print('Dashboard: Error loading badges: $e');
@@ -242,7 +242,7 @@ class _DashboardPageState extends State<DashboardPage> {
       }
     }
     
-    print('=== DASHBOARD: _loadBadges END ===');
+    //print('=== DASHBOARD: _loadBadges END ===');
   }
 
   // FIXED: Add method to refresh all dashboard data including badges

@@ -28,7 +28,8 @@ class _NotificationsManagementState extends State<NotificationsManagement> {
     });
     
     try {
-      final fetchedNotifications = await _apiService.getNotifications();
+      // Use getPastEvents to get notifications/eventUpdates
+      final fetchedNotifications = await _apiService.getPastEvents();
       setState(() {
         notifications = fetchedNotifications;
         _isLoading = false;
@@ -38,13 +39,16 @@ class _NotificationsManagementState extends State<NotificationsManagement> {
       setState(() {
         _isLoading = false;
       });
-      Get.snackbar(
-        'Error',
-        'Failed to load notifications. Please try again.',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.red.withOpacity(0.1),
-        colorText: Colors.red,
-      );
+      if (mounted) {
+        Get.snackbar(
+          'Error',
+          'Failed to load notifications. Please try again.',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.red.withOpacity(0.1),
+          colorText: Colors.red,
+          duration: const Duration(seconds: 3),
+        );
+      }
     }
   }
 
@@ -232,7 +236,11 @@ class _NotificationsManagementState extends State<NotificationsManagement> {
     );
     
     try {
-      final success = await _apiService.deleteNotification(notification['id']);
+      // FIXED: Handle both string and int IDs properly
+      final notificationId = notification['id'];
+      print('Attempting to delete notification with ID: $notificationId (type: ${notificationId.runtimeType})');
+      
+      final success = await _apiService.deleteNotification(notificationId);
       
       // Close loading dialog
       Get.back();
@@ -259,6 +267,7 @@ class _NotificationsManagementState extends State<NotificationsManagement> {
       // Close loading dialog
       Get.back();
       
+      print('Exception in _deleteNotification: $e');
       Get.snackbar(
         'Error',
         'An error occurred: $e',

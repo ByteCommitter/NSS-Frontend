@@ -98,20 +98,20 @@ class AuthService extends GetxService {
     checkAndSetAuthStatus();
     // Also initialize admin status
     initAdminStatus();
-    // Initialize username
-    _initUsername();
+    // Initialize username - use the public method
+    initUsername();
   }
   
-  // Initialize username from storage - add more debug logs
-  Future<void> _initUsername() async {
-    print('AuthService._initUsername() starting');
+  // FIXED: Make this method public by removing the underscore
+  Future<void> initUsername() async {
+    print('AuthService.initUsername() starting');
     final username = await getUsername();
     if (username != null) {
-      print('AuthService._initUsername() found username: $username');
+      print('AuthService.initUsername() found username: $username');
       _username.value = username;
       print('Username set in AuthService: $_username');
     } else {
-      print('AuthService._initUsername() found no username');
+      print('AuthService.initUsername() found no username');
     }
   }
   
@@ -196,6 +196,15 @@ class AuthService extends GetxService {
   Future<Map<String, dynamic>?> login(String id, String password) async {
     try {
       print('Attempting login with ID: $id');
+      
+      // IMPORTANT: Clear all previous user data before login
+      _userId.value = null;
+      _username.value = null;
+      _isAdmin.value = false;
+      _isVolunteer.value = false;
+      _isWishVolunteer.value = false;
+      _points.value = 0;
+      
       final ApiService apiService = Get.find<ApiService>();
       final response = await apiService.login(id, password);
       
@@ -204,7 +213,7 @@ class AuthService extends GetxService {
       if (response != null && response['success'] == true) {
         print('Login successful for ID: $id');
         
-        // Store token
+        // Store token first
         final token = response['token'];
         if (token != null) {
           print('Storing token: ${token.length > 20 ? token.substring(0, 20) + "..." : token}');
@@ -220,40 +229,40 @@ class AuthService extends GetxService {
           print('Warning: No token in successful login response');
         }
         
-        // Store additional user information
-        _userId.value = response['user_id'];
-        print('Setting user ID to: ${_userId.value}');
+        // FIXED: Store user information in correct order
+        // 1. Store user ID
+        final newUserId = response['user_id'];
+        if (newUserId != null) {
+          _userId.value = newUserId;
+          await storeUserId(newUserId);
+          print('Setting and storing user ID to: $newUserId');
+        }
         
-        // Store username - Make sure to extract it from the response 
-        // and use it as the primary source
-        _username.value = response['username'];
-        print('Setting username to: ${_username.value}');
+        // 2. Store username - CRITICAL FIX
+        final newUsername = response['username'];
+        if (newUsername != null) {
+          print('Storing new username: $newUsername');
+          _username.value = newUsername;
+          await _storeUsername(newUsername); // Store in persistent storage
+          print('Username stored in memory and storage: $_username');
+        } else {
+          print('Warning: No username in login response');
+        }
         
+        // 3. Store other user properties
         _isAdmin.value = response['isAdmin'] ?? false;
         _isVolunteer.value = response['isVolunteer'] == 1;
         _isWishVolunteer.value = response['isWishVolunteer'] == 1;
-        
-        // Points might be added later, initialize to 0 for now
         _points.value = response['points'] ?? 0;
-        
-        // Explicitly store the user ID to secure storage for persistence
-        if (_userId.value != null) {
-          await storeUserId(_userId.value!);
-        }
-        
-        // Also store the username in secure storage to persist it
-        if (_username.value != null) {
-          await _storeUsername(_username.value!);
-        }
-        
-        // IMPORTANT: Explicitly set authenticated state
-        isAuthenticated.value = true;
         
         // Update admin status in isAdminUser
         isAdminUser.value = _isAdmin.value;
+        await _storeAdminStatus(_isAdmin.value);
         
-        print('Authentication state set to: ${isAuthenticated.value}');
-        print('Admin status set to: ${isAdminUser.value}');
+        // IMPORTANT: Set authenticated state LAST
+        isAuthenticated.value = true;
+        
+        print('Login complete - Auth: ${isAuthenticated.value}, Username: ${_username.value}, Admin: ${isAdminUser.value}');
         
         return response;
       } else {
@@ -379,6 +388,8 @@ class AuthService extends GetxService {
       await clearUserId();
       // Clear admin status
       await _clearAdminStatus();
+      // FIXED: Clear username from storage
+      await _clearUsername();
       
       // Reset observables
       isAuthenticated.value = false;
@@ -393,35 +404,40 @@ class AuthService extends GetxService {
       _isWishVolunteer.value = false;
       _points.value = 0;
       
-      print('Logout complete - all data cleared');
+      print('Logout complete - all data cleared including username');
     } catch (e) {
       print('Error during logout: $e');
       rethrow;
     }
   }
-  
-  // Store admin status securely
-  Future<void> _storeAdminStatus(bool isAdmin) async {
+
+  // FIXED: Add method to clear username from storage
+  Future<void> _clearUsername() async {
     try {
-      final adminValue = isAdmin.toString();
+      // Clear from memory
+      _username.value = null;
       
       if (kIsWeb) {
-        html_lib.window.localStorage['isAdmin'] = adminValue;
+        // Clear from localStorage
+        _removeWebLocalStorage('username');
+        
+        // Also clear from SharedPreferences
         try {
           final prefs = await SharedPreferences.getInstance();
-          await prefs.setString('isAdmin', adminValue);
+          await prefs.remove('username');
         } catch (e) {
-          print('SharedPreferences admin status storage failed: $e');
+          print('SharedPreferences username clear failed: $e');
         }
       } else {
-        await _secureStorage.write(key: 'isAdmin', value: adminValue);
+        // For mobile, clear from secure storage
+        await _secureStorage.delete(key: 'username');
       }
-      print('Admin status stored: $isAdmin');
+      print('Username cleared from all storage locations');
     } catch (e) {
-      print('Error storing admin status: $e');
+      print('Error clearing username: $e');
     }
   }
-  
+
   // Enhanced admin status initialization
   Future<void> initAdminStatus() async {
     try {
@@ -547,7 +563,7 @@ class AuthService extends GetxService {
   Future<void> _clearAdminStatus() async {
     try {
       if (kIsWeb) {
-        html_lib.window.localStorage.remove('isAdmin');
+        _removeWebLocalStorage('isAdmin');
         try {
           final prefs = await SharedPreferences.getInstance();
           await prefs.remove('isAdmin');
@@ -931,5 +947,27 @@ class AuthService extends GetxService {
   // Method to update wish volunteer status
   void setWishVolunteerStatus(bool status) {
     _isWishVolunteer.value = status;
+  }
+  
+  // FIXED: Add missing _storeAdminStatus method
+  Future<void> _storeAdminStatus(bool isAdmin) async {
+    try {
+      final adminValue = isAdmin.toString();
+      
+      if (kIsWeb) {
+        _setWebLocalStorage('isAdmin', adminValue);
+        try {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('isAdmin', adminValue);
+        } catch (e) {
+          print('SharedPreferences admin status storage failed: $e');
+        }
+      } else {
+        await _secureStorage.write(key: 'isAdmin', value: adminValue);
+      }
+      print('Admin status stored: $isAdmin');
+    } catch (e) {
+      print('Error storing admin status: $e');
+    }
   }
 }

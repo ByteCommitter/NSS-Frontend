@@ -229,104 +229,101 @@ class _EventsManagementState extends State<EventsManagement> {
   }
 
   Widget _buildEventCard(Map<String, dynamic> event) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    event['title'] ?? 'Untitled Event',
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
+  return Card(
+    margin: const EdgeInsets.only(bottom: 16),
+    elevation: 2,
+    child: Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  event['title'] ?? 'Untitled Event',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.green,
-                    borderRadius: BorderRadius.circular(12),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.green,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Text(
+                  'ACTIVE',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
                   ),
-                  child: const Text(
-                    'ACTIVE',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              event['description'] ?? 'No description',
-              style: TextStyle(color: Colors.grey[600]),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Icon(Icons.calendar_today, size: 16, color: Colors.grey[600]),
-                const SizedBox(width: 4),
-                Text(formatDate(event['date'])),
-                const SizedBox(width: 16),
-                Icon(Icons.access_time, size: 16, color: Colors.grey[600]),
-                const SizedBox(width: 4),
-                Text('${formatTime(event['fromTime'])} - ${formatTime(event['toTime'])}'),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Icon(Icons.location_on, size: 16, color: Colors.grey[600]),
-                const SizedBox(width: 4),
-                Text(event['location'] ?? 'TBD'),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Icon(Icons.star, size: 16, color: Colors.amber),
-                const SizedBox(width: 4),
-                Text('${event['points'] ?? 0} points for participation'),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                // Add Verify Registered Users button
-                TextButton.icon(
-                  onPressed: () => _showVerifyUsersDialog(event),
-                  icon: const Icon(Icons.people, color: Colors.blue),
-                  label: const Text('Verify Users', style: TextStyle(color: Colors.blue)),
-                ),
-                const SizedBox(width: 8),
-                TextButton.icon(
-                  onPressed: () => _showEditEventDialog(event),
-                  icon: const Icon(Icons.edit),
-                  label: const Text('Edit'),
-                ),
-                const SizedBox(width: 8),
-                TextButton.icon(
-                  onPressed: () => _showDeleteEventDialog(event),
-                  icon: const Icon(Icons.delete_outline, color: Colors.red),
-                  label: const Text('Delete', style: TextStyle(color: Colors.red)),
-                ),
-              ],
-            ),
-          ],
-        ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            event['description'] ?? 'No description',
+            style: TextStyle(color: Colors.grey[600]),
+          ),
+          const SizedBox(height: 12),
+          // FIXED: Remove time display, only show date
+          Row(
+            children: [
+              Icon(Icons.calendar_today, size: 16, color: Colors.grey[600]),
+              const SizedBox(width: 4),
+              Text(formatDate(event['date'])),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Icon(Icons.location_on, size: 16, color: Colors.grey[600]),
+              const SizedBox(width: 4),
+              Text(event['location'] ?? 'TBD'),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Icon(Icons.star, size: 16, color: Colors.amber),
+              const SizedBox(width: 4),
+              Text('${event['points'] ?? 0} points for participation'),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              // Add Verify Registered Users button
+              TextButton.icon(
+                onPressed: () => _showVerifyUsersDialog(event),
+                icon: const Icon(Icons.people, color: Colors.blue),
+                label: const Text('Verify Users', style: TextStyle(color: Colors.blue)),
+              ),
+              const SizedBox(width: 8),
+              TextButton.icon(
+                onPressed: () => _showEditEventDialog(event),
+                icon: const Icon(Icons.edit),
+                label: const Text('Edit'),
+              ),
+              const SizedBox(width: 8),
+              TextButton.icon(
+                onPressed: () => _showDeleteEventDialog(event),
+                icon: const Icon(Icons.delete_outline, color: Colors.red),
+                label: const Text('Delete', style: TextStyle(color: Colors.red)),
+              ),
+            ],
+          ),
+        ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   // Updated to use real API data instead of mock data
   void _showVerifyUsersDialog(Map<String, dynamic> event) {
@@ -428,8 +425,8 @@ class _EventsManagementState extends State<EventsManagement> {
                         itemCount: registeredUsers.length,
                         itemBuilder: (context, index) {
                           final user = registeredUsers[index];
-                          // Check if the user has participated
-                          final bool isVerified = user['isParticipated'] == 1;
+                          // FIXED: Handle boolean isParticipated from backend
+                          final bool isVerified = user['isParticipated'] == true || user['isParticipated'] == 1;
                           
                           return ListTile(
                             title: Text(user['user_id'] ?? 'Unknown User ID'),
@@ -437,77 +434,104 @@ class _EventsManagementState extends State<EventsManagement> {
                             trailing: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                // Verification status indicator
+                                // Show current status with color coding
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                   decoration: BoxDecoration(
-                                    color: isVerified ? Colors.green : Colors.grey,
+                                    color: isVerified ? Colors.green.withOpacity(0.1) : Colors.orange.withOpacity(0.1),
                                     borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: isVerified ? Colors.green : Colors.orange,
+                                    ),
                                   ),
                                   child: Text(
                                     isVerified ? 'VERIFIED' : 'PENDING',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 12,
+                                    style: TextStyle(
+                                      color: isVerified ? Colors.green : Colors.orange,
                                       fontWeight: FontWeight.bold,
+                                      fontSize: 12,
                                     ),
                                   ),
                                 ),
                                 const SizedBox(width: 8),
-                                // Toggle verification status
-                                IconButton(
-                                  icon: Icon(
-                                    isVerified ? Icons.check_circle : Icons.check_circle_outline,
-                                    color: isVerified ? Colors.green : Colors.grey,
-                                  ),
-                                  onPressed: () async {
-                                    try {
-                                      // Show loading indicator for the specific user
-                                      setState(() => user['isUpdating'] = true);
-                                      
-                                      // Call API to update verification status
+                                // Verify button
+                                if (!isVerified)
+                                  ElevatedButton.icon(
+                                    onPressed: () async {
                                       final success = await _apiService.verifyUserAttendance(
-                                        event['id'].toString(), 
-                                        user['user_id'], 
-                                        !isVerified
+                                        event['id'].toString(),
+                                        user['user_id'],
+                                        true,
                                       );
                                       
                                       if (success) {
-                                        // Update the UI
-                                        setState(() {
-                                          user['isParticipated'] = isVerified ? 0 : 1;
-                                          user['isUpdating'] = false;
-                                        });
-                                        
                                         Get.snackbar(
                                           'Success',
-                                          'User verification status updated',
+                                          'User attendance verified successfully',
                                           snackPosition: SnackPosition.BOTTOM,
                                           backgroundColor: Colors.green.withOpacity(0.1),
                                           colorText: Colors.green,
                                         );
+                                        // Refresh the list to show updated status
+                                        loadRegisteredUsers();
                                       } else {
-                                        setState(() => user['isUpdating'] = false);
                                         Get.snackbar(
                                           'Error',
-                                          'Failed to update verification status',
+                                          'Failed to verify user attendance',
                                           snackPosition: SnackPosition.BOTTOM,
                                           backgroundColor: Colors.red.withOpacity(0.1),
                                           colorText: Colors.red,
                                         );
                                       }
-                                    } catch (e) {
-                                      setState(() => user['isUpdating'] = false);
-                                      Get.snackbar(
-                                        'Error',
-                                        'An error occurred: $e',
-                                        snackPosition: SnackPosition.BOTTOM,
-                                        backgroundColor: Colors.red.withOpacity(0.1),
-                                        colorText: Colors.red,
+                                    },
+                                    icon: const Icon(Icons.check, size: 16),
+                                    label: const Text('Verify'),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.green,
+                                      foregroundColor: Colors.white,
+                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                      textStyle: const TextStyle(fontSize: 12),
+                                    ),
+                                  ),
+                                // Unverify button (for verified users)
+                                if (isVerified)
+                                  ElevatedButton.icon(
+                                    onPressed: () async {
+                                      final success = await _apiService.verifyUserAttendance(
+                                        event['id'].toString(),
+                                        user['user_id'],
+                                        false,
                                       );
-                                    }
-                                  },
-                                ),
+                                      
+                                      if (success) {
+                                        Get.snackbar(
+                                          'Success',
+                                          'User verification removed',
+                                          snackPosition: SnackPosition.BOTTOM,
+                                          backgroundColor: Colors.orange.withOpacity(0.1),
+                                          colorText: Colors.orange,
+                                        );
+                                        // Refresh the list to show updated status
+                                        loadRegisteredUsers();
+                                      } else {
+                                        Get.snackbar(
+                                          'Error',
+                                          'Failed to remove verification',
+                                          snackPosition: SnackPosition.BOTTOM,
+                                          backgroundColor: Colors.red.withOpacity(0.1),
+                                          colorText: Colors.red,
+                                        );
+                                      }
+                                    },
+                                    icon: const Icon(Icons.close, size: 16),
+                                    label: const Text('Unverify'),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.orange,
+                                      foregroundColor: Colors.white,
+                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                      textStyle: const TextStyle(fontSize: 12),
+                                    ),
+                                  ),
                               ],
                             ),
                           );
@@ -531,7 +555,7 @@ class _EventsManagementState extends State<EventsManagement> {
     final toTimeController = TextEditingController();
     final locationController = TextEditingController();
     final bannerImageController = TextEditingController();
-    final pointsController = TextEditingController(text: '0'); // Add points controller with default value
+    final pointsController = TextEditingController(text: '0');
     
     DateTime selectedDate = DateTime.now();
     TimeOfDay selectedFromTime = TimeOfDay.now();
@@ -544,534 +568,614 @@ class _EventsManagementState extends State<EventsManagement> {
     fromTimeController.text = '${selectedFromTime.hour.toString().padLeft(2, '0')}:${selectedFromTime.minute.toString().padLeft(2, '0')}:00';
     toTimeController.text = '${selectedToTime.hour.toString().padLeft(2, '0')}:${selectedToTime.minute.toString().padLeft(2, '0')}:00';
     
-    // Function to pick date
-    Future<void> _selectDate(BuildContext context) async {
-      final DateTime? picked = await showDatePicker(
-        context: context,
-        initialDate: selectedDate,
-        firstDate: DateTime.now(),
-        lastDate: DateTime(2100),
-      );
-      if (picked != null && picked != selectedDate) {
-        selectedDate = picked;
-        dateController.text = DateFormat('yyyy-MM-dd').format(selectedDate);
-      }
-    }
-    
-    // Function to pick time
-    Future<void> _selectTime(BuildContext context, TextEditingController controller, TimeOfDay initialTime) async {
-      final TimeOfDay? picked = await showTimePicker(
-        context: context,
-        initialTime: initialTime,
-      );
-      if (picked != null) {
-        controller.text = '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}:00';
-      }
-    }
-    
     Get.dialog(
-      Dialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: SingleChildScrollView(
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Create New Event',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.primary,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: titleController,
-                  decoration: const InputDecoration(
-                    labelText: 'Title',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: descriptionController,
-                  decoration: const InputDecoration(
-                    labelText: 'Description',
-                    border: OutlineInputBorder(),
-                  ),
-                  maxLines: 3,
-                ),
-                const SizedBox(height: 16),
-                // Date picker
-                TextField(
-                  controller: dateController,
-                  readOnly: true,
-                  decoration: InputDecoration(
-                    labelText: 'Date',
-                    border: const OutlineInputBorder(),
-                    suffixIcon: IconButton(
-                      icon: const Icon(Icons.calendar_today),
-                      onPressed: () => _selectDate(context),
-                    ),
-                  ),
-                  onTap: () => _selectDate(context),
-                ),
-                const SizedBox(height: 16),
-                // Time pickers
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: fromTimeController,
-                        readOnly: true,
-                        decoration: InputDecoration(
-                          labelText: 'Start Time',
-                          border: const OutlineInputBorder(),
-                          suffixIcon: IconButton(
-                            icon: const Icon(Icons.access_time),
-                            onPressed: () => _selectTime(context, fromTimeController, selectedFromTime),
-                          ),
-                        ),
-                        onTap: () => _selectTime(context, fromTimeController, selectedFromTime),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: TextField(
-                        controller: toTimeController,
-                        readOnly: true,
-                        decoration: InputDecoration(
-                          labelText: 'End Time',
-                          border: const OutlineInputBorder(),
-                          suffixIcon: IconButton(
-                            icon: const Icon(Icons.access_time),
-                            onPressed: () => _selectTime(context, toTimeController, selectedToTime),
-                          ),
-                        ),
-                        onTap: () => _selectTime(context, toTimeController, selectedToTime),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: locationController,
-                  decoration: const InputDecoration(
-                    labelText: 'Location',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                // Add points field before banner image
-                TextField(
-                  controller: pointsController,
-                  decoration: const InputDecoration(
-                    labelText: 'Participation Points',
-                    hintText: 'Points awarded for attending this event',
-                    border: OutlineInputBorder(),
-                  ),
-                  keyboardType: TextInputType.number, // Numeric keyboard
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: bannerImageController,
-                  decoration: const InputDecoration(
-                    labelText: 'Banner Image URL (optional)',
-                    hintText: 'Enter URL for event banner image',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    TextButton(
-                      onPressed: () => Get.back(),
-                      child: const Text('Cancel'),
-                    ),
-                    const SizedBox(width: 16),
-                    ElevatedButton(
-                      onPressed: () async {
-                        if (titleController.text.isEmpty || 
-                            descriptionController.text.isEmpty || 
-                            dateController.text.isEmpty || 
-                            fromTimeController.text.isEmpty || 
-                            toTimeController.text.isEmpty || 
-                            locationController.text.isEmpty) {
-                          Get.snackbar(
-                            'Error',
-                            'Please fill in all required fields',
-                            snackPosition: SnackPosition.BOTTOM,
-                            backgroundColor: Colors.red.withOpacity(0.1),
-                            colorText: Colors.red,
-                          );
-                          return;
-                        }
-                        
-                        Get.back(); // Close the dialog
-                        
-                        // Show loading indicator
-                        Get.dialog(
-                          const Center(child: CircularProgressIndicator()),
-                          barrierDismissible: false,
-                        );
-                        
-                        try {
-                          // Create ApiEvent object with points
-                          final newEvent = ApiEvent(
-                            id: '0',
-                            title: titleController.text,
-                            description: descriptionController.text,
-                            date: dateController.text,
-                            fromTime: fromTimeController.text,
-                            toTime: toTimeController.text,
-                            location: locationController.text,
-                            imageUrl: bannerImageController.text.isNotEmpty 
-                                ? bannerImageController.text 
-                                : null,
-                            points: int.tryParse(pointsController.text) ?? 0, // Add points
-                          );
-                          
-                          // Call API
-                          final success = await _apiService.createEvent(newEvent);
-                          
-                          Get.back(); // Close loading dialog
-                          
-                          if (success) {
-                            Get.snackbar(
-                              'Success',
-                              'Event created successfully',
-                              snackPosition: SnackPosition.BOTTOM,
-                              backgroundColor: Colors.green.withOpacity(0.1),
-                              colorText: Colors.green,
-                            );
-                            _loadEvents(); // Refresh the list
-                          } else {
-                            Get.snackbar(
-                              'Error',
-                              'Failed to create event',
-                              snackPosition: SnackPosition.BOTTOM,
-                              backgroundColor: Colors.red.withOpacity(0.1),
-                              colorText: Colors.red,
-                            );
-                          }
-                        } catch (e) {
-                          Get.back(); // Close loading dialog
-                          Get.snackbar(
-                            'Error',
-                            'An error occurred: $e',
-                            snackPosition: SnackPosition.BOTTOM,
-                            backgroundColor: Colors.red.withOpacity(0.1),
-                            colorText: Colors.red,
-                          );
-                        }
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: Colors.white,
-                      ),
-                      child: const Text('Create'),
-                    ),
-                  ],
-                ),
-              ],
+      StatefulBuilder(
+        builder: (context, setState) {
+          // FIXED: Move functions inside StatefulBuilder so they can update state
+          Future<void> _selectDate(BuildContext context) async {
+            final DateTime? picked = await showDatePicker(
+              context: context,
+              initialDate: selectedDate,
+              firstDate: DateTime.now(),
+              lastDate: DateTime(2100),
+            );
+            if (picked != null && picked != selectedDate) {
+              setState(() {
+                selectedDate = picked;
+                dateController.text = DateFormat('yyyy-MM-dd').format(selectedDate);
+              });
+            }
+          }
+          
+          Future<void> _selectTime(BuildContext context, TextEditingController controller, bool isFromTime) async {
+            final TimeOfDay initialTime = isFromTime ? selectedFromTime : selectedToTime;
+            final TimeOfDay? picked = await showTimePicker(
+              context: context,
+              initialTime: initialTime,
+            );
+            if (picked != null) {
+              setState(() {
+                if (isFromTime) {
+                  selectedFromTime = picked;
+                } else {
+                  selectedToTime = picked;
+                }
+                controller.text = '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}:00';
+              });
+            }
+          }
+
+          return Dialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
             ),
-          ),
-        ),
-    ));
-  }
-
-  void _showEditEventDialog(Map<String, dynamic> event) {
-    final titleController = TextEditingController(text: event['title']);
-    final descriptionController = TextEditingController(text: event['description']);
-    final dateController = TextEditingController(text: event['date']);
-    final fromTimeController = TextEditingController(text: event['fromTime']);
-    final toTimeController = TextEditingController(text: event['toTime']);
-    final locationController = TextEditingController(text: event['location']);
-    final bannerImageController = TextEditingController(text: event['imageUrl'] ?? '');
-    final pointsController = TextEditingController(text: '${event['points'] ?? 0}');
-    
-    DateTime selectedDate = DateTime.tryParse(event['date'] ?? '') ?? DateTime.now();
-    TimeOfDay selectedFromTime = TimeOfDay(
-      hour: int.tryParse(event['fromTime']?.split(':')[0] ?? '0') ?? 0,
-      minute: int.tryParse(event['fromTime']?.split(':')[1] ?? '0') ?? 0,
-    );
-    TimeOfDay selectedToTime = TimeOfDay(
-      hour: int.tryParse(event['toTime']?.split(':')[0] ?? '0') ?? 0,
-      minute: int.tryParse(event['toTime']?.split(':')[1] ?? '0') ?? 0,
-    );
-    
-    // Function to pick date
-    Future<void> _selectDate(BuildContext context) async {
-      final DateTime? picked = await showDatePicker(
-        context: context,
-        initialDate: selectedDate,
-        firstDate: DateTime.now(),
-        lastDate: DateTime(2100),
-      );
-      if (picked != null && picked != selectedDate) {
-        selectedDate = picked;
-        dateController.text = DateFormat('yyyy-MM-dd').format(selectedDate);
-      }
-    }
-    
-    // Function to pick time
-    Future<void> _selectTime(BuildContext context, TextEditingController controller, TimeOfDay initialTime) async {
-      final TimeOfDay? picked = await showTimePicker(
-        context: context,
-        initialTime: initialTime,
-      );
-      if (picked != null) {
-        // Format time as HH:MM (without seconds as per API spec)
-        controller.text = '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
-      }
-    }
-    
-    Get.dialog(
-      Dialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: SingleChildScrollView(
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Edit Event',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.primary,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: titleController,
-                  decoration: const InputDecoration(
-                    labelText: 'Title',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: descriptionController,
-                  decoration: const InputDecoration(
-                    labelText: 'Description',
-                    border: OutlineInputBorder(),
-                  ),
-                  maxLines: 3,
-                ),
-                const SizedBox(height: 16),
-                // Date picker
-                TextField(
-                  controller: dateController,
-                  readOnly: true,
-                  decoration: InputDecoration(
-                    labelText: 'Date',
-                    border: const OutlineInputBorder(),
-                    suffixIcon: IconButton(
-                      icon: const Icon(Icons.calendar_today),
-                      onPressed: () => _selectDate(context),
-                    ),
-                  ),
-                  onTap: () => _selectDate(context),
-                ),
-                const SizedBox(height: 16),
-                // Time pickers
-                Row(
+            child: SingleChildScrollView(
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      child: TextField(
-                        controller: fromTimeController,
-                        readOnly: true,
-                        decoration: InputDecoration(
-                          labelText: 'Start Time',
-                          border: const OutlineInputBorder(),
-                          suffixIcon: IconButton(
-                            icon: const Icon(Icons.access_time),
-                            onPressed: () => _selectTime(context, fromTimeController, selectedFromTime),
-                          ),
-                        ),
-                        onTap: () => _selectTime(context, fromTimeController, selectedFromTime),
+                    Text(
+                      'Create New Event',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.primary,
                       ),
                     ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: TextField(
-                        controller: toTimeController,
-                        readOnly: true,
-                        decoration: InputDecoration(
-                          labelText: 'End Time',
-                          border: const OutlineInputBorder(),
-                          suffixIcon: IconButton(
-                            icon: const Icon(Icons.access_time),
-                            onPressed: () => _selectTime(context, toTimeController, selectedToTime),
-                          ),
-                        ),
-                        onTap: () => _selectTime(context, toTimeController, selectedToTime),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: titleController,
+                      decoration: const InputDecoration(
+                        labelText: 'Title',
+                        border: OutlineInputBorder(),
                       ),
                     ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: locationController,
-                  decoration: const InputDecoration(
-                    labelText: 'Location',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: pointsController,
-                  decoration: const InputDecoration(
-                    labelText: 'Participation Points',
-                    hintText: 'Points awarded for attending this event',
-                    border: OutlineInputBorder(),
-                  ),
-                  keyboardType: TextInputType.number,
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: bannerImageController,
-                  decoration: const InputDecoration(
-                    labelText: 'Banner Image URL (optional)',
-                    hintText: 'Enter URL for event banner image',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    TextButton(
-                      onPressed: () => Get.back(),
-                      child: const Text('Cancel'),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: descriptionController,
+                      decoration: const InputDecoration(
+                        labelText: 'Description',
+                        border: OutlineInputBorder(),
+                      ),
+                      maxLines: 3,
                     ),
-                    const SizedBox(width: 16),
-                    ElevatedButton(
-                      onPressed: () async {
-                        // Validate required fields
-                        if (titleController.text.trim().isEmpty || 
-                            descriptionController.text.trim().isEmpty || 
-                            dateController.text.trim().isEmpty || 
-                            fromTimeController.text.trim().isEmpty || 
-                            toTimeController.text.trim().isEmpty || 
-                            locationController.text.trim().isEmpty) {
-                          Get.snackbar(
-                            'Error',
-                            'Please fill in all required fields',
-                            snackPosition: SnackPosition.BOTTOM,
-                            backgroundColor: Colors.red.withOpacity(0.1),
-                            colorText: Colors.red,
-                          );
-                          return;
-                        }
-
-                        // Validate points field
-                        final pointsValue = int.tryParse(pointsController.text.trim());
-                        if (pointsValue == null || pointsValue < 0) {
-                          Get.snackbar(
-                            'Error',
-                            'Please enter a valid number for points',
-                            snackPosition: SnackPosition.BOTTOM,
-                            backgroundColor: Colors.red.withOpacity(0.1),
-                            colorText: Colors.red,
-                          );
-                          return;
-                        }
-                        
-                        Get.back(); // Close the dialog
-                        
-                        // Show loading indicator
-                        Get.dialog(
-                          const Center(child: CircularProgressIndicator()),
-                          barrierDismissible: false,
-                        );
-                        
-                        try {
-                          print('Calling updateEvent API with:');
-                          print('ID: ${event['id']}');
-                          print('Title: ${titleController.text.trim()}');
-                          print('Description: ${descriptionController.text.trim()}');
-                          print('Date: ${dateController.text.trim()}');
-                          print('From Time: ${fromTimeController.text.trim()}');
-                          print('To Time: ${toTimeController.text.trim()}');
-                          print('Location: ${locationController.text.trim()}');
-                          print('Banner Image: ${bannerImageController.text.trim()}');
-                          print('Points: $pointsValue');
-
-                          final success = await _apiService.updateEvent(
-                            event['id'].toString(),
-                            titleController.text.trim(),
-                            descriptionController.text.trim(),
-                            dateController.text.trim(),
-                            fromTimeController.text.trim(),
-                            toTimeController.text.trim(),
-                            locationController.text.trim(),
-                            bannerImageController.text.trim().isEmpty ? null : bannerImageController.text.trim(),
-                            pointsValue,
-                          );
-                          
-                          Get.back(); // Close loading dialog
-                          
-                          if (success) {
-                            Get.snackbar(
-                              'Success',
-                              'Event updated successfully',
-                              snackPosition: SnackPosition.BOTTOM,
-                              backgroundColor: Colors.green.withOpacity(0.1),
-                              colorText: Colors.green,
-                              duration: const Duration(seconds: 3),
+                    const SizedBox(height: 16),
+                    // FIXED: Date picker with proper state management
+                    TextField(
+                      controller: dateController,
+                      readOnly: true,
+                      decoration: InputDecoration(
+                        labelText: 'Date',
+                        border: const OutlineInputBorder(),
+                        suffixIcon: IconButton(
+                          icon: const Icon(Icons.calendar_today),
+                          onPressed: () => _selectDate(context),
+                        ),
+                      ),
+                      onTap: () => _selectDate(context),
+                    ),
+                    const SizedBox(height: 16),
+                    // FIXED: Time pickers with proper state management
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: fromTimeController,
+                            readOnly: true,
+                            decoration: InputDecoration(
+                              labelText: 'Start Time',
+                              border: const OutlineInputBorder(),
+                              suffixIcon: IconButton(
+                                icon: const Icon(Icons.access_time),
+                                onPressed: () => _selectTime(context, fromTimeController, true),
+                              ),
+                            ),
+                            onTap: () => _selectTime(context, fromTimeController, true),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: TextField(
+                            controller: toTimeController,
+                            readOnly: true,
+                            decoration: InputDecoration(
+                              labelText: 'End Time',
+                              border: const OutlineInputBorder(),
+                              suffixIcon: IconButton(
+                                icon: const Icon(Icons.access_time),
+                                onPressed: () => _selectTime(context, toTimeController, false),
+                              ),
+                            ),
+                            onTap: () => _selectTime(context, toTimeController, false),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: locationController,
+                      decoration: const InputDecoration(
+                        labelText: 'Location',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: pointsController,
+                      decoration: const InputDecoration(
+                        labelText: 'Participation Points',
+                        hintText: 'Points awarded for attending this event',
+                        border: OutlineInputBorder(),
+                      ),
+                      keyboardType: TextInputType.number,
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: bannerImageController,
+                      decoration: const InputDecoration(
+                        labelText: 'Banner Image URL (optional)',
+                        hintText: 'Enter URL for event banner image',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        TextButton(
+                          onPressed: () => Get.back(),
+                          child: const Text('Cancel'),
+                        ),
+                        const SizedBox(width: 16),
+                        ElevatedButton(
+                          onPressed: () async {
+                            if (titleController.text.isEmpty || 
+                                descriptionController.text.isEmpty || 
+                                dateController.text.isEmpty || 
+                                fromTimeController.text.isEmpty || 
+                                toTimeController.text.isEmpty || 
+                                locationController.text.isEmpty) {
+                              Get.snackbar(
+                                'Error',
+                                'Please fill in all required fields',
+                                snackPosition: SnackPosition.BOTTOM,
+                                backgroundColor: Colors.red.withOpacity(0.1),
+                                colorText: Colors.red,
+                              );
+                              return;
+                            }
+                            
+                            Get.back(); // Close the dialog
+                            
+                            // Show loading indicator
+                            Get.dialog(
+                              const Center(child: CircularProgressIndicator()),
+                              barrierDismissible: false,
                             );
                             
-                            // Refresh the events list
-                            await _loadEvents();
-                          } else {
-                            Get.snackbar(
-                              'Error',
-                              'Failed to update event. Please try again.',
-                              snackPosition: SnackPosition.BOTTOM,
-                              backgroundColor: Colors.red.withOpacity(0.1),
-                              colorText: Colors.red,
-                              duration: const Duration(seconds: 3),
-                            );
-                          }
-                        } catch (e) {
-                          Get.back(); // Close loading dialog
-                          print('Exception during event update: $e');
-                          Get.snackbar(
-                            'Error',
-                            'An error occurred: $e',
-                            snackPosition: SnackPosition.BOTTOM,
-                            backgroundColor: Colors.red.withOpacity(0.1),
-                            colorText: Colors.red,
-                            duration: const Duration(seconds: 3),
-                          );
-                        }
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: Colors.white,
-                      ),
-                      child: const Text('Update'),
+                            try {
+                              final newEvent = ApiEvent(
+                                id: '0',
+                                title: titleController.text,
+                                description: descriptionController.text,
+                                date: dateController.text,
+                                fromTime: fromTimeController.text,
+                                toTime: toTimeController.text,
+                                location: locationController.text,
+                                imageUrl: bannerImageController.text.isNotEmpty 
+                                    ? bannerImageController.text 
+                                    : null,
+                                points: int.tryParse(pointsController.text) ?? 0,
+                              );
+                              
+                              final success = await _apiService.createEvent(newEvent);
+                              
+                              Get.back(); // Close loading dialog
+                              
+                              if (success) {
+                                Get.snackbar(
+                                  'Success',
+                                  'Event created successfully',
+                                  snackPosition: SnackPosition.BOTTOM,
+                                  backgroundColor: Colors.green.withOpacity(0.1),
+                                  colorText: Colors.green,
+                                );
+                                _loadEvents();
+                              } else {
+                                Get.snackbar(
+                                  'Error',
+                                  'Failed to create event',
+                                  snackPosition: SnackPosition.BOTTOM,
+                                  backgroundColor: Colors.red.withOpacity(0.1),
+                                  colorText: Colors.red,
+                                );
+                              }
+                            } catch (e) {
+                              Get.back();
+                              Get.snackbar(
+                                'Error',
+                                'An error occurred: $e',
+                                snackPosition: SnackPosition.BOTTOM,
+                                backgroundColor: Colors.red.withOpacity(0.1),
+                                colorText: Colors.red,
+                              );
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            foregroundColor: Colors.white,
+                          ),
+                          child: const Text('Create'),
+                        ),
+                      ],
                     ),
                   ],
                 ),
-              ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  // ...existing code...
+
+void _showEditEventDialog(Map<String, dynamic> event) {
+  final titleController = TextEditingController(text: event['title']);
+  final descriptionController = TextEditingController(text: event['description']);
+  final dateController = TextEditingController(text: event['date']);
+  final locationController = TextEditingController(text: event['location']);
+  final bannerImageController = TextEditingController(text: event['imageUrl'] ?? '');
+  final pointsController = TextEditingController(text: '${event['points'] ?? 0}');
+  
+  // FIXED: Better parsing of time data that might be datetime strings
+  String fromTimeString = event['fromTime'] ?? '00:00:00';
+  String toTimeString = event['toTime'] ?? '00:00:00';
+  
+  // Check if the time strings are actually datetime strings and extract just the time part
+  if (fromTimeString.contains('T') && fromTimeString.contains('Z')) {
+    try {
+      final dateTime = DateTime.parse(fromTimeString);
+      fromTimeString = '${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}:${dateTime.second.toString().padLeft(2, '0')}';
+      print('Converted fromTime datetime to time: $fromTimeString');
+    } catch (e) {
+      print('Error parsing fromTime datetime: $e');
+      fromTimeString = '00:00:00';
+    }
+  }
+  
+  if (toTimeString.contains('T') && toTimeString.contains('Z')) {
+    try {
+      final dateTime = DateTime.parse(toTimeString);
+      toTimeString = '${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}:${dateTime.second.toString().padLeft(2, '0')}';
+      print('Converted toTime datetime to time: $toTimeString');
+    } catch (e) {
+      print('Error parsing toTime datetime: $e');
+      toTimeString = '00:00:00';
+    }
+  }
+  
+  final fromTimeController = TextEditingController(text: fromTimeString);
+  final toTimeController = TextEditingController(text: toTimeString);
+  
+  DateTime selectedDate = DateTime.tryParse(event['date'] ?? '') ?? DateTime.now();
+  
+  // FIXED: Parse times from cleaned time strings
+  TimeOfDay selectedFromTime;
+  TimeOfDay selectedToTime;
+  
+  try {
+    final fromTimeParts = fromTimeString.split(':');
+    selectedFromTime = TimeOfDay(
+      hour: int.tryParse(fromTimeParts[0]) ?? 0,
+      minute: int.tryParse(fromTimeParts.length > 1 ? fromTimeParts[1] : '0') ?? 0,
+    );
+  } catch (e) {
+    print('Error parsing fromTime: $fromTimeString - $e');
+    selectedFromTime = TimeOfDay.now();
+  }
+  
+  try {
+    final toTimeParts = toTimeString.split(':');
+    selectedToTime = TimeOfDay(
+      hour: int.tryParse(toTimeParts[0]) ?? 0,
+      minute: int.tryParse(toTimeParts.length > 1 ? toTimeParts[1] : '0') ?? 0,
+    );
+  } catch (e) {
+    print('Error parsing toTime: $toTimeString - $e');
+    selectedToTime = TimeOfDay.now().replacing(hour: (TimeOfDay.now().hour + 1) % 24);
+  }
+  
+  Get.dialog(
+    StatefulBuilder(
+      builder: (context, dialogSetState) {
+        Future<void> selectDate() async {
+          try {
+            final DateTime? picked = await showDatePicker(
+              context: context,
+              initialDate: selectedDate,
+              firstDate: DateTime(2020),
+              lastDate: DateTime(2100),
+            );
+            if (picked != null && picked != selectedDate) {
+              dialogSetState(() {
+                selectedDate = picked;
+                dateController.text = DateFormat('yyyy-MM-dd').format(selectedDate);
+              });
+            }
+          } catch (e) {
+            print('Error in date picker: $e');
+          }
+        }
+        
+        Future<void> selectTime(TextEditingController controller, bool isFromTime) async {
+          try {
+            final TimeOfDay initialTime = isFromTime ? selectedFromTime : selectedToTime;
+            final TimeOfDay? picked = await showTimePicker(
+              context: context,
+              initialTime: initialTime,
+            );
+            if (picked != null) {
+              dialogSetState(() {
+                if (isFromTime) {
+                  selectedFromTime = picked;
+                } else {
+                  selectedToTime = picked;
+                }
+                // FIXED: Always format as HH:MM:SS for consistency
+                controller.text = '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}:00';
+              });
+            }
+          } catch (e) {
+            print('Error in time picker: $e');
+          }
+        }
+
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: SingleChildScrollView(
+            child: Container(
+              constraints: BoxConstraints(
+                maxWidth: 500,
+                maxHeight: MediaQuery.of(context).size.height * 0.9,
+              ),
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Edit Event',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: titleController,
+                    decoration: const InputDecoration(
+                      labelText: 'Title',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: descriptionController,
+                    decoration: const InputDecoration(
+                      labelText: 'Description',
+                      border: OutlineInputBorder(),
+                    ),
+                    maxLines: 3,
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: dateController,
+                    readOnly: true,
+                    decoration: InputDecoration(
+                      labelText: 'Date',
+                      border: const OutlineInputBorder(),
+                      suffixIcon: IconButton(
+                        icon: const Icon(Icons.calendar_today),
+                        onPressed: selectDate,
+                      ),
+                    ),
+                    onTap: selectDate,
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: fromTimeController,
+                          readOnly: true,
+                          decoration: InputDecoration(
+                            labelText: 'Start Time',
+                            border: const OutlineInputBorder(),
+                            suffixIcon: IconButton(
+                              icon: const Icon(Icons.access_time),
+                              onPressed: () => selectTime(fromTimeController, true),
+                            ),
+                          ),
+                          onTap: () => selectTime(fromTimeController, true),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: TextField(
+                          controller: toTimeController,
+                          readOnly: true,
+                          decoration: InputDecoration(
+                            labelText: 'End Time',
+                            border: const OutlineInputBorder(),
+                            suffixIcon: IconButton(
+                              icon: const Icon(Icons.access_time),
+                              onPressed: () => selectTime(toTimeController, false),
+                            ),
+                          ),
+                          onTap: () => selectTime(toTimeController, false),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: locationController,
+                    decoration: const InputDecoration(
+                      labelText: 'Location',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: pointsController,
+                    decoration: const InputDecoration(
+                      labelText: 'Participation Points',
+                      border: OutlineInputBorder(),
+                    ),
+                    keyboardType: TextInputType.number,
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: bannerImageController,
+                    decoration: const InputDecoration(
+                      labelText: 'Banner Image URL (optional)',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: () => Get.back(),
+                        child: const Text('Cancel'),
+                      ),
+                      const SizedBox(width: 16),
+                      ElevatedButton(
+                        onPressed: () async {
+                          if (titleController.text.trim().isEmpty || 
+                              descriptionController.text.trim().isEmpty || 
+                              dateController.text.trim().isEmpty || 
+                              fromTimeController.text.trim().isEmpty || 
+                              toTimeController.text.trim().isEmpty || 
+                              locationController.text.trim().isEmpty) {
+                            Get.snackbar(
+                              'Error',
+                              'Please fill in all required fields',
+                              snackPosition: SnackPosition.BOTTOM,
+                              backgroundColor: Colors.red.withOpacity(0.1),
+                              colorText: Colors.red,
+                            );
+                            return;
+                          }
+
+                          final pointsValue = int.tryParse(pointsController.text.trim());
+                          if (pointsValue == null || pointsValue < 0) {
+                            Get.snackbar(
+                              'Error',
+                              'Please enter a valid number for points',
+                              snackPosition: SnackPosition.BOTTOM,
+                              backgroundColor: Colors.red.withOpacity(0.1),
+                              colorText: Colors.red,
+                            );
+                            return;
+                          }
+                          
+                          Get.back();
+                          
+                          Get.dialog(
+                            const Center(child: CircularProgressIndicator()),
+                            barrierDismissible: false,
+                          );
+                          
+                          try {
+                            // FIXED: Use simple time format validation before sending
+                            String finalFromTime = fromTimeController.text.trim();
+                            String finalToTime = toTimeController.text.trim();
+                            
+                            // Ensure time format is HH:MM:SS
+                            if (!finalFromTime.contains(':')) {
+                              finalFromTime = '00:00:00';
+                            } else if (finalFromTime.split(':').length == 2) {
+                              finalFromTime += ':00';
+                            }
+                            
+                            if (!finalToTime.contains(':')) {
+                              finalToTime = '00:00:00';
+                            } else if (finalToTime.split(':').length == 2) {
+                              finalToTime += ':00';
+                            }
+                            
+                            print('Final time values - From: $finalFromTime, To: $finalToTime');
+                            
+                            final success = await _apiService.updateEvent(
+                              event['id'].toString(),
+                              titleController.text.trim(),
+                              descriptionController.text.trim(),
+                              dateController.text.trim(),
+                              finalFromTime,
+                              finalToTime,
+                              locationController.text.trim(),
+                              bannerImageController.text.trim().isEmpty ? null : bannerImageController.text.trim(),
+                              pointsValue,
+                            );
+                            
+                            Get.back();
+                            
+                            if (success) {
+                              Get.snackbar(
+                                'Success',
+                                'Event updated successfully',
+                                snackPosition: SnackPosition.BOTTOM,
+                                backgroundColor: Colors.green.withOpacity(0.1),
+                                colorText: Colors.green,
+                              );
+                              await _loadEvents();
+                            } else {
+                              Get.snackbar(
+                                'Error',
+                                'Failed to update event',
+                                snackPosition: SnackPosition.BOTTOM,
+                                backgroundColor: Colors.red.withOpacity(0.1),
+                                colorText: Colors.red,
+                              );
+                            }
+                          } catch (e) {
+                            Get.back();
+                            Get.snackbar(
+                              'Error',
+                              'An error occurred: $e',
+                              snackPosition: SnackPosition.BOTTOM,
+                              backgroundColor: Colors.red.withOpacity(0.1),
+                              colorText: Colors.red,
+                            );
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: Colors.white,
+                        ),
+                        child: const Text('Update'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
-     ) );
-  }
+        );
+      },
+    ),
+  );
+}
+
 
   void _showDeleteEventDialog(Map<String, dynamic> event) {
     Get.dialog(

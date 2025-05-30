@@ -34,6 +34,8 @@ class _ProfilePageState extends State<ProfilePage> {
   // Add method to initialize username
   Future<void> _initUsername() async {
     print('Starting _initUsername() method');
+    
+    // FIXED: Force refresh username from storage on init
     final username = await _authService.getUsername();
     print('_initUsername received username: $username');
     
@@ -44,6 +46,16 @@ class _ProfilePageState extends State<ProfilePage> {
       });
     } else {
       print('Username is null or widget not mounted. Username=$username, mounted=$mounted');
+      
+      // FIXED: If no username found, try to refresh from auth service
+      if (mounted) {
+        await _authService.initUsername(); // FIXED: Remove underscore - use public method
+        final refreshedUsername = await _authService.getUsername();
+        if (refreshedUsername != null && mounted) {
+          print('Found refreshed username: $refreshedUsername');
+          setState(() {});
+        }
+      }
     }
   }
   
@@ -181,7 +193,6 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
-  // Add method to load attended events count
   Future<void> _loadEventsAttendedCount() async {
     if (!mounted) return;
     
@@ -192,20 +203,18 @@ class _ProfilePageState extends State<ProfilePage> {
     try {
       final userId = _authService.userId;
       if (userId != null) {
-        // Use the existing API call - no need for a dedicated endpoint
+        // FIXED: Use getRecentParticipations like dashboard instead of getUserRegisteredEvents
         final participations = await _apiService.getRecentParticipations(userId);
         
-        // Count only verified participations (isParticipated = 1)
-        int verifiedCount = 0;
-        for (var participation in participations) {
-          if (participation['isParticipated'] == 1) {
-            verifiedCount++;
-          }
-        }
+        // FIXED: Count the participations (same as dashboard logic)
+        // This returns actual event participations with points, not just registrations
+        int totalCount = participations.length;
+        
+        print('Profile: User has participated in $totalCount events (same as dashboard)');
         
         if (!mounted) return;
         setState(() {
-          _eventsAttended = verifiedCount;
+          _eventsAttended = totalCount;
           _isLoadingEvents = false;
         });
       } else {
@@ -222,7 +231,6 @@ class _ProfilePageState extends State<ProfilePage> {
       });
     }
   }
-  
   // FORCE USE OF SHARED METHOD - No other calls allowed
   void _loadAchievements() {
     print('=== PROFILE: _loadAchievements START ===');

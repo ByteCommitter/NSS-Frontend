@@ -285,6 +285,45 @@ class ApiService extends GetxService {
     try {
       final token = await _authService.getToken();
       
+      // FIXED: Parse the date and combine it with times to create full DateTime objects
+      DateTime eventDate;
+      try {
+        eventDate = DateTime.parse(event.date);
+      } catch (e) {
+        print('Error parsing date: ${event.date} - $e');
+        return false;
+      }
+      
+      // FIXED: Create proper DateTime objects by combining date with times
+      DateTime fromDateTime;
+      DateTime toDateTime;
+      
+      try {
+        final fromTimeParts = event.fromTime.split(':');
+        final toTimeParts = event.toTime.split(':');
+        
+        fromDateTime = DateTime(
+          eventDate.year,
+          eventDate.month,
+          eventDate.day,
+          int.parse(fromTimeParts[0]),
+          int.parse(fromTimeParts[1]),
+          fromTimeParts.length > 2 ? int.parse(fromTimeParts[2]) : 0,
+        );
+        
+        toDateTime = DateTime(
+          eventDate.year,
+          eventDate.month,
+          eventDate.day,
+          int.parse(toTimeParts[0]),
+          int.parse(toTimeParts[1]),
+          toTimeParts.length > 2 ? int.parse(toTimeParts[2]) : 0,
+        );
+      } catch (e) {
+        print('Error parsing times in createEvent - fromTime: ${event.fromTime}, toTime: ${event.toTime} - $e');
+        return false;
+      }
+
       final response = await http.post(
         Uri.parse('${baseUrl}events'),
         headers: {
@@ -294,14 +333,16 @@ class ApiService extends GetxService {
         body: json.encode({
           'title': event.title,
           'description': event.description,
-          'date': event.date,
-          'fromTime': event.fromTime,
-          'toTime': event.toTime,
-          'eventVenue': event.location,     // Changed to match backend naming
-          'banner_image': event.imageUrl,   // Changed to match backend naming
+          'date': eventDate.toIso8601String(),
+          'fromTime': fromDateTime.toIso8601String(),
+          'toTime': toDateTime.toIso8601String(), // Note: lowercase 't' for create
+          'eventVenue': event.location,
+          'banner_image': event.imageUrl,
           'points': event.points ?? 50,
         }),
       );
+      
+      print('Create event response: ${response.statusCode} - ${response.body}');
       return response.statusCode == 200 || response.statusCode == 201;
     } catch (e) {
       print('Error creating event: $e');
@@ -754,7 +795,7 @@ Future<void> debugUserInfo() async {
     await postNotification(title, message);
   }
 
-  // Updated updateEvent method to include points
+  // Updated updateEvent method to fix datetime formatting
   Future<bool> updateEvent(
     String eventId,
     String title,
@@ -767,24 +808,68 @@ Future<void> debugUserInfo() async {
     int points,
   ) async {
     try {
-      final token = await getToken(); // Now this method exists
+      final token = await getToken();
       if (token == null) {
         print('No token available for updating event');
         return false;
       }
 
       print('Updating event with ID: $eventId');
-      print('Request data: {');
-      print('  id: $eventId,');
-      print('  title: $title,');
-      print('  description: $description,');
-      print('  date: $date,');
-      print('  fromTime: $fromTime,');
-      print('  ToTime: $toTime,');
-      print('  eventVenue: $location,');
-      print('  banner_image: $bannerImage,');
-      print('  points: $points');
-      print('}');
+      
+      // FIXED: Parse the date and combine it with the time to create full DateTime objects
+      DateTime eventDate;
+      try {
+        eventDate = DateTime.parse(date);
+      } catch (e) {
+        print('Error parsing date: $date - $e');
+        return false;
+      }
+      
+      // FIXED: Create proper DateTime objects by combining date with times
+      DateTime fromDateTime;
+      DateTime toDateTime;
+      
+      try {
+        // Parse time strings (format: "HH:mm:ss" or "HH:mm")
+        final fromTimeParts = fromTime.split(':');
+        final toTimeParts = toTime.split(':');
+        
+        fromDateTime = DateTime(
+          eventDate.year,
+          eventDate.month,
+          eventDate.day,
+          int.parse(fromTimeParts[0]), // hours
+          int.parse(fromTimeParts[1]), // minutes
+          fromTimeParts.length > 2 ? int.parse(fromTimeParts[2]) : 0, // seconds
+        );
+        
+        toDateTime = DateTime(
+          eventDate.year,
+          eventDate.month,
+          eventDate.day,
+          int.parse(toTimeParts[0]), // hours
+          int.parse(toTimeParts[1]), // minutes
+          toTimeParts.length > 2 ? int.parse(toTimeParts[2]) : 0, // seconds
+        );
+      } catch (e) {
+        print('Error parsing times - fromTime: $fromTime, toTime: $toTime - $e');
+        return false;
+      }
+
+      // Convert to ISO strings for the API
+      final requestBody = {
+        'id': int.tryParse(eventId) ?? eventId,
+        'title': title,
+        'description': description,
+        'date': eventDate.toIso8601String(),
+        'fromTime': fromDateTime.toIso8601String(), // Full datetime
+        'ToTime': toDateTime.toIso8601String(), // Full datetime with capital T as expected by API
+        'eventVenue': location,
+        'banner_image': bannerImage,
+        'points': points,
+      };
+
+      print('Request data: ${jsonEncode(requestBody)}');
 
       final response = await http.put(
         Uri.parse('${baseUrl}events'),
@@ -792,17 +877,7 @@ Future<void> debugUserInfo() async {
           'Content-Type': 'application/json',
           'Authorization': token,
         },
-        body: jsonEncode({
-          'id': int.tryParse(eventId) ?? eventId, // Ensure it's an integer if possible
-          'title': title,
-          'description': description,
-          'date': date,
-          'fromTime': fromTime,
-          'ToTime': toTime, // Note: API expects "ToTime" not "toTime"
-          'eventVenue': location, // Note: API expects "eventVenue" not "location"
-          'banner_image': bannerImage,
-          'points': points,
-        }),
+        body: jsonEncode(requestBody),
       );
 
       print('Update event response status: ${response.statusCode}');
@@ -977,8 +1052,8 @@ Future<void> debugUserInfo() async {
     }
   }
 
-  // Delete a notification
-  Future<bool> deleteNotification(int notificationId) async {
+  // Delete a notification - FIXED: Handle string IDs properly
+  Future<bool> deleteNotification(dynamic notificationId) async {
     try {
       final token = await _authService.getToken();
       
@@ -987,6 +1062,23 @@ Future<void> debugUserInfo() async {
         return false;
       }
       
+      // Convert string ID to int if necessary
+      int id;
+      if (notificationId is String) {
+        id = int.tryParse(notificationId) ?? 0;
+        if (id == 0) {
+          print('Invalid notification ID: $notificationId');
+          return false;
+        }
+      } else if (notificationId is int) {
+        id = notificationId;
+      } else {
+        print('Invalid notification ID type: ${notificationId.runtimeType}');
+        return false;
+      }
+      
+      print('Deleting notification with ID: $id (converted from $notificationId)');
+      
       final response = await http.delete(
         Uri.parse('${baseUrl}notifications'),
         headers: {
@@ -994,7 +1086,7 @@ Future<void> debugUserInfo() async {
           'Content-Type': 'application/json',
         },
         body: json.encode({
-          'id': notificationId
+          'id': id
         }),
       );
       
@@ -1091,12 +1183,22 @@ Future<void> debugUserInfo() async {
       );
       
       print('Get all users response: ${response.statusCode}');
+      print('Raw response body: ${response.body}');
       
       if (response.statusCode == 200) {
-        final Map<String, dynamic> responseData = json.decode(response.body);
+        final responseData = json.decode(response.body);
         
         if (responseData.containsKey('result') && responseData['result'] is List) {
-          return List<Map<String, dynamic>>.from(responseData['result']);
+          final usersList = List<Map<String, dynamic>>.from(responseData['result']);
+          
+          // Debug: Print basic user data structure
+          if (usersList.isNotEmpty) {
+            print('Sample user data structure: ${usersList[0].keys.toList()}');
+            print('isVolunteer: ${usersList[0]['isVolunteer']} (type: ${usersList[0]['isVolunteer'].runtimeType})');
+            print('isWishVolunteer: ${usersList[0]['isWishVolunteer']} (type: ${usersList[0]['isWishVolunteer'].runtimeType})');
+          }
+          
+          return usersList;
         }
         return [];
       } else {
@@ -1478,6 +1580,77 @@ Future<List<Map<String, dynamic>>> getRecentParticipations(String userId) async 
     } catch (e) {
       print('Error getting volunteer status: $e');
       return {'verificationStatus': -1}; // Default to normal user
+    }
+  }
+
+  // Add method to get past events (notifications/eventUpdates) with Redis cache handling
+  Future<List<Map<String, dynamic>>> getPastEvents() async {
+    try {
+      final token = await _authService.getToken();
+      
+      if (token == null) {
+        print('No auth token available');
+        return [];
+      }
+      
+      print('Fetching event updates from: ${baseUrl}notifications');
+      
+      final response = await http.get(
+        Uri.parse('${baseUrl}notifications'),
+        headers: {
+          'Authorization': token,
+          'Content-Type': 'application/json',
+        },
+      ).timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          print('Event updates request timed out');
+          throw TimeoutException('Request timed out', const Duration(seconds: 10));
+        },
+      );
+      
+      print('Get event updates response: ${response.statusCode}');
+      
+      if (response.statusCode == 200) {
+        try {
+          final responseData = json.decode(response.body);
+          List<dynamic> eventsData;
+          
+          // Handle Redis cache inconsistency
+          if (responseData is List) {
+            // Direct array from Redis cache
+            eventsData = responseData;
+            print('Got cached event updates (direct array): ${eventsData.length} items');
+          } else if (responseData is Map && responseData.containsKey('result')) {
+            // Wrapped format when not cached
+            eventsData = responseData['result'] as List<dynamic>;
+            print('Got fresh event updates (wrapped): ${eventsData.length} items');
+          } else {
+            print('Unexpected response format: $responseData');
+            return [];
+          }
+          
+          // Convert notification format to expected format
+          return eventsData.map((item) => {
+            'id': item['id']?.toString() ?? '',
+            'title': item['title'] ?? 'Untitled Notification',
+            'message': item['message'] ?? 'No message',
+            'time': item['time'] ?? item['createdAt'] ?? DateTime.now().toIso8601String(),
+            'isRead': item['isRead'] ?? false,
+          }).toList().cast<Map<String, dynamic>>();
+          
+        } catch (parseError) {
+          print('Error parsing event updates: $parseError');
+          print('Raw response: ${response.body}');
+          return [];
+        }
+      } else {
+        print('Failed to load event updates: ${response.statusCode} - ${response.body}');
+        return [];
+      }
+    } catch (e) {
+      print('Exception fetching event updates: $e');
+      return [];
     }
   }
 }

@@ -68,12 +68,11 @@ class _HomePageState extends State<HomePage> {
       }
     }));
     
-    // Delay fetch to ensure all services are fully initialized
+    // FIXED: Load all data in parallel instead of sequentially to ensure notifications load
     _activeTimers.add(Timer(const Duration(milliseconds: 500), () {
       if (mounted && !_isDisposed) {
-        _fetchEvents();
-        _fetchRegisteredEventsWithTimeout();
-        _fetchNotifications();
+        // Load all data in parallel to ensure notifications appear immediately
+        _loadAllData();
       }
     }));
   }
@@ -456,7 +455,61 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  // Show event details dialog - UPDATED to show points
+  // Add time formatting methods
+  String _formatTimeString(String timeString) {
+    try {
+      // Handle different time formats from API
+      if (timeString.contains('T')) {
+        // ISO datetime format (e.g., "2023-09-15T14:30:00.000Z")
+        final dateTime = DateTime.parse(timeString);
+        return _formatTime(dateTime.hour, dateTime.minute);
+      } else if (timeString.contains(':')) {
+        // Time only format (e.g., "14:30:00" or "14:30")
+        final parts = timeString.split(':');
+        if (parts.length >= 2) {
+          final hour = int.tryParse(parts[0]) ?? 0;
+          final minute = int.tryParse(parts[1]) ?? 0;
+          return _formatTime(hour, minute);
+        }
+      }
+      return timeString; // Return original if no known format
+    } catch (e) {
+      print('Error formatting time string "$timeString": $e');
+      return timeString; // Return original on error
+    }
+  }
+
+  String _formatTime(int hour, int minute) {
+    // Convert to 12-hour format with AM/PM
+    final period = hour >= 12 ? 'PM' : 'AM';
+    final displayHour = hour > 12 ? hour - 12 : (hour == 0 ? 12 : hour);
+    return '${displayHour.toString()}:${minute.toString().padLeft(2, '0')} $period';
+  }
+
+  String _formatEventTimeRange(Event event) {
+    final fromTime = _formatTimeString(event.fromTime);
+    final toTime = _formatTimeString(event.toTime);
+    
+    // If both times are valid and different, show range
+    if (fromTime != event.fromTime && toTime != event.toTime && fromTime != toTime) {
+      return '$fromTime - $toTime';
+    } else if (fromTime != event.fromTime) {
+      return fromTime;
+    } else {
+      return 'Time TBD';
+    }
+  }
+
+  String _formatEventDate(String dateString) {
+    try {
+      final date = DateTime.parse(dateString);
+      return '${date.day}/${date.month}/${date.year}';
+    } catch (e) {
+      return dateString; // Return original if parsing fails
+    }
+  }
+
+  // Show event details dialog - UPDATED to show formatted times
   void _showEventDialog(Event event) {
     showDialog(
       context: context,
@@ -540,7 +593,7 @@ class _HomePageState extends State<HomePage> {
                   const SizedBox(height: 16),
                 ],
                 
-                // Event date and location
+                // Event date and location with formatted times
                 Row(
                   children: [
                     Icon(
@@ -550,7 +603,7 @@ class _HomePageState extends State<HomePage> {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      'Date: ${event.date}',
+                      'Date: ${_formatEventDate(event.date)}',
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
@@ -568,7 +621,7 @@ class _HomePageState extends State<HomePage> {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      'Time: ${event.fromTime} - ${event.toTime}',
+                      'Time: ${_formatEventTimeRange(event)}',
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
@@ -635,18 +688,26 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Future<void> _fetchNotifications() async {
+  // FIXED: Improve notification fetching with retry logic and better error handling
+  Future<void> _fetchNotificationsWithRetry({int retryCount = 0}) async {
     if (!mounted || _isDisposed) return;
     
-    setState(() {
-      _isLoadingUpdates = true;
-      _hasUpdatesError = false;
-    });
+    // Only set loading state on first attempt
+    if (retryCount == 0) {
+      setState(() {
+        _isLoadingUpdates = true;
+        _hasUpdatesError = false;
+      });
+    }
     
     try {
+      print('Fetching notifications (attempt ${retryCount + 1})...');
+      
       final notificationsData = await _apiService.getNotifications();
       
       if (!mounted || _isDisposed) return;
+      
+      print('Successfully received ${notificationsData.length} notifications from API');
       
       // Convert API data to Update objects
       final List<Update> updates = notificationsData.map((notification) {
@@ -681,66 +742,84 @@ class _HomePageState extends State<HomePage> {
         );
       }).toList();
       
-      setState(() {
-        _updates = updates;
-        _isLoadingUpdates = false;
-      });
-      
-      print('Loaded ${updates.length} notifications from API');
-    } catch (e) {
-      print('Error fetching notifications: $e');
-      if (!mounted || _isDisposed) return;
-      
-      setState(() {
-        _isLoadingUpdates = false;
-        _hasUpdatesError = true;
-      });
-    }
-  }
-
-  // Update the _formatEventTime method to handle both a single time or a time range
-  String _formatEventTime(String fromTime, [String? toTime]) {
-    // Format the fromTime
-    String formattedFromTime = _formatSingleTime(fromTime);
-    
-    // If toTime is provided, format it and return a range
-    if (toTime != null && toTime.isNotEmpty && toTime != '00:00:00') {
-      String formattedToTime = _formatSingleTime(toTime);
-      return '$formattedFromTime - $formattedToTime';
-    }
-    
-    // Otherwise just return the formatted fromTime
-    return formattedFromTime;
-  }
-
-  // Helper method to format a single time string
-  String _formatSingleTime(String time) {
-    // Check if the time is in the expected format
-    if (time == '00:00:00' || time.isEmpty) {
-      return 'TBD';
-    }
-    
-    try {
-      // Parse the time string (expected format: HH:MM:SS)
-      final parts = time.split(':');
-      if (parts.length >= 2) {
-        // Convert to 12-hour format
-        int hour = int.parse(parts[0]);
-        final minutes = parts[1];
-        final period = hour >= 12 ? 'PM' : 'AM';
+      if (mounted && !_isDisposed) {
+        setState(() {
+          _updates = updates;
+          _isLoadingUpdates = false;
+          _hasUpdatesError = false;
+        });
         
-        // Convert hour to 12-hour format
-        hour = hour > 12 ? hour - 12 : (hour == 0 ? 12 : hour);
-        
-        return '$hour:$minutes $period';
+        print('Successfully updated UI with ${updates.length} notifications');
       }
-      return time; // Return as-is if not in expected format
+      
     } catch (e) {
-      print('Error formatting time: $e');
-      return time; // Return original string if parsing fails
+      print('Error fetching notifications (attempt ${retryCount + 1}): $e');
+      
+      // Retry up to 2 times with exponential backoff
+      if (retryCount < 2 && mounted && !_isDisposed) {
+        final delayMs = (retryCount + 1) * 1000; // 1s, 2s delays
+        print('Retrying notifications fetch in ${delayMs}ms...');
+        
+        await Future.delayed(Duration(milliseconds: delayMs));
+        
+        if (mounted && !_isDisposed) {
+          await _fetchNotificationsWithRetry(retryCount: retryCount + 1);
+        }
+      } else {
+        // Final failure - set error state
+        if (mounted && !_isDisposed) {
+          setState(() {
+            _isLoadingUpdates = false;
+            _hasUpdatesError = true;
+          });
+          print('Failed to load notifications after ${retryCount + 1} attempts');
+        }
+      }
     }
   }
-  
+
+  // Keep the original method for manual refresh but make it use the retry version
+  Future<void> _fetchNotifications() async {
+    await _fetchNotificationsWithRetry();
+  }
+
+  // FIXED: Add a method to load all data in parallel
+  Future<void> _loadAllData() async {
+    if (!mounted || _isDisposed) return;
+    
+    setState(() {
+      _isLoading = true;
+      _hasLoadingError = false;
+      _errorMessage = '';
+    });
+
+    try {
+      // Load all data in parallel instead of sequentially
+      await Future.wait([
+        _fetchEvents(),
+        _fetchRegisteredEventsWithTimeout(),
+        _fetchNotificationsWithRetry(), // Use retry version
+      ], eagerError: false); // Don't stop if one fails
+      
+    } catch (e) {
+      print('Error in _loadAllData: $e');
+      if (mounted && !_isDisposed) {
+        setState(() {
+          _hasLoadingError = true;
+          _errorMessage = 'Some data failed to load. Please refresh.';
+        });
+      }
+    } finally {
+      if (mounted && !_isDisposed) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  // ...existing code...
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -754,11 +833,8 @@ class _HomePageState extends State<HomePage> {
             _errorMessage = '';
           });
           
-          // Refresh both events and registered events with timeout
-          await Future.wait([
-            _fetchEvents(),
-            _fetchRegisteredEventsWithTimeout(),
-          ]);
+          // FIXED: Use the new parallel loading method for refresh
+          await _loadAllData();
         },
         child: _isLoading 
           ? const Center(child: CircularProgressIndicator())
@@ -845,7 +921,7 @@ class _HomePageState extends State<HomePage> {
                       const SizedBox(height: 28),
                     ],
                     
-                    // Updates section (original)
+                    // Updates section - FIXED: Always show, even during loading
                     _buildSectionHeader('Recent Updates', Icons.announcement),
                     const SizedBox(height: 16),
                     _buildUpdatesCard(_updates),
@@ -869,7 +945,7 @@ class _HomePageState extends State<HomePage> {
                       ),
                     
                     // Event list with loading indicator
-                    _isLoading
+                    _events.isEmpty && _isLoading
                       ? const Center(
                           child: Padding(
                             padding: EdgeInsets.all(20.0),
@@ -908,7 +984,7 @@ class _HomePageState extends State<HomePage> {
                                     ),
                                     const SizedBox(height: 16),
                                     TextButton.icon(
-                                      onPressed: _fetchEvents,
+                                      onPressed: _loadAllData,
                                       icon: Icon(Icons.refresh, size: 16),
                                       label: Text('Refresh'),
                                       style: TextButton.styleFrom(
@@ -941,7 +1017,7 @@ class _HomePageState extends State<HomePage> {
                         
                         // Registered events list
                         SizedBox(
-                          height: 210, // Increased from 190 to 210
+                          height: 210,
                           child: _isLoadingRegistered
                             ? const Center(child: CircularProgressIndicator())
                             : _registeredEvents.isEmpty
@@ -1031,7 +1107,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // Updates card
+  // FIXED: Improve the updates card to show retry button on error
   Widget _buildUpdatesCard(List<Update> updates) {
     return Card(
       elevation: 3,
@@ -1063,10 +1139,19 @@ class _HomePageState extends State<HomePage> {
               const Center(
                 child: Padding(
                   padding: EdgeInsets.all(20.0),
-                  child: CircularProgressIndicator(),
+                  child: Column(
+                    children: [
+                      CircularProgressIndicator(),
+                      SizedBox(height: 8),
+                      Text(
+                        'Loading notifications...',
+                        style: TextStyle(fontSize: 12, color: Colors.grey),
+                      ),
+                    ],
+                  ),
                 ),
               )
-            // Show error message if failed to load notifications
+            // Show error message with retry button if failed to load notifications
             else if (_hasUpdatesError)
               Center(
                 child: Padding(
@@ -1083,9 +1168,16 @@ class _HomePageState extends State<HomePage> {
                         'Failed to load notifications',
                         style: TextStyle(color: AppColors.error),
                       ),
-                      TextButton(
-                        onPressed: _fetchNotifications,
-                        child: const Text('Retry'),
+                      const SizedBox(height: 8),
+                      ElevatedButton.icon(
+                        onPressed: _fetchNotificationsWithRetry,
+                        icon: const Icon(Icons.refresh, size: 16),
+                        label: const Text('Retry'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        ),
                       ),
                     ],
                   ),
@@ -1096,9 +1188,19 @@ class _HomePageState extends State<HomePage> {
               const Center(
                 child: Padding(
                   padding: EdgeInsets.all(20.0),
-                  child: Text(
-                    'No updates available',
-                    style: TextStyle(color: Colors.grey),
+                  child: Column(
+                    children: [
+                      Icon(
+                        Icons.notifications_none,
+                        color: Colors.grey,
+                        size: 40,
+                      ),
+                      SizedBox(height: 8),
+                      Text(
+                        'No updates available',
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                    ],
                   ),
                 ),
               )
@@ -1482,7 +1584,7 @@ class _HomePageState extends State<HomePage> {
                         const SizedBox(height: 6),
                       ],
                       
-                      // Date and time
+                      // Date with formatted date
                       Row(
                         children: [
                           Icon(
@@ -1493,7 +1595,30 @@ class _HomePageState extends State<HomePage> {
                           const SizedBox(width: 6),
                           Expanded(
                             child: Text(
-                              event.date,
+                              _formatEventDate(event.date),
+                              style: TextStyle(
+                                color: Colors.white.withOpacity(0.9),
+                                fontSize: 14,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      
+                      // Time with formatted time range
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.access_time,
+                            color: Colors.white.withOpacity(0.9),
+                            size: 16,
+                          ),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              _formatEventTimeRange(event),
                               style: TextStyle(
                                 color: Colors.white.withOpacity(0.9),
                                 fontSize: 14,
@@ -1926,7 +2051,7 @@ class _HomePageState extends State<HomePage> {
                       ),
                       const SizedBox(height: 8),
                       
-                      // Date and time
+                      // Date with formatted date
                       Row(
                         children: [
                           Icon(
@@ -1937,7 +2062,30 @@ class _HomePageState extends State<HomePage> {
                           const SizedBox(width: 6),
                           Expanded(
                             child: Text(
-                              event.date,
+                              _formatEventDate(event.date),
+                              style: TextStyle(
+                                color: Colors.white.withOpacity(0.9),
+                                fontSize: 14,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      
+                      // Time with formatted time range
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.access_time,
+                            color: Colors.white.withOpacity(0.9),
+                            size: 16,
+                          ),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              _formatEventTimeRange(event),
                               style: TextStyle(
                                 color: Colors.white.withOpacity(0.9),
                                 fontSize: 14,
@@ -1970,25 +2118,8 @@ class _HomePageState extends State<HomePage> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 12),
                       
-                      // View Details button
-                      Center(
-                        child: ElevatedButton.icon(
-                          onPressed: () => _showEventDialog(event),
-                          icon: const Icon(Icons.visibility, size: 18),
-                          label: const Text('View Details'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.success,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            elevation: 4,
-                          ),
-                        ),
-                      ),
+                      // ...existing code for view details button...
                     ],
                   ),
                 ),
