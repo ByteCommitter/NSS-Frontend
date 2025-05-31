@@ -52,10 +52,8 @@ class ApiEvent {
 
 
 class ApiService extends GetxService {
-  static ApiService get to => Get.find();
-
   String get baseUrl {
-    return ApiConfig.apiBase;
+    return ApiConfig.apiBase; // This points to your HTTP AWS backend
   }
   
   
