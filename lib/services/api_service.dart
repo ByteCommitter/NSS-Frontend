@@ -54,8 +54,8 @@ class ApiEvent {
 class ApiService extends GetxService {
   static ApiService get to => Get.find();
 
-  String get baseUrl{
-    return 'http://13.53.37.149:8081/';
+  String get baseUrl {
+    return ApiConfig.apiBase;
   }
   
   

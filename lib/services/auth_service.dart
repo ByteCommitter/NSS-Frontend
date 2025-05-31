@@ -31,28 +31,29 @@ extension Base64Extension on String {
 class ApiConfig {
   // Base URL for API requests - different for various platforms
   static String get apiBase {
-    if (kIsWeb) {
-      // For web testing - check for production URL first
-      const String? prodUrl = String.fromEnvironment('WEB_API_URL');
-      if (prodUrl != null && prodUrl.isNotEmpty) {
-        return prodUrl;
-      }
-      return 'http://localhost:8081/';
-    } else {
-      // Check if we're in production/staging mode
-      const String? prodUrl = String.fromEnvironment('API_URL');
-      if (prodUrl != null && prodUrl.isNotEmpty) {
-        return prodUrl;
-      }
+    return 'http://13.53.37.149:8081/';
+    // if (kIsWeb) {
+    //   // For web testing - check for production URL first
+    //   const String? prodUrl = String.fromEnvironment('WEB_API_URL');
+    //   if (prodUrl != null && prodUrl.isNotEmpty) {
+    //     return prodUrl;
+    //   }
+    //   return 'http://localhost:8081/';
+    // } else {
+    //   // Check if we're in production/staging mode
+    //   const String? prodUrl = String.fromEnvironment('API_URL');
+    //   if (prodUrl != null && prodUrl.isNotEmpty) {
+    //     return prodUrl;
+    //   }
       
-      // For Android development - use your actual server IP or domain
-      return 'http://10.0.2.2:8081/';  // For Android emulator
-      // return 'http://192.168.1.100:8081/';  // For physical device (replace with your IP)
-      // Deployment examples:
-      // return 'https://your-ec2-instance.ap-south-1.compute.amazonaws.com/';  // AWS EC2
-      // return 'https://your-backend.onrender.com/';  // Render
-      // return 'https://your-backend.up.railway.app/';  // Railway
-    }
+    //   // For Android development - use your actual server IP or domain
+    //   return 'http://10.0.2.2:8081/';  // For Android emulator
+    //   // return 'http://192.168.1.100:8081/';  // For physical device (replace with your IP)
+    //   // Deployment examples:
+    //   // return 'https://your-ec2-instance.ap-south-1.compute.amazonaws.com/';  // AWS EC2
+    //   // return 'https://your-backend.onrender.com/';  // Render
+    //   // return 'https://your-backend.up.railway.app/';  // Railway
+    // }
   }
 }
 
