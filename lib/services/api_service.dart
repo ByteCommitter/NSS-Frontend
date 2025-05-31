@@ -144,76 +144,65 @@ class ApiService extends GetxService {
       final response = await http.get(
         Uri.parse('${baseUrl}events/'),
         headers: {
-          'Authorization': token, // Sending token as-is as per API requirements
+          'Authorization': token,
           'Content-Type': 'application/json',
           'Accept': 'application/json',
+        },
+      ).timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          print('Events request timed out');
+          throw TimeoutException('Request timed out', const Duration(seconds: 10));
         },
       );
       
       print('Get events response: ${response.statusCode}');
-      print('Response headers: ${response.headers}');
       
       if (response.statusCode != 200) {
         print('Error response body: ${response.body}');
         return [];
       }
       
-      // Debugging: print the raw response body
       print('Raw response body: ${response.body}');
       
-      if (response.statusCode == 200) {
-        // Try to parse as a map first if the response is an object with an events field
-        try {
-          final responseData = json.decode(response.body);
-          List<dynamic> eventsData;
-          
-          if (responseData is Map && responseData.containsKey('events')) {
-            eventsData = responseData['events'] as List<dynamic>;
-            print('Found events array in response object');
-          } else if (responseData is List) {
-            eventsData = responseData;
-            print('Response is directly an events array');
-          } else {
-            print('Unexpected response format: $responseData');
-            return [];
-          }
-          
-          print('Received ${eventsData.length} events from backend');
-          
-          final events = eventsData.map((eventJson) {
-            print('Processing event: ${eventJson['id']} - ${eventJson['title']}');
-            
-            // Debug: Print the banner_image field
-            print('Raw banner_image from API: ${eventJson['banner_image']}');
-            
-            return ApiEvent(
-              id: eventJson['id'].toString(),
-              title: eventJson['title'] ?? 'Untitled Event',
-              description: eventJson['description'] ?? 'No description available',
-              date: eventJson['date'] ?? 'TBD',
-              fromTime: eventJson['fromTime'] ?? '00:00:00',
-              toTime: eventJson['ToTime'] ?? '00:00:00', // Note: API uses 'ToTime' with capital T
-              location: eventJson['eventVenue'] ?? 'TBD',
-              imageUrl: eventJson['banner_image'], // Map banner_image to imageUrl
-              points: eventJson['points'] != null ? int.tryParse(eventJson['points'].toString()) : 50, // Add points mapping
-            );
-          }).toList();
-          
-          // Debug: Print the final events with their imageUrls
-          for (var event in events) {
-            print('Event "${event.title}" has imageUrl: "${event.imageUrl}"');
-          }
-          
-          print('Successfully parsed ${events.length} events');
-          return events;
-        } catch (parseError) {
-          print('Error parsing events JSON: $parseError');
-          // Try to show the raw response for debugging
-          print('Raw response that failed to parse: ${response.body}');
+      try {
+        final responseData = json.decode(response.body);
+        List<dynamic> eventsData;
+        
+        if (responseData is Map && responseData.containsKey('events')) {
+          eventsData = responseData['events'] as List<dynamic>;
+          print('Found events array in response object');
+        } else if (responseData is List) {
+          eventsData = responseData;
+          print('Response is directly an events array');
+        } else {
+          print('Unexpected response format: $responseData');
           return [];
         }
-      } else {
-        print('Failed to load events: ${response.statusCode} - ${response.body}');
+        
+        print('Received ${eventsData.length} events from backend');
+        
+        final events = eventsData.map((eventJson) {
+          print('Processing event: ${eventJson['id']} - ${eventJson['title']}');
+          
+          return ApiEvent(
+            id: eventJson['id'].toString(),
+            title: eventJson['title'] ?? 'Untitled Event',
+            description: eventJson['description'] ?? 'No description available',
+            date: eventJson['date'] ?? 'TBD',
+            fromTime: eventJson['fromTime'] ?? '00:00:00',
+            toTime: eventJson['ToTime'] ?? '00:00:00',
+            location: eventJson['eventVenue'] ?? 'TBD',
+            imageUrl: eventJson['banner_image'],
+            points: eventJson['points'] != null ? int.tryParse(eventJson['points'].toString()) : 50,
+          );
+        }).toList();
+        
+        print('Successfully parsed ${events.length} events');
+        return events;
+      } catch (parseError) {
+        print('Error parsing events JSON: $parseError');
+        print('Raw response that failed to parse: ${response.body}');
         return [];
       }
     } catch (e) {

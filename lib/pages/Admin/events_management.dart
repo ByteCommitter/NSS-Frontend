@@ -16,10 +16,19 @@ class _EventsManagementState extends State<EventsManagement> {
   List<Map<String, dynamic>> events = [];
   bool _isLoading = true;
 
+  // Add this variable to track if widget is disposed
+  bool _isDisposed = false;
+
   @override
   void initState() {
     super.initState();
     _loadEvents();
+  }
+
+  @override
+  void dispose() {
+    _isDisposed = true;
+    super.dispose();
   }
 
   Future<void> _loadEvents() async {
@@ -47,15 +56,22 @@ class _EventsManagementState extends State<EventsManagement> {
         'status': 'active', // Default status (not provided by API)
       }).toList();
       
-      setState(() {
-        events = formattedEvents;
-        _isLoading = false;
-      });
+      // Check if widget is still mounted before calling setState
+      if (!_isDisposed && mounted) {
+        setState(() {
+          events = formattedEvents;
+          _isLoading = false;
+        });
+      }
     } catch (e) {
       print('Error loading events: $e');
-      setState(() {
-        _isLoading = false;
-      });
+      
+      // Check if widget is still mounted before calling setState
+      if (!_isDisposed && mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
       Get.snackbar(
         'Error',
         'Failed to load events. Please try again.',

@@ -18,14 +18,13 @@ class AuthWrapper extends StatelessWidget {
 
         // Schedule navigation for next frame to avoid navigation during build
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (authService.isAdminUser.value) {
-            print('Navigating to admin panel');
-            if (Get.currentRoute != '/admin') {
+          // Add additional check to prevent multiple navigations
+          if (Get.currentRoute == '/login' || Get.currentRoute == '/') {
+            if (authService.isAdminUser.value) {
+              print('Navigating to admin panel');
               Get.offAllNamed('/admin');
-            }
-          } else {
-            print('Navigating to home');
-            if (Get.currentRoute != '/home') {
+            } else {
+              print('Navigating to home');
               Get.offAllNamed('/home');
             }
           }
@@ -84,7 +83,6 @@ class _LoginScreenState extends State<LoginScreen> {
           _passwordController.text,
         );
 
-        // Add debug output to track login process
         print('Login response: $response');
 
         // Check if login was successful
@@ -94,12 +92,14 @@ class _LoginScreenState extends State<LoginScreen> {
           // Ensure authentication state is set
           _authService.isAuthenticated.value = true;
 
-          // Delay navigation slightly to ensure state updates
-          await Future.delayed(const Duration(milliseconds: 300));
+          // Wait a bit longer and check if widget is still mounted
+          await Future.delayed(const Duration(milliseconds: 500));
 
-          // Force a complete navigation reset to home route
-          print('Navigating to home after login');
-          Get.offAllNamed('/');
+          if (mounted) {
+            // Force a complete navigation reset to home route
+            print('Navigating to home after login');
+            Get.offAllNamed('/');
+          }
         } else {
           if (mounted) {
             setState(() {
