@@ -60,9 +60,10 @@ class SocketNotificationService extends GetxService {
       
       // Create socket connection
       // For web, we need to use the full URL including protocol
-      const serverUrl = kIsWeb 
-          ? 'http://localhost:8991' 
-          : 'http://10.0.2.2:8991';  // Use this for Android emulator (or localhost for iOS simulator)
+      const serverUrl = "https://notificationserver-production-3372.up.railway.app" ;
+      // kIsWeb 
+      //     ? 'http://localhost:8991' 
+      //     : 'http://10.0.2.2:8991';  // Use this for Android emulator (or localhost for iOS simulator)
       
       print('🔌 Socket Notification Service: Connecting to $serverUrl');
       
