@@ -259,6 +259,9 @@ class AuthService extends GetxService {
         isAdminUser.value = _isAdmin.value;
         await _storeAdminStatus(_isAdmin.value);
         
+        // NEW: Add delay to ensure all storage operations complete before setting auth state
+        await Future.delayed(const Duration(milliseconds: 100));
+        
         // IMPORTANT: Set authenticated state LAST
         isAuthenticated.value = true;
         

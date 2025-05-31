@@ -16,16 +16,18 @@ class AuthWrapper extends StatelessWidget {
       if (authService.isAuthenticated.value) {
         print('User is authenticated. Admin: ${authService.isAdminUser.value}');
 
-        // Schedule navigation for next frame to avoid navigation during build
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (authService.isAdminUser.value) {
-            print('Navigating to admin panel');
-            if (Get.currentRoute != '/admin') {
+        // NEW: Use Future.microtask with delay to prevent race condition
+        Future.microtask(() async {
+          // Add delay to ensure all async operations complete
+          await Future.delayed(const Duration(milliseconds: 200));
+          
+          // Check if we're still in the loading state before navigating
+          if (Get.currentRoute == '/' || Get.currentRoute.isEmpty) {
+            if (authService.isAdminUser.value) {
+              print('Navigating to admin panel');
               Get.offAllNamed('/admin');
-            }
-          } else {
-            print('Navigating to home');
-            if (Get.currentRoute != '/home') {
+            } else {
+              print('Navigating to home');
               Get.offAllNamed('/home');
             }
           }
@@ -84,22 +86,16 @@ class _LoginScreenState extends State<LoginScreen> {
           _passwordController.text,
         );
 
-        // Add debug output to track login process
         print('Login response: $response');
 
-        // Check if login was successful
         if (response != null && response['success'] == true) {
           print('Login successful, setting authenticated to true');
 
-          // Ensure authentication state is set
-          _authService.isAuthenticated.value = true;
-
-          // Delay navigation slightly to ensure state updates
-          await Future.delayed(const Duration(milliseconds: 300));
-
-          // Force a complete navigation reset to home route
-          print('Navigating to home after login');
-          Get.offAllNamed('/');
+          // NEW: Don't manually set auth state or navigate - let AuthWrapper handle it
+          // The auth service already sets isAuthenticated.value = true in login method
+          
+          // Keep loading state active until AuthWrapper navigates
+          print('Login complete, waiting for AuthWrapper navigation');
         } else {
           if (mounted) {
             setState(() {

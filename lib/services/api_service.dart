@@ -49,14 +49,16 @@ class ApiEvent {
   }
 }
 
+
+
 class ApiService extends GetxService {
   static ApiService get to => Get.find();
-  
-  // Adjust baseUrl for web vs mobile and production vs development
-  String get baseUrl {
-    // Your existing URL works for both platforms
+
+  String get baseUrl{
     return 'http://13.53.37.149:8081/';
   }
+  
+  
   
   final AuthService _authService = Get.find<AuthService>();
   
@@ -93,6 +95,7 @@ class ApiService extends GetxService {
   
   Future<Map<String, dynamic>?> login(String id, String password) async {
     try {
+      // NEW: Add timeout to prevent hanging
       final response = await http.post(
         Uri.parse('${baseUrl}auth/login'),
         headers: {'Content-Type': 'application/json'},
@@ -100,7 +103,7 @@ class ApiService extends GetxService {
           'id': id,
           'password': password,
         }),
-      );
+      ).timeout(const Duration(seconds: 15)); // Add 15 second timeout
       
       print('Login response: ${response.statusCode} - ${response.body}');
       
@@ -134,6 +137,7 @@ class ApiService extends GetxService {
       print('Fetching events from: ${baseUrl}events/');
       print('Token available: ${token.length > 20 ? "Yes (${token.substring(0, 20)}...)" : "Yes"}');
       
+      // NEW: Add timeout to prevent hanging
       final response = await http.get(
         Uri.parse('${baseUrl}events/'),
         headers: {
@@ -141,7 +145,7 @@ class ApiService extends GetxService {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
-      );
+      ).timeout(const Duration(seconds: 15)); // Add 15 second timeout
       
       print('Get events response: ${response.statusCode}');
       print('Response headers: ${response.headers}');
