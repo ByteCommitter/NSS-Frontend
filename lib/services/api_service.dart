@@ -52,17 +52,10 @@ class ApiEvent {
 class ApiService extends GetxService {
   static ApiService get to => Get.find();
   
-  // Adjust baseUrl for web vs mobile
+  // Adjust baseUrl for web vs mobile and production vs development
   String get baseUrl {
+    // Your existing URL works for both platforms
     return 'http://13.53.37.149:8081/';
-    // if (kIsWeb) {
-    //   // For web testing, use the full URL without localhost
-    //   // This helps avoid CORS issues
-    //   return 'http://localhost:8081/';
-    // } else {
-    //   return 'http://10.0.2.2:8081/'; // Use this for Android emulator
-    //   // return 'http://127.0.0.1:8081/'; // Use this for iOS simulator
-    // }
   }
   
   final AuthService _authService = Get.find<AuthService>();

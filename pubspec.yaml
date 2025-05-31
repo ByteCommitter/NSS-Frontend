@@ -108,7 +108,11 @@ flutter:
 
   fonts:
     - family: MaterialIcons
-      
+
+  # Add web-specific configurations
+  web:
+    # Optional: Add a custom index.html template
+    # template: web/index.html
 
 # Flutter Launcher Icons configuration
 flutter_launcher_icons:
