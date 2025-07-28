@@ -1,7 +1,5 @@
 import 'dart:convert';
 import 'dart:async'; // Added missing import for TimeoutException
-// lowercase math to follow convention
-import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:get/get.dart';
 import 'package:mentalsustainability/pages/Home/home_page.dart' hide Event; // Hide Event from home_page
@@ -54,7 +52,7 @@ class ApiService extends GetxService {
   
   // Adjust baseUrl for web vs mobile
   String get baseUrl {
-    return 'http://13.53.37.149:8081/';
+    return 'https://nssapp.duckdns.org/';
     // if (kIsWeb) {
     //   // For web testing, use the full URL without localhost
     //   // This helps avoid CORS issues
@@ -74,7 +72,15 @@ class ApiService extends GetxService {
   
   // Authentication APIs
   
+  // DEPRECATED: Use registerWithOTP instead for new OTP-based flow
+  // This method is kept for backward compatibility
   Future<Map<String, dynamic>?> register(String universityId, String username, String password) async {
+    print('WARNING: register() is deprecated. Use registerWithOTP() for new OTP-based flow.');
+    return await registerWithOTP(universityId, username, password);
+  }
+  
+  // OTP-based registration method - backend responds with {"message": "OTP message sent"}
+  Future<Map<String, dynamic>?> registerWithOTP(String universityId, String username, String password) async {
     try {
       final response = await http.post(
         Uri.parse('${baseUrl}auth/register'),
@@ -86,15 +92,227 @@ class ApiService extends GetxService {
         }),
       );
       
-      print('Register response: ${response.statusCode} - ${response.body}');
+      print('Register with OTP response: ${response.statusCode} - ${response.body}');
       
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        return json.decode(response.body);
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+        // Backend returns {"message": "OTP message sent"} on success
+        return {
+          'success': true,
+          'message': responseData['message'] ?? 'OTP sent successfully',
+        };
+      } else {
+        // Handle error responses (400 for existing user, 501 for server error)
+        try {
+          final errorData = json.decode(response.body);
+          return {
+            'success': false,
+            'message': errorData['message'] ?? 'Registration failed',
+          };
+        } catch (e) {
+          return {
+            'success': false,
+            'message': 'Registration failed with status ${response.statusCode}',
+          };
+        }
       }
-      return null;
     } catch (e) {
-      print('Register error: $e');
-      return null;
+      print('Register with OTP error: $e');
+      return {
+        'success': false,
+        'message': 'Network error: $e',
+      };
+    }
+  }
+
+  // Resend OTP method - backend responds with {"message": "OTP message sent"}
+  Future<Map<String, dynamic>?> resendOTP(String universityId) async {
+    try {
+      final response = await http.post(
+        Uri.parse('${baseUrl}auth/resendOTP'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'university_id': universityId,
+        }),
+      );
+      
+      print('Resend OTP response: ${response.statusCode} - ${response.body}');
+      
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+        return {
+          'success': true,
+          'message': responseData['message'] ?? 'OTP resent successfully',
+        };
+      } else {
+        // Handle 400 (time expired) and 501 (server error)
+        try {
+          final errorData = json.decode(response.body);
+          return {
+            'success': false,
+            'message': errorData['message'] ?? 'Failed to resend OTP',
+          };
+        } catch (e) {
+          return {
+            'success': false,
+            'message': 'Failed to resend OTP with status ${response.statusCode}',
+          };
+        }
+      }
+    } catch (e) {
+      print('Resend OTP error: $e');
+      return {
+        'success': false,
+        'message': 'Network error: $e',
+      };
+    }
+  }
+
+  // Verify user with OTP - backend responds with {"token": "..."} on success
+  Future<Map<String, dynamic>?> verifyUser(String universityId, int otpValue) async {
+    try {
+      final response = await http.post(
+        Uri.parse('${baseUrl}auth/verifyUser'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'university_id': universityId,
+          'otpValue': otpValue,
+        }),
+      );
+      
+      print('Verify user response: ${response.statusCode} - ${response.body}');
+      
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+        // Backend returns {"token": "..."} on successful verification
+        if (responseData.containsKey('token')) {
+          return {
+            'success': true,
+            'token': responseData['token'],
+            'message': 'User verified successfully',
+          };
+        } else {
+          return {
+            'success': false,
+            'message': 'Invalid response format',
+          };
+        }
+      } else {
+        // Handle 401 (invalid OTP, time expired) and 403 (verification failed)
+        try {
+          final errorData = json.decode(response.body);
+          return {
+            'success': false,
+            'message': errorData['message'] ?? 'Invalid OTP',
+          };
+        } catch (e) {
+          return {
+            'success': false,
+            'message': 'Verification failed with status ${response.statusCode}',
+          };
+        }
+      }
+    } catch (e) {
+      print('Verify user error: $e');
+      return {
+        'success': false,
+        'message': 'Network error: $e',
+      };
+    }
+  }
+
+  // Forgot password method - backend responds with {"message": "OTP message sent"}
+  Future<Map<String, dynamic>?> forgotPassword(String universityId) async {
+    try {
+      final response = await http.post(
+        Uri.parse('${baseUrl}auth/forgotPassword'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'university_id': universityId,
+        }),
+      );
+      
+      print('Forgot password response: ${response.statusCode} - ${response.body}');
+      
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+        return {
+          'success': true,
+          'message': responseData['message'] ?? 'Reset code sent to your email',
+        };
+      } else {
+        // Handle 501 (unable to send OTP)
+        try {
+          final errorData = json.decode(response.body);
+          return {
+            'success': false,
+            'message': errorData['message'] ?? 'Failed to send reset code',
+          };
+        } catch (e) {
+          return {
+            'success': false,
+            'message': 'Failed to send reset code with status ${response.statusCode}',
+          };
+        }
+      }
+    } catch (e) {
+      print('Forgot password error: $e');
+      return {
+        'success': false,
+        'message': 'Network error: $e',
+      };
+    }
+  }
+
+  // Reset password method - backend responds with {"message": "Updated Password"}
+  Future<Map<String, dynamic>?> resetPassword(String universityId, int otpValue, String newPassword) async {
+    try {
+      final response = await http.post(
+        Uri.parse('${baseUrl}auth/resetPassword'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'university_id': universityId,
+          'otpValue': otpValue,
+          'password': newPassword,
+        }),
+      );
+      
+      print('Reset password response: ${response.statusCode} - ${response.body}');
+      
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+        return {
+          'success': true,
+          'message': responseData['message'] ?? 'Password updated successfully',
+        };
+      } else {
+        // Handle 401 (token expired, incorrect OTP) and 501 (unable to reset)
+        try {
+          final errorData = json.decode(response.body);
+          String errorMessage = errorData['message'] ?? 'Failed to reset password';
+          
+          // Handle specific backend error formats
+          if (errorData.containsKey('Bad Gateway')) {
+            errorMessage = errorData['Bad Gateway'] ?? errorMessage;
+          }
+          
+          return {
+            'success': false,
+            'message': errorMessage,
+          };
+        } catch (e) {
+          return {
+            'success': false,
+            'message': 'Failed to reset password with status ${response.statusCode}',
+          };
+        }
+      }
+    } catch (e) {
+      print('Reset password error: $e');
+      return {
+        'success': false,
+        'message': 'Network error: $e',
+      };
     }
   }
   

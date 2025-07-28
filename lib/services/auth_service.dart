@@ -210,7 +210,9 @@ class AuthService extends GetxService {
       
       print('Raw login response from API: $response');
       
-      if (response != null && response['success'] == true) {
+      // Backend login returns user data directly on success (no 'success' field)
+      // Check if we have essential fields to determine success
+      if (response != null && response.containsKey('token') && response.containsKey('user_id')) {
         print('Login successful for ID: $id');
         
         // Store token first
@@ -707,53 +709,104 @@ class AuthService extends GetxService {
     }
   }
   
-  // Signup method that communicates with your backend
-  Future<bool> signup(String universityId, String username, String password) async {
+  // New OTP-based registration method (step 1: send OTP)
+  Future<Map<String, dynamic>?> registerWithOTP(String universityId, String username, String password) async {
     try {
       final apiService = Get.find<ApiService>();
-      final response = await apiService.register(universityId, username, password);
+      final response = await apiService.registerWithOTP(universityId, username, password);
       
-      print('AuthService received signup response: $response');
+      print('AuthService registerWithOTP response: $response');
+      return response;
+    } catch (e) {
+      print('AuthService registerWithOTP error: $e');
+      return null;
+    }
+  }
+
+  // Resend OTP for registration
+  Future<Map<String, dynamic>?> resendOTP(String universityId) async {
+    try {
+      final apiService = Get.find<ApiService>();
+      final response = await apiService.resendOTP(universityId);
       
-      if (response != null) {
+      print('AuthService resendOTP response: $response');
+      return response;
+    } catch (e) {
+      print('AuthService resendOTP error: $e');
+      return null;
+    }
+  }
+
+  // Verify OTP and complete registration (step 2: verify OTP)
+  Future<Map<String, dynamic>?> verifyUserOTP(String universityId, int otpValue) async {
+    try {
+      final apiService = Get.find<ApiService>();
+      final response = await apiService.verifyUser(universityId, otpValue);
+      
+      print('AuthService verifyUserOTP response: $response');
+      
+      // If verification is successful and we get a token, store it
+      if (response != null && response['success'] == true) {
         final token = response['token'];
-        
         if (token != null) {
-          // Store the token and user ID
           await storeToken(token);
           
-          // Use the provided user_id or fallback to the university_id
+          // Store user ID
           final userId = response['user_id']?.toString() ?? universityId;
           await storeUserId(userId);
+          
+          // Store username if provided
+          final username = response['username']?.toString();
+          if (username != null) {
+            await _storeUsername(username);
+            _username.value = username;
+          }
           
           // Set authentication status
           isAuthenticated.value = true;
           
-          // Check for admin status in the response
+          // Check for admin status
           final isAdminFromResponse = response['isAdmin'];
           if (isAdminFromResponse != null) {
-            // Store admin status from direct response
             isAdminUser.value = isAdminFromResponse == true;
             _adminStatus = isAdminFromResponse == true ? 'admin' : 'user';
-            
-            // Store admin status for future reference
             await _storeAdminStatus(isAdminFromResponse == true);
-            
-            print('Admin status from signup response: ${isAdminUser.value}');
-          } else {
-            // Fallback: try to decode from JWT
-            await initAdminStatus();
           }
-          
-          print('Signup successful - User ID: $userId, Is Admin: ${isAdminUser.value}');
-          return true;
         }
       }
       
-      return false;
+      return response;
     } catch (e) {
-      print('Signup error in AuthService: $e');
-      return false;
+      print('AuthService verifyUserOTP error: $e');
+      return null;
+    }
+  }
+
+  // Forgot password (step 1: send OTP to email)
+  Future<Map<String, dynamic>?> forgotPassword(String universityId) async {
+    try {
+      final apiService = Get.find<ApiService>();
+      final response = await apiService.forgotPassword(universityId);
+      
+      print('AuthService forgotPassword response: $response');
+      return response;
+    } catch (e) {
+      print('AuthService forgotPassword error: $e');
+      return null;
+    }
+  }
+
+  // Reset password with OTP (step 2: verify OTP and set new password)
+  Future<Map<String, dynamic>?> resetPassword(String universityId, int otpValue, String newPassword) async {
+    try {
+      final apiService = Get.find<ApiService>();
+      final response = await apiService.resetPassword(universityId, otpValue, newPassword);
+      
+      print('AuthService resetPassword response: $response');
+      return response;
+    } catch (e) {
+      print('AuthService resetPassword error: $e');
+      return null;
     }
   }
   
