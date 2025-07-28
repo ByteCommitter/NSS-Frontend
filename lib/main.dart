@@ -65,7 +65,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return GetBuilder<ThemeProvider>(
       builder: (themeProvider) => GetMaterialApp(
-        title: 'Sereine',
+        title: 'NSS',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
           colorScheme: ColorScheme.fromSeed(
@@ -132,7 +132,7 @@ class MyApp extends StatelessWidget {
   }
 }
 
-// Splash screen with the Sereine logo
+// Splash screen with the NSS logo
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -201,35 +201,76 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Replace SVG with icon and text
+              // NSS Logo
               Container(
-                width: 120,
-                height: 120,
+                width: 160,
+                height: 160,
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.1),
+                  color: AppColors.background,
                   shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.primary.withOpacity(0.2),
+                      blurRadius: 20,
+                      spreadRadius: 5,
+                    ),
+                  ],
                 ),
-                child: Icon(
-                  Icons.volunteer_activism,
-                  size: 60,
-                  color: AppColors.primary,
+                child: Padding(
+                  padding: const EdgeInsets.all(20), // Add padding to prevent cutoff
+                  child: Image.asset(
+                    'assets/images/NSS.png',
+                    fit: BoxFit.contain,
+                  ),
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 30),
+              
+              // NSS Title
               Text(
                 'NSS',
                 style: TextStyle(
-                  fontSize: 36,
+                  fontSize: 42,
                   fontWeight: FontWeight.bold,
                   color: AppColors.primary,
+                  letterSpacing: 2,
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
+              
+              // Subtitle
               Text(
                 'National Service Scheme',
                 style: TextStyle(
-                  fontSize: 16,
+                  fontSize: 18,
                   color: AppColors.textSecondary,
+                  fontWeight: FontWeight.w500,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              
+              // Tagline
+              Text(
+                'Not Me, But You',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: AppColors.primary.withOpacity(0.8),
+                  fontStyle: FontStyle.italic,
+                  fontWeight: FontWeight.w400,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              
+              const SizedBox(height: 60),
+              
+              // Loading indicator
+              SizedBox(
+                width: 40,
+                height: 40,
+                child: CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+                  strokeWidth: 3,
                 ),
               ),
             ],
