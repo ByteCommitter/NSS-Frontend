@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:mentalsustainability/pages/guide_page.dart';
 import 'package:mentalsustainability/pages/admin/admin_panel.dart';
 import 'package:mentalsustainability/pages/auth/registration_screen.dart';
+import 'package:mentalsustainability/pages/auth/forgot_password_screen.dart';
 import 'package:mentalsustainability/services/badge_service.dart';
 import 'package:mentalsustainability/theme/app_colors.dart';
 import 'package:mentalsustainability/theme/theme_provider.dart';
@@ -103,6 +104,11 @@ class MyApp extends StatelessWidget {
           GetPage(
             name: '/register', 
             page: () => RegistrationScreen(),
+            transition: Transition.fadeIn,
+          ),
+          GetPage(
+            name: '/forgot-password', 
+            page: () => const ForgotPasswordScreen(),
             transition: Transition.fadeIn,
           ),
           GetPage(
