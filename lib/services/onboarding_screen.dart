@@ -117,7 +117,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
   
   void _nextPage() {
-    if (_currentPage < _questions.length) {
+    if (_currentPage == 0) {
+      // Skip questionnaire and go directly to main app
+      Get.offAll(() => const BaseScreen());
+    } else if (_currentPage < _questions.length) {
       _pageController.nextPage(
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
@@ -377,7 +380,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           ),
           const SizedBox(height: 20),
           Text(
-            'Your journey to mental sustainability begins here. Let\'s personalize your experience with a quick questionnaire.',
+            'Your journey to mental sustainability begins here. Ready to make a positive impact with NSS?',
             style: TextStyle(
               fontSize: 16,
               color: AppColors.textSecondary,
