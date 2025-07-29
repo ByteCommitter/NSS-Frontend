@@ -100,6 +100,13 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.white,
+      appBar: AppBar(
+          title: const Text(
+            "Login",
+          ),
+          backgroundColor: AppColors.white,
+          foregroundColor: AppColors.textPrimary,
+          elevation: 0),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
@@ -108,7 +115,7 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const SizedBox(height: 60),
+                const SizedBox(height: 45),
 
                 // NSS Logo
                 Image.asset(

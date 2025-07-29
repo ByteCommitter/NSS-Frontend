@@ -103,7 +103,7 @@ class MyApp extends StatelessWidget {
           ),
           GetPage(
             name: '/register',
-            page: () => RegistrationScreen(),
+            page: () => const RegistrationScreen(),
             transition: Transition.fadeIn,
           ),
           GetPage(
@@ -221,9 +221,11 @@ class _SplashScreenState extends State<SplashScreen>
                 child: Padding(
                   padding:
                       const EdgeInsets.all(20), // Add padding to prevent cutoff
-                  child: Image.asset(
-                    'assets/images/NSS.png',
-                    fit: BoxFit.contain,
+                  child: ClipOval(
+                    child: Image.asset(
+                      'assets/images/NSS.png',
+                      fit: BoxFit.contain,
+                    ),
                   ),
                 ),
               ),

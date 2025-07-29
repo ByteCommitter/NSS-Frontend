@@ -125,15 +125,9 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.white,
-      appBar: AppBar(
-        title: const Text('Create Account'),
-        backgroundColor: AppColors.white,
-        foregroundColor: AppColors.textPrimary,
-        elevation: 0,
-      ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
+          padding: const EdgeInsets.fromLTRB(24, 12, 24, 12),
           child: Form(
             key: _formKey,
             child: Column(
@@ -143,8 +137,8 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                 Center(
                   child: Image.asset(
                     'assets/images/NSS.png',
-                    width: 100,
-                    height: 100,
+                    width: 130,
+                    height: 130,
                   ),
                 ),
                 const SizedBox(height: 32),
@@ -173,7 +167,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 40),
+                const SizedBox(height: 25),
 
                 // University ID field
                 TextFormField(
@@ -197,7 +191,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                     return null;
                   },
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 15),
 
                 // Username field
                 TextFormField(
@@ -220,7 +214,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                     return null;
                   },
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 15),
 
                 // Password field
                 TextFormField(
@@ -257,7 +251,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                     return null;
                   },
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 15),
 
                 // Confirm Password field
                 TextFormField(
@@ -295,43 +289,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                     return null;
                   },
                 ),
-                const SizedBox(height: 32),
-
-                // Register button
-                SizedBox(
-                  width: double.infinity,
-                  height: 56,
-                  child: ElevatedButton(
-                    onPressed: _isLoading ? null : _register,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      elevation: 2,
-                    ),
-                    child: _isLoading
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                              strokeWidth: 2,
-                            ),
-                          )
-                        : const Text(
-                            'Register',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-
-                // Information about email verification
+                const SizedBox(height: 18),
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
@@ -372,10 +330,83 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 18),
+
+                // Register button
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: ElevatedButton(
+                    onPressed: _isLoading ? null : _register,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 2,
+                    ),
+                    child: _isLoading
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          )
+                        : const Text(
+                            'Register',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                  ),
+                ),
+
+                // Information about email verification
 
                 // Login link
                 Row(
+                  children: [
+                    Expanded(child: Divider(color: AppColors.divider)),
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Text(
+                        'OR',
+                        style: TextStyle(
+                          color: AppColors.textSecondary,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                    Expanded(child: Divider(color: AppColors.divider)),
+                  ],
+                ),
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: OutlinedButton(
+                    onPressed: () => Get.to(() => const LoginScreen()),
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(color: AppColors.primary, width: 2),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: Text(
+                      'Login',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 32),
+                /*Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
@@ -393,7 +424,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                       ),
                     ),
                   ],
-                ),
+                )*/
               ],
             ),
           ),
