@@ -14,9 +14,14 @@ import 'package:mentalsustainability/services/socket_notification_service.dart';
 import 'package:mentalsustainability/middleware/auth_middleware.dart';
 import 'package:mentalsustainability/middleware/admin_middleware.dart';
 import 'package:mentalsustainability/pages/base_widget.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart'; // Import the package
 
 void main() async {
+  FlutterNativeSplash.remove();
+  // Ensure Flutter widgets are initialized
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Preserve the native splash screen until app is ready
 
   // Initialize services
   await initServices();
@@ -25,6 +30,8 @@ void main() async {
   print('Auth service initialized: ${Get.isRegistered<AuthService>()}');
   print('API service initialized: ${Get.isRegistered<ApiService>()}');
   print('Badge service initialized: ${Get.isRegistered<BadgeService>()}');
+
+  // Remove the native splash screen once services are initialized
 
   runApp(const MyApp());
 }
@@ -72,7 +79,7 @@ class MyApp extends StatelessWidget {
             seedColor: AppColors.primary,
             primary: AppColors.primary,
             secondary: AppColors.accent,
-            background: AppColors.background,
+            surface: AppColors.background,
             error: AppColors.error,
           ),
           useMaterial3: true,
@@ -89,16 +96,24 @@ class MyApp extends StatelessWidget {
             color: AppColors.divider,
           ),
         ),
-        initialRoute: '/',
+        // CHANGED: Start with custom splash screen route
+        initialRoute: '/splash',
         getPages: [
+          // Re-added the custom SplashScreen route
+          GetPage(
+            name: '/splash',
+            page: () => const SplashScreen(),
+            transition: Transition.fade,
+          ),
           GetPage(
             name: '/',
             page: () => AuthWrapper(),
-            transition: Transition.fadeIn,
+            transition: Transition.fade,
           ),
           GetPage(
             name: '/login',
-            page: () => AuthWrapper(),
+            page: () =>
+                AuthWrapper(), // AuthWrapper handles login/home redirection
             transition: Transition.fadeIn,
           ),
           GetPage(
@@ -132,7 +147,7 @@ class MyApp extends StatelessWidget {
   }
 }
 
-// Splash screen with the NSS logo
+// Improved Splash screen with the NSS logo (retained)
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -145,6 +160,7 @@ class _SplashScreenState extends State<SplashScreen>
   late AnimationController _controller;
   late Animation<double> _fadeInAnimation;
   late Animation<double> _scaleAnimation;
+  late Animation<double> _pulseAnimation;
 
   @override
   void initState() {
@@ -152,29 +168,38 @@ class _SplashScreenState extends State<SplashScreen>
 
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1500),
+      duration: const Duration(milliseconds: 2000),
     );
 
     _fadeInAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
         parent: _controller,
-        curve: const Interval(0.0, 0.7, curve: Curves.easeIn),
+        curve: const Interval(0.0, 0.6, curve: Curves.easeIn),
       ),
     );
 
     _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
       CurvedAnimation(
         parent: _controller,
-        curve: const Interval(0.2, 1.0, curve: Curves.easeOutBack),
+        curve: const Interval(0.2, 0.8, curve: Curves.easeOutBack),
       ),
     );
 
-    _controller.forward();
+    // Pulse animation for the logo
+    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.05).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.6, 1.0, curve: Curves.easeInOut),
+      ),
+    );
 
-    // Navigate to the auth page after splash animation
-    Future.delayed(const Duration(seconds: 2), () {
-      Get.offAllNamed(
-          '/'); // Changed to '/' since that's the auth wrapper route
+    _controller.forward().then((_) {
+      // Add a slight delay before navigation
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (mounted) {
+          Get.offAllNamed('/');
+        }
+      });
     });
   }
 
@@ -203,31 +228,36 @@ class _SplashScreenState extends State<SplashScreen>
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // NSS Logo
-              Container(
-                width: 160,
-                height: 160,
-                decoration: BoxDecoration(
-                  color: AppColors.background,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.primary.withOpacity(0.2),
-                      blurRadius: 20,
-                      spreadRadius: 5,
+              // NSS Logo with pulse animation
+              AnimatedBuilder(
+                animation: _pulseAnimation,
+                builder: (context, child) {
+                  return Transform.scale(
+                    scale: _pulseAnimation.value,
+                    child: Container(
+                      width: 160,
+                      height: 160,
+                      decoration: BoxDecoration(
+                        color: AppColors.background,
+                        borderRadius: BorderRadius.circular(80),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.primary.withOpacity(0.3),
+                            blurRadius: 20,
+                            spreadRadius: 5,
+                          ),
+                        ],
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(2),
+                        child: Image.asset(
+                          'assets/images/NSS.png',
+                          fit: BoxFit.contain,
+                        ),
+                      ),
                     ),
-                  ],
-                ),
-                child: Padding(
-                  padding:
-                      const EdgeInsets.all(20), // Add padding to prevent cutoff
-                  child: ClipOval(
-                    child: Image.asset(
-                      'assets/images/NSS.png',
-                      fit: BoxFit.contain,
-                    ),
-                  ),
-                ),
+                  );
+                },
               ),
               const SizedBox(height: 30),
 
@@ -269,14 +299,23 @@ class _SplashScreenState extends State<SplashScreen>
 
               const SizedBox(height: 60),
 
-              // Loading indicator
-              SizedBox(
-                width: 40,
-                height: 40,
-                child: CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
-                  strokeWidth: 3,
-                ),
+              // Loading indicator with fade-in
+              AnimatedBuilder(
+                animation: _fadeInAnimation,
+                builder: (context, child) {
+                  return Opacity(
+                    opacity: _fadeInAnimation.value,
+                    child: SizedBox(
+                      width: 40,
+                      height: 40,
+                      child: CircularProgressIndicator(
+                        valueColor:
+                            AlwaysStoppedAnimation<Color>(AppColors.primary),
+                        strokeWidth: 3,
+                      ),
+                    ),
+                  );
+                },
               ),
             ],
           ),

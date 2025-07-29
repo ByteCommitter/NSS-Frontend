@@ -1,4 +1,5 @@
 import 'package:get/get.dart';
+import 'package:mentalsustainability/main.dart';
 import 'package:mentalsustainability/pages/Home/home_page.dart';
 import 'package:mentalsustainability/pages/Development/socket_test_page.dart';
 import 'package:mentalsustainability/pages/login_screen.dart';
@@ -16,7 +17,7 @@ class AppRoutes {
   static const String forgotPassword = '/forgot-password';
   static const String resetPassword = '/reset-password';
   static const String otpVerification = '/otp-verification';
-
+  static const String splash = '/splash';
   // Development routes
   static const String socketDebug = '/socket-debug';
 
@@ -28,6 +29,10 @@ class AppRoutes {
       page: () => const LoginScreen(),
       transition: Transition.fadeIn,
     ),
+    GetPage(
+        name: splash,
+        page: () => const SplashScreen(),
+        transition: Transition.fadeIn),
     GetPage(
       name: login,
       page: () => const LoginScreen(),
