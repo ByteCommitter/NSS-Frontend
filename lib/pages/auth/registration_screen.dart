@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:mentalsustainability/pages/login_screen.dart';
 import 'package:mentalsustainability/theme/app_colors.dart';
 import 'package:mentalsustainability/services/auth_service.dart';
 import 'package:mentalsustainability/pages/auth/otp_verification_screen.dart';
@@ -17,7 +18,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
-  
+
   final AuthService _authService = Get.find<AuthService>();
   bool _isLoading = false;
   bool _obscurePassword = true;
@@ -78,17 +79,17 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
 
           // Navigate to OTP verification screen
           Get.to(() => OTPVerificationScreen(
-            universityId: _universityIdController.text.trim(),
-            username: _usernameController.text.trim(),
-            isForRegistration: true,
-          ));
+                universityId: _universityIdController.text.trim(),
+                username: _usernameController.text.trim(),
+                isForRegistration: true,
+              ));
         } else {
           // Registration failed
           String errorMessage = 'Registration failed. Please try again.';
           if (response != null && response['message'] != null) {
             errorMessage = response['message'];
           }
-          
+
           Get.snackbar(
             'Registration Failed',
             errorMessage,
@@ -147,7 +148,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                   ),
                 ),
                 const SizedBox(height: 32),
-                
+
                 // Welcome text
                 Center(
                   child: Column(
@@ -173,7 +174,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                   ),
                 ),
                 const SizedBox(height: 40),
-                
+
                 // University ID field
                 TextFormField(
                   controller: _universityIdController,
@@ -197,7 +198,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                   },
                 ),
                 const SizedBox(height: 20),
-                
+
                 // Username field
                 TextFormField(
                   controller: _usernameController,
@@ -220,7 +221,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                   },
                 ),
                 const SizedBox(height: 20),
-                
+
                 // Password field
                 TextFormField(
                   controller: _passwordController,
@@ -234,7 +235,9 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                     prefixIcon: Icon(Icons.lock, color: AppColors.primary),
                     suffixIcon: IconButton(
                       icon: Icon(
-                        _obscurePassword ? Icons.visibility : Icons.visibility_off,
+                        _obscurePassword
+                            ? Icons.visibility
+                            : Icons.visibility_off,
                         color: AppColors.textSecondary,
                       ),
                       onPressed: () {
@@ -255,7 +258,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                   },
                 ),
                 const SizedBox(height: 20),
-                
+
                 // Confirm Password field
                 TextFormField(
                   controller: _confirmPasswordController,
@@ -266,10 +269,13 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    prefixIcon: Icon(Icons.lock_outline, color: AppColors.primary),
+                    prefixIcon:
+                        Icon(Icons.lock_outline, color: AppColors.primary),
                     suffixIcon: IconButton(
                       icon: Icon(
-                        _obscureConfirmPassword ? Icons.visibility : Icons.visibility_off,
+                        _obscureConfirmPassword
+                            ? Icons.visibility
+                            : Icons.visibility_off,
                         color: AppColors.textSecondary,
                       ),
                       onPressed: () {
@@ -290,7 +296,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                   },
                 ),
                 const SizedBox(height: 32),
-                
+
                 // Register button
                 SizedBox(
                   width: double.infinity,
@@ -324,7 +330,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                   ),
                 ),
                 const SizedBox(height: 24),
-                
+
                 // Information about email verification
                 Container(
                   padding: const EdgeInsets.all(16),
@@ -367,7 +373,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                   ),
                 ),
                 const SizedBox(height: 24),
-                
+
                 // Login link
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -377,7 +383,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                       style: TextStyle(color: AppColors.textSecondary),
                     ),
                     TextButton(
-                      onPressed: () => Get.back(),
+                      onPressed: () => Get.to(() => const LoginScreen()),
                       child: Text(
                         'Login',
                         style: TextStyle(

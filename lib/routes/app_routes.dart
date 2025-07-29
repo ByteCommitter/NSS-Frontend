@@ -16,10 +16,10 @@ class AppRoutes {
   static const String forgotPassword = '/forgot-password';
   static const String resetPassword = '/reset-password';
   static const String otpVerification = '/otp-verification';
-  
+
   // Development routes
   static const String socketDebug = '/socket-debug';
-  
+
   /// Define all application routes here
   static final routes = [
     // Authentication routes
@@ -43,14 +43,14 @@ class AppRoutes {
       page: () => const ForgotPasswordScreen(),
       transition: Transition.rightToLeft,
     ),
-    
+
     // Main routes
     GetPage(
       name: home,
       page: () => const HomePage(),
       transition: Transition.fadeIn,
     ),
-    
+
     // Development routes
     GetPage(
       name: socketDebug,
@@ -58,22 +58,22 @@ class AppRoutes {
       transition: Transition.rightToLeft,
     ),
   ];
-  
+
   /// Navigate to a named route
   static void navigateTo(String routeName) {
     Get.toNamed(routeName);
   }
-  
+
   /// Navigate to a named route and remove previous route from stack
   static void navigateOffTo(String routeName) {
     Get.offNamed(routeName);
   }
-  
+
   /// Navigate to a named route and remove all previous routes from stack
   static void navigateOffAllTo(String routeName) {
     Get.offAllNamed(routeName);
   }
-  
+
   /// Go back to previous route
   static void goBack() {
     Get.back();

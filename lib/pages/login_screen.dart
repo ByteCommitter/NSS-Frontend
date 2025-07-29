@@ -17,7 +17,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _universityIdController = TextEditingController();
   final _passwordController = TextEditingController();
-  
+
   final AuthService _authService = Get.find<AuthService>();
   bool _isLoading = false;
   bool _obscurePassword = true;
@@ -66,7 +66,7 @@ class _LoginScreenState extends State<LoginScreen> {
           if (response != null && response['message'] != null) {
             errorMessage = response['message'];
           }
-          
+
           Get.snackbar(
             'Login Failed',
             errorMessage,
@@ -109,7 +109,7 @@ class _LoginScreenState extends State<LoginScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 const SizedBox(height: 60),
-                
+
                 // NSS Logo
                 Image.asset(
                   'assets/images/NSS.png',
@@ -117,7 +117,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   height: 120,
                 ),
                 const SizedBox(height: 40),
-                
+
                 // Welcome text
                 const Text(
                   "Not Me but You",
@@ -128,7 +128,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 16),
-                
+
                 Text(
                   "Sign in to access your NSS dashboard and resources",
                   style: TextStyle(
@@ -138,7 +138,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 50),
-                
+
                 // University ID field
                 TextFormField(
                   controller: _universityIdController,
@@ -162,7 +162,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   },
                 ),
                 const SizedBox(height: 20),
-                
+
                 // Password field
                 TextFormField(
                   controller: _passwordController,
@@ -176,7 +176,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     prefixIcon: Icon(Icons.lock, color: AppColors.primary),
                     suffixIcon: IconButton(
                       icon: Icon(
-                        _obscurePassword ? Icons.visibility : Icons.visibility_off,
+                        _obscurePassword
+                            ? Icons.visibility
+                            : Icons.visibility_off,
                         color: AppColors.textSecondary,
                       ),
                       onPressed: () {
@@ -194,7 +196,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   },
                 ),
                 const SizedBox(height: 16),
-                
+
                 // Forgot password link
                 Align(
                   alignment: Alignment.centerRight,
@@ -210,7 +212,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 const SizedBox(height: 24),
-                
+
                 // Login button
                 SizedBox(
                   width: double.infinity,
@@ -244,7 +246,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 const SizedBox(height: 24),
-                
+
                 // Divider
                 Row(
                   children: [
@@ -263,7 +265,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ],
                 ),
                 const SizedBox(height: 24),
-                
+
                 // Register button
                 SizedBox(
                   width: double.infinity,
@@ -287,7 +289,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 const SizedBox(height: 32),
-                
+
                 // Terms and privacy text
                 Text(
                   "By continuing, you agree to our Terms of Service and Privacy Policy",

@@ -17,27 +17,27 @@ import 'package:mentalsustainability/pages/base_widget.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // Initialize services
   await initServices();
-  
+
   // DEBUG: Print info about the initialized services
   print('Auth service initialized: ${Get.isRegistered<AuthService>()}');
   print('API service initialized: ${Get.isRegistered<ApiService>()}');
   print('Badge service initialized: ${Get.isRegistered<BadgeService>()}');
-  
+
   runApp(const MyApp());
 }
 
 // Initialize all services
 Future<void> initServices() async {
   print('Starting services initialization...');
-  
+
   // Initialize providers in correct order
   final authService = Get.put(AuthService());
   Get.put(ThemeProvider());
   Get.put(ApiService());
-  
+
   // Initialize BadgeService after auth service is available
   try {
     Get.put(BadgeService(), permanent: true);
@@ -45,16 +45,16 @@ Future<void> initServices() async {
   } catch (e) {
     print('Error initializing BadgeService in initServices: $e');
   }
-  
+
   // Verify auth status on startup
   await authService.checkAndSetAuthStatus();
   print('Auth status: ${authService.isAuthenticated.value}');
-  
+
   // Initialize SocketNotificationService - but don't connect immediately
   print('Initializing SocketNotificationService...');
   await Get.putAsync(() => SocketNotificationService().init());
   print('SocketNotificationService initialized');
-  
+
   print('All services initialized');
 }
 
@@ -82,7 +82,7 @@ class MyApp extends StatelessWidget {
             foregroundColor: AppColors.primary,
             elevation: 0,
           ),
-          cardTheme: CardTheme(
+          cardTheme: CardThemeData(
             color: AppColors.cardBackground,
           ),
           dividerTheme: DividerTheme.of(context).copyWith(
@@ -92,27 +92,27 @@ class MyApp extends StatelessWidget {
         initialRoute: '/',
         getPages: [
           GetPage(
-            name: '/', 
+            name: '/',
             page: () => AuthWrapper(),
             transition: Transition.fadeIn,
           ),
           GetPage(
-            name: '/login', 
+            name: '/login',
             page: () => AuthWrapper(),
             transition: Transition.fadeIn,
           ),
           GetPage(
-            name: '/register', 
+            name: '/register',
             page: () => RegistrationScreen(),
             transition: Transition.fadeIn,
           ),
           GetPage(
-            name: '/forgot-password', 
+            name: '/forgot-password',
             page: () => const ForgotPasswordScreen(),
             transition: Transition.fadeIn,
           ),
           GetPage(
-            name: '/home', 
+            name: '/home',
             page: () => const BaseScreen(),
             middlewares: [AuthMiddleware()],
             transition: Transition.fadeIn,
@@ -140,7 +140,8 @@ class SplashScreen extends StatefulWidget {
   _SplashScreenState createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderStateMixin {
+class _SplashScreenState extends State<SplashScreen>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _fadeInAnimation;
   late Animation<double> _scaleAnimation;
@@ -148,34 +149,35 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
   @override
   void initState() {
     super.initState();
-    
+
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1500),
     );
-    
+
     _fadeInAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
         parent: _controller,
         curve: const Interval(0.0, 0.7, curve: Curves.easeIn),
       ),
     );
-    
+
     _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
       CurvedAnimation(
         parent: _controller,
         curve: const Interval(0.2, 1.0, curve: Curves.easeOutBack),
       ),
     );
-    
+
     _controller.forward();
-    
+
     // Navigate to the auth page after splash animation
     Future.delayed(const Duration(seconds: 2), () {
-      Get.offAllNamed('/'); // Changed to '/' since that's the auth wrapper route
+      Get.offAllNamed(
+          '/'); // Changed to '/' since that's the auth wrapper route
     });
   }
-  
+
   @override
   void dispose() {
     _controller.dispose();
@@ -217,7 +219,8 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                   ],
                 ),
                 child: Padding(
-                  padding: const EdgeInsets.all(20), // Add padding to prevent cutoff
+                  padding:
+                      const EdgeInsets.all(20), // Add padding to prevent cutoff
                   child: Image.asset(
                     'assets/images/NSS.png',
                     fit: BoxFit.contain,
@@ -225,7 +228,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                 ),
               ),
               const SizedBox(height: 30),
-              
+
               // NSS Title
               Text(
                 'NSS',
@@ -237,7 +240,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                 ),
               ),
               const SizedBox(height: 12),
-              
+
               // Subtitle
               Text(
                 'National Service Scheme',
@@ -249,7 +252,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 8),
-              
+
               // Tagline
               Text(
                 'Not Me, But You',
@@ -261,9 +264,9 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                 ),
                 textAlign: TextAlign.center,
               ),
-              
+
               const SizedBox(height: 60),
-              
+
               // Loading indicator
               SizedBox(
                 width: 40,

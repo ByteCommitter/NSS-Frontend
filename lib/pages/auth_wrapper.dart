@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:mentalsustainability/pages/auth/registration_screen.dart';
 import 'package:mentalsustainability/services/auth_service.dart';
 import 'package:mentalsustainability/theme/app_colors.dart';
 
@@ -10,7 +11,8 @@ class AuthWrapper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    print('Building AuthWrapper. Auth state: ${authService.isAuthenticated.value}');
+    print(
+        'Building AuthWrapper. Auth state: ${authService.isAuthenticated.value}');
 
     return Obx(() {
       if (authService.isAuthenticated.value) {
@@ -44,7 +46,7 @@ class AuthWrapper extends StatelessWidget {
         );
       } else {
         print('User is not authenticated. Showing login screen.');
-        return const LoginScreen();
+        return const RegistrationScreen();
       }
     });
   }
@@ -157,7 +159,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     height: 120,
                   ),
                   const SizedBox(height: 30),
-                  
+
                   // Welcome text
                   Text(
                     'Welcome Back',
@@ -177,7 +179,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 40),
-                  
+
                   // Username field
                   TextFormField(
                     controller: _usernameController,
@@ -190,7 +192,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: AppColors.primary, width: 2),
+                        borderSide:
+                            BorderSide(color: AppColors.primary, width: 2),
                       ),
                     ),
                     validator: (value) {
@@ -201,7 +204,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     },
                   ),
                   const SizedBox(height: 20),
-                  
+
                   // Password field
                   TextFormField(
                     controller: _passwordController,
@@ -214,7 +217,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: AppColors.primary, width: 2),
+                        borderSide:
+                            BorderSide(color: AppColors.primary, width: 2),
                       ),
                     ),
                     obscureText: true,
@@ -226,7 +230,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     },
                   ),
                   const SizedBox(height: 16),
-                  
+
                   // Forgot password link
                   Align(
                     alignment: Alignment.centerRight,
@@ -242,7 +246,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                   const SizedBox(height: 20),
-                  
+
                   // Login button
                   SizedBox(
                     width: double.infinity,
@@ -269,7 +273,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                   const SizedBox(height: 24),
-                  
+
                   // Sign up link
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
