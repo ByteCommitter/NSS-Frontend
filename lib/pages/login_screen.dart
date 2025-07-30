@@ -161,9 +161,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     if (value == null || value.trim().isEmpty) {
                       return 'Please enter your University ID';
                     }
-                    // Validate ID format using regex
+                    // Validate ID format using regex (now includes admin exception)
                     if (!_authService.isValidId(value.trim())) {
-                      return 'ID must be in format f20XXXXX';
+                      return 'ID must be in format f20XXXXX or "admin"';
                     }
                     return null;
                   },

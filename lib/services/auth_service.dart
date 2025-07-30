@@ -187,8 +187,13 @@ class AuthService extends GetxService {
   
   
   
-  // Validate ID format (f20XXXXX)
+  // Validate ID format (f20XXXXX) or allow "admin" for admin login
   bool isValidId(String id) {
+    // Special case: allow "admin" as a valid ID for admin login
+    if (id.toLowerCase() == 'admin') {
+      return true;
+    }
+    // Regular validation for university IDs
     return ValidationPatterns.idPattern.hasMatch(id);
   }
   
