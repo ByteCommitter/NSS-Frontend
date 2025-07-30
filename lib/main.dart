@@ -14,10 +14,8 @@ import 'package:mentalsustainability/services/socket_notification_service.dart';
 import 'package:mentalsustainability/middleware/auth_middleware.dart';
 import 'package:mentalsustainability/middleware/admin_middleware.dart';
 import 'package:mentalsustainability/pages/base_widget.dart';
-import 'package:flutter_native_splash/flutter_native_splash.dart'; // Import the package
 
 void main() async {
-  FlutterNativeSplash.remove();
   // Ensure Flutter widgets are initialized
   WidgetsFlutterBinding.ensureInitialized();
 
