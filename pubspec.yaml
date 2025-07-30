@@ -113,25 +113,19 @@ flutter:
 
 # Flutter Launcher Icons configuration
 flutter_launcher_icons:
-  android: true
+  android: "launcher_icon"
   ios: true
   image_path: "assets/images/NSS.png"
-  # Apply zoom to make logo more prominent
-  image_path_android: "assets/images/NSS.png"
-  min_sdk_android: 21
-  adaptive_icon_background: "#FFFFFF" # white background for adaptive icons
-  adaptive_icon_foreground: "assets/images/NSS.png"
-  adaptive_icon_foreground_scale_factor: 0.6  # Scale to 60% to prevent cutoff and give more breathing room
-  remove_alpha_ios: true
+  min_sdk_android: 21 # android min sdk min:16, default 21
   web:
     generate: true
     image_path: "assets/images/NSS.png"
-    background_color: "#FFFFFF"
-    theme_color: "#FFFFFF"
+    background_color: "#hexcode"
+    theme_color: "#hexcode"
   windows:
     generate: true
-    image_path: "assets/images/sereine_logo_icon_only.png"
-    icon_size: 48 # Windows icon size in pixels
+    image_path: "assets/images/NSS.png"
+    icon_size: 48 # min:48, max:256, default: 48
   macos:
     generate: true
-    image_path: "assets/images/sereine_logo_icon_only.png"
+    image_path: "assets/images/NSS.png"
