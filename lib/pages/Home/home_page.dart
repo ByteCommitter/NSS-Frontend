@@ -45,7 +45,7 @@ class _HomePageState extends State<HomePage> {
   
   // Add cancellation tokens for async operations
   bool _isDisposed = false;
-  List<Timer> _activeTimers = [];
+  final List<Timer> _activeTimers = [];
   
   @override
   void initState() {
@@ -985,8 +985,8 @@ class _HomePageState extends State<HomePage> {
                                     const SizedBox(height: 16),
                                     TextButton.icon(
                                       onPressed: _loadAllData,
-                                      icon: Icon(Icons.refresh, size: 16),
-                                      label: Text('Refresh'),
+                                      icon: const Icon(Icons.refresh, size: 16),
+                                      label: const Text('Refresh'),
                                       style: TextButton.styleFrom(
                                         foregroundColor: AppColors.primary,
                                       ),
@@ -1455,7 +1455,7 @@ class _HomePageState extends State<HomePage> {
     } else {
       // Use a simple color background instead of potentially missing image
       return DecorationImage(
-        image: AssetImage('assets/images/wooden_shelf.png'),
+        image: const AssetImage('assets/images/wooden_shelf.png'),
         fit: BoxFit.cover,
         colorFilter: ColorFilter.mode(
           Colors.black.withOpacity(0.15),
@@ -1564,7 +1564,7 @@ class _HomePageState extends State<HomePage> {
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(
+                              const Icon(
                                 Icons.stars,
                                 color: Colors.white,
                                 size: 14,
@@ -1701,16 +1701,16 @@ class _HomePageState extends State<HomePage> {
                                   ),
                                 ],
                               ),
-                              child: Row(
+                              child: const Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  const Icon(
+                                  Icon(
                                     Icons.check_circle,
                                     color: Colors.white,
                                     size: 16,
                                   ),
-                                  const SizedBox(width: 4),
-                                  const Text(
+                                  SizedBox(width: 4),
+                                  Text(
                                     'Registered',
                                     style: TextStyle(
                                       color: Colors.white,
@@ -1792,7 +1792,7 @@ class _HomePageState extends State<HomePage> {
           width: 280,
           height: 220,
           fit: BoxFit.cover,
-          headers: {
+          headers: const {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
           },
           loadingBuilder: (context, child, loadingProgress) {
@@ -2142,16 +2142,16 @@ class _HomePageState extends State<HomePage> {
                       ),
                     ],
                   ),
-                  child: Row(
+                  child: const Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.check_circle,
                         color: Colors.white,
                         size: 14,
                       ),
-                      const SizedBox(width: 4),
-                      const Text(
+                      SizedBox(width: 4),
+                      Text(
                         'REGISTERED',
                         style: TextStyle(
                           color: Colors.white,

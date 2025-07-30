@@ -172,7 +172,7 @@ class _EventsManagementState extends State<EventsManagement> {
                             Get.dialog(
                               AlertDialog(
                                 title: const Text('Select Event to Delete Permanently'),
-                                content: Container(
+                                content: SizedBox(
                                   width: double.maxFinite,
                                   child: ListView.builder(
                                     shrinkWrap: true,
@@ -306,7 +306,7 @@ class _EventsManagementState extends State<EventsManagement> {
           const SizedBox(height: 8),
           Row(
             children: [
-              Icon(Icons.star, size: 16, color: Colors.amber),
+              const Icon(Icons.star, size: 16, color: Colors.amber),
               const SizedBox(width: 4),
               Text('${event['points'] ?? 0} points for participation'),
             ],
@@ -588,7 +588,7 @@ class _EventsManagementState extends State<EventsManagement> {
       StatefulBuilder(
         builder: (context, setState) {
           // FIXED: Move functions inside StatefulBuilder so they can update state
-          Future<void> _selectDate(BuildContext context) async {
+          Future<void> selectDate(BuildContext context) async {
             final DateTime? picked = await showDatePicker(
               context: context,
               initialDate: selectedDate,
@@ -603,7 +603,7 @@ class _EventsManagementState extends State<EventsManagement> {
             }
           }
           
-          Future<void> _selectTime(BuildContext context, TextEditingController controller, bool isFromTime) async {
+          Future<void> selectTime(BuildContext context, TextEditingController controller, bool isFromTime) async {
             final TimeOfDay initialTime = isFromTime ? selectedFromTime : selectedToTime;
             final TimeOfDay? picked = await showTimePicker(
               context: context,
@@ -667,10 +667,10 @@ class _EventsManagementState extends State<EventsManagement> {
                         border: const OutlineInputBorder(),
                         suffixIcon: IconButton(
                           icon: const Icon(Icons.calendar_today),
-                          onPressed: () => _selectDate(context),
+                          onPressed: () => selectDate(context),
                         ),
                       ),
-                      onTap: () => _selectDate(context),
+                      onTap: () => selectDate(context),
                     ),
                     const SizedBox(height: 16),
                     // FIXED: Time pickers with proper state management
@@ -685,10 +685,10 @@ class _EventsManagementState extends State<EventsManagement> {
                               border: const OutlineInputBorder(),
                               suffixIcon: IconButton(
                                 icon: const Icon(Icons.access_time),
-                                onPressed: () => _selectTime(context, fromTimeController, true),
+                                onPressed: () => selectTime(context, fromTimeController, true),
                               ),
                             ),
-                            onTap: () => _selectTime(context, fromTimeController, true),
+                            onTap: () => selectTime(context, fromTimeController, true),
                           ),
                         ),
                         const SizedBox(width: 16),
@@ -701,10 +701,10 @@ class _EventsManagementState extends State<EventsManagement> {
                               border: const OutlineInputBorder(),
                               suffixIcon: IconButton(
                                 icon: const Icon(Icons.access_time),
-                                onPressed: () => _selectTime(context, toTimeController, false),
+                                onPressed: () => selectTime(context, toTimeController, false),
                               ),
                             ),
-                            onTap: () => _selectTime(context, toTimeController, false),
+                            onTap: () => selectTime(context, toTimeController, false),
                           ),
                         ),
                       ],

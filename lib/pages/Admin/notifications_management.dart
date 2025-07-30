@@ -105,13 +105,13 @@ class _NotificationsManagementState extends State<NotificationsManagement> {
                 
                 Expanded(
                   child: notifications.isEmpty
-                      ? Center(
+                      ? const Center(
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Icon(Icons.notifications_none, size: 64, color: Colors.grey),
-                              const SizedBox(height: 16),
-                              const Text(
+                              SizedBox(height: 16),
+                              Text(
                                 'No notifications sent',
                                 style: TextStyle(fontSize: 18, color: Colors.grey),
                               ),

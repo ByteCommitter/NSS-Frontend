@@ -236,7 +236,7 @@ class _UsersManagementState extends State<UsersManagement> {
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(
+                              const Icon(
                                 Icons.people_outline,
                                 size: 64, 
                                 color: Colors.grey,

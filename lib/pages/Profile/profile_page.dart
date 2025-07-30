@@ -154,7 +154,7 @@ class _ProfilePageState extends State<ProfilePage> {
           }
           
           // Call refreshUserStatus() after a brief delay
-          Future.delayed(Duration(seconds: 1), () {
+          Future.delayed(const Duration(seconds: 1), () {
             if (mounted) {
               _refreshVolunteerStatus();
             }
@@ -456,7 +456,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     child: ElevatedButton.icon(
                       onPressed: _isLoading ? null : _registerAsVolunteer,
                       icon: _isLoading 
-                        ? SizedBox(
+                        ? const SizedBox(
                             width: 20,
                             height: 20,
                             child: CircularProgressIndicator(
@@ -464,7 +464,7 @@ class _ProfilePageState extends State<ProfilePage> {
                               color: Colors.white,
                             ),
                           )
-                        : Icon(Icons.volunteer_activism),
+                        : const Icon(Icons.volunteer_activism),
                       label: Text(_isLoading ? 'Submitting...' : 'Register as Volunteer'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,

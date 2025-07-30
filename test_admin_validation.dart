@@ -1,7 +1,6 @@
 // Test script to verify admin login validation logic
 // This is just for testing - not part of the main app
 
-import 'dart:io';
 
 // Copy the regex pattern from the app
 class ValidationPatterns {

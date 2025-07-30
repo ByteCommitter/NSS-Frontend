@@ -33,15 +33,15 @@ class ApiConfig {
   static String get apiBase {
     if (kIsWeb) {
       // For web testing - check for production URL first
-      const String? prodUrl = String.fromEnvironment('WEB_API_URL');
-      if (prodUrl != null && prodUrl.isNotEmpty) {
+      const String prodUrl = String.fromEnvironment('WEB_API_URL');
+      if (prodUrl.isNotEmpty) {
         return prodUrl;
       }
       return 'http://localhost:8081/';
     } else {
       // Check if we're in production/staging mode
-      const String? prodUrl = String.fromEnvironment('API_URL');
-      if (prodUrl != null && prodUrl.isNotEmpty) {
+      const String prodUrl = String.fromEnvironment('API_URL');
+      if (prodUrl.isNotEmpty) {
         return prodUrl;
       }
       
@@ -974,29 +974,27 @@ class AuthService extends GetxService {
         // Call the new volunteerStatus endpoint
         final response = await apiService.getVolunteerStatus(userId);
         
-        if (response != null) {
-          final int verificationStatus = response['verificationStatus'] ?? -1;
-          
-          // Update user status based on verificationStatus
-          switch (verificationStatus) {
-            case 1:  // Verified volunteer
-              _isVolunteer.value = true;
-              _isWishVolunteer.value = false;
-              break;
-            case 0:  // Applied but not yet verified
-              _isVolunteer.value = false;
-              _isWishVolunteer.value = true;
-              break;
-            case -1: // Normal user
-            default:
-              _isVolunteer.value = false;
-              _isWishVolunteer.value = false;
-              break;
-          }
-          
-          print('User volunteer status refreshed: verificationStatus=$verificationStatus, Volunteer=${_isVolunteer.value}, WishVolunteer=${_isWishVolunteer.value}');
+        final int verificationStatus = response['verificationStatus'] ?? -1;
+        
+        // Update user status based on verificationStatus
+        switch (verificationStatus) {
+          case 1:  // Verified volunteer
+            _isVolunteer.value = true;
+            _isWishVolunteer.value = false;
+            break;
+          case 0:  // Applied but not yet verified
+            _isVolunteer.value = false;
+            _isWishVolunteer.value = true;
+            break;
+          case -1: // Normal user
+          default:
+            _isVolunteer.value = false;
+            _isWishVolunteer.value = false;
+            break;
         }
-      }
+        
+        print('User volunteer status refreshed: verificationStatus=$verificationStatus, Volunteer=${_isVolunteer.value}, WishVolunteer=${_isWishVolunteer.value}');
+            }
     } catch (e) {
       print('Error refreshing user status: $e');
     }

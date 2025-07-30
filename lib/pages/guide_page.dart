@@ -376,11 +376,11 @@ class GuidePage extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.all(12),
             color: Colors.amber.withOpacity(0.1),
-            child: Row(
+            child: const Row(
               children: [
-                const Icon(Icons.lightbulb, color: Colors.amber),
-                const SizedBox(width: 12),
-                const Expanded(
+                Icon(Icons.lightbulb, color: Colors.amber),
+                SizedBox(width: 12),
+                Expanded(
                   child: Text(
                     'Points and achievements are updated within 24 hours after event participation is verified.',
                     style: TextStyle(fontStyle: FontStyle.italic),

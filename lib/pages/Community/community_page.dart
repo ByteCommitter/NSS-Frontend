@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 import 'package:mentalsustainability/theme/app_colors.dart';
 
 // Update model class to include all needed properties

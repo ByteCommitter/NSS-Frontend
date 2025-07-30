@@ -109,7 +109,7 @@ class _LoginScreenState extends State<LoginScreen> {
             });
           }
 
-          print('Login failed: ${response}');
+          print('Login failed: $response');
           Get.snackbar(
             'Error',
             'Invalid username or password',

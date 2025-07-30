@@ -66,7 +66,7 @@ class _DashboardPageState extends State<DashboardPage> {
 
   // FIXED: Add periodic badge refresh timer
   void _startBadgeRefreshTimer() {
-    _badgeRefreshTimer = Timer.periodic(Duration(seconds: 3), (timer) {
+    _badgeRefreshTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
       if (mounted) {
         print('Dashboard: Periodic badge refresh');
         _loadBadges();
@@ -463,16 +463,16 @@ class _DashboardPageState extends State<DashboardPage> {
             ),
             const SizedBox(height: 16),
             _isLoadingTopUsers
-              ? Center(
+              ? const Center(
                   child: Padding(
-                    padding: const EdgeInsets.all(20.0),
+                    padding: EdgeInsets.all(20.0),
                     child: CircularProgressIndicator(),
                   ),
                 )
               : users.isEmpty
-                ? Center(
+                ? const Center(
                     child: Padding(
-                      padding: const EdgeInsets.all(20.0),
+                      padding: EdgeInsets.all(20.0),
                       child: Text(
                         'No data available',
                         style: TextStyle(color: Colors.grey),
@@ -905,11 +905,11 @@ class _DashboardPageState extends State<DashboardPage> {
               color: AppColors.background,
               shape: BoxShape.rectangle,
               borderRadius: BorderRadius.circular(20),
-              boxShadow: [
+              boxShadow: const [
                 BoxShadow(
                   color: Colors.black26,
                   blurRadius: 10.0,
-                  offset: const Offset(0.0, 10.0),
+                  offset: Offset(0.0, 10.0),
                 ),
               ],
             ),
@@ -1087,7 +1087,7 @@ class _DashboardPageState extends State<DashboardPage> {
   
   // Add a variable to store all participations for the history dialog
   List<Map<String, dynamic>> _allParticipations = [];
-  bool _isLoadingAllParticipations = false;
+  final bool _isLoadingAllParticipations = false;
   
   // New method to show participation history dialog
   Future<void> _showParticipationHistoryDialog() async {
@@ -1115,11 +1115,11 @@ class _DashboardPageState extends State<DashboardPage> {
               color: AppColors.background,
               shape: BoxShape.rectangle,
               borderRadius: BorderRadius.circular(20),
-              boxShadow: [
+              boxShadow: const [
                 BoxShadow(
                   color: Colors.black26,
                   blurRadius: 10.0,
-                  offset: const Offset(0.0, 10.0),
+                  offset: Offset(0.0, 10.0),
                 ),
               ],
             ),
