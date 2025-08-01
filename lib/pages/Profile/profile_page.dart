@@ -15,11 +15,11 @@ class ProfilePage extends StatefulWidget {
 class _ProfilePageState extends State<ProfilePage> {
   final AuthService _authService = Get.find<AuthService>();
   final ApiService _apiService = Get.find<ApiService>();
-  
+
   bool _isLoading = false;
   int _eventsAttended = 0;
   bool _isLoadingEvents = true;
-  
+
   // FIXED: Remove default achievements - use only BadgeService
   List<AchievementBadge> _achievements = [];
   bool _isLoadingAchievements = true;
@@ -30,26 +30,28 @@ class _ProfilePageState extends State<ProfilePage> {
     _initUsername();
     _loadProfileData(); // Load data in proper sequence
   }
-  
+
   // Add method to initialize username
   Future<void> _initUsername() async {
     print('Starting _initUsername() method');
-    
+
     // FIXED: Force refresh username from storage on init
     final username = await _authService.getUsername();
     print('_initUsername received username: $username');
-    
+
     if (username != null && mounted) {
       print('Setting state with username: $username');
       setState(() {
         // Force the UI to refresh with the username
       });
     } else {
-      print('Username is null or widget not mounted. Username=$username, mounted=$mounted');
-      
+      print(
+          'Username is null or widget not mounted. Username=$username, mounted=$mounted');
+
       // FIXED: If no username found, try to refresh from auth service
       if (mounted) {
-        await _authService.initUsername(); // FIXED: Remove underscore - use public method
+        await _authService
+            .initUsername(); // FIXED: Remove underscore - use public method
         final refreshedUsername = await _authService.getUsername();
         if (refreshedUsername != null && mounted) {
           print('Found refreshed username: $refreshedUsername');
@@ -58,7 +60,7 @@ class _ProfilePageState extends State<ProfilePage> {
       }
     }
   }
-  
+
   // Add method to load profile data in correct sequence - like dashboard
   Future<void> _loadProfileData() async {
     // FIXED: Load points first, then badges - same sequence as dashboard
@@ -67,7 +69,7 @@ class _ProfilePageState extends State<ProfilePage> {
     await _loadEventsAttendedCount(); // Load events count
     _loadAchievements(); // Then load badges with fresh data
   }
-  
+
   // Refresh user points from API
   Future<void> _refreshUserPoints() async {
     final userId = _authService.userId;
@@ -79,7 +81,7 @@ class _ProfilePageState extends State<ProfilePage> {
       }
     }
   }
-  
+
   // Add a method to refresh volunteer status
   Future<void> _refreshVolunteerStatus() async {
     final userId = _authService.userId;
@@ -93,41 +95,42 @@ class _ProfilePageState extends State<ProfilePage> {
         } catch (e) {
           print('Error refreshing badge service: $e');
         }
-        
+
         // Refresh badges when volunteer status changes
         _loadAchievements();
         setState(() {}); // Refresh UI with updated status
       }
     }
   }
-  
+
   // Handle volunteer registration
   Future<void> _registerAsVolunteer() async {
     if (!mounted) return;
-    
+
     setState(() {
       _isLoading = true;
     });
-    
+
     try {
       final userId = _authService.userId;
       if (userId != null) {
         final result = await _apiService.wishToBeVolunteer(userId);
-        
+
         if (result['success']) {
           _authService.setWishVolunteerStatus(true);
-          
+
           // FIXED: Force immediate badge refresh in BadgeService
           try {
             final badgeService = Get.find<BadgeService>();
             badgeService.refreshBadges();
           } catch (e) {
-            print('Error refreshing badge service after volunteer registration: $e');
+            print(
+                'Error refreshing badge service after volunteer registration: $e');
           }
-          
+
           // Refresh achievements immediately to show new badge
           _loadAchievements();
-          
+
           Get.snackbar(
             'Application Submitted',
             result['message'],
@@ -146,13 +149,13 @@ class _ProfilePageState extends State<ProfilePage> {
               )
             ],
           );
-          
+
           if (mounted) {
             setState(() {
               // This will refresh UI to show pending status
             });
           }
-          
+
           // Call refreshUserStatus() after a brief delay
           Future.delayed(const Duration(seconds: 1), () {
             if (mounted) {
@@ -195,23 +198,25 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Future<void> _loadEventsAttendedCount() async {
     if (!mounted) return;
-    
+
     setState(() {
       _isLoadingEvents = true;
     });
-    
+
     try {
       final userId = _authService.userId;
       if (userId != null) {
         // FIXED: Use getRecentParticipations like dashboard instead of getUserRegisteredEvents
-        final participations = await _apiService.getRecentParticipations(userId);
-        
+        final participations =
+            await _apiService.getRecentParticipations(userId);
+
         // FIXED: Count the participations (same as dashboard logic)
         // This returns actual event participations with points, not just registrations
         int totalCount = participations.length;
-        
-        print('Profile: User has participated in $totalCount events (same as dashboard)');
-        
+
+        print(
+            'Profile: User has participated in $totalCount events (same as dashboard)');
+
         if (!mounted) return;
         setState(() {
           _eventsAttended = totalCount;
@@ -231,32 +236,34 @@ class _ProfilePageState extends State<ProfilePage> {
       });
     }
   }
+
   // FORCE USE OF SHARED METHOD - No other calls allowed
   void _loadAchievements() {
     print('=== PROFILE: _loadAchievements START ===');
     if (!mounted) return;
-    
+
     setState(() {
       _isLoadingAchievements = true;
     });
-    
+
     try {
       // FORCE USE SHARED METHOD - Remove any other badge calls
       final badges = BadgeService.getSharedBadges();
-      
+
       print('Profile: Got ${badges.length} badges from SHARED method');
       for (var badge in badges) {
         print('Profile Badge: ${badge.name} (Level ${badge.level})');
       }
-      
+
       if (mounted) {
         setState(() {
           _achievements = badges;
           _isLoadingAchievements = false;
         });
-        
+
         print('Profile: UI updated with ${_achievements.length} badges');
-        print('Profile: Badge names: ${_achievements.map((b) => b.name).join(', ')}');
+        print(
+            'Profile: Badge names: ${_achievements.map((b) => b.name).join(', ')}');
       }
     } catch (e) {
       print('Profile: Error loading achievements: $e');
@@ -266,19 +273,19 @@ class _ProfilePageState extends State<ProfilePage> {
         });
       }
     }
-    
+
     print('=== PROFILE: _loadAchievements END ===');
   }
 
   // FIXED: Update refresh method to match dashboard sequence
   Future<void> _refreshAllData() async {
     print('Profile: Refreshing profile data and badges');
-    
+
     // SAME SEQUENCE AS DASHBOARD - Load points first, then badges
     await _refreshUserPoints(); // Load fresh points from API
     await _refreshVolunteerStatus(); // Refresh volunteer status
     await _loadEventsAttendedCount(); // Load events count
-    
+
     // Force badge service to refresh user data - SAME as dashboard
     try {
       final authService = Get.find<AuthService>();
@@ -286,7 +293,7 @@ class _ProfilePageState extends State<ProfilePage> {
     } catch (e) {
       print('Profile: Error refreshing user status: $e');
     }
-    
+
     _loadAchievements(); // Then refresh badges with updated data
   }
 
@@ -298,7 +305,7 @@ class _ProfilePageState extends State<ProfilePage> {
     final int points = _authService.points;
     final bool isVolunteer = _authService.isVolunteer;
     final bool isWishVolunteer = _authService.isWishVolunteer;
-    
+
     return Scaffold(
       body: RefreshIndicator(
         onRefresh: _refreshAllData,
@@ -310,29 +317,28 @@ class _ProfilePageState extends State<ProfilePage> {
             children: [
               // Profile header with real name
               _buildProfileHeader(name, userId, points),
-              
+
               const SizedBox(height: 16),
-              
+
               // Volunteer status/registration section
               _buildVolunteerSection(isVolunteer, isWishVolunteer),
-              
+
               const SizedBox(height: 16),
-              
+
               // Statistics section - THIS SHOWS THE REAL ACHIEVEMENT COUNT
               _buildStatisticsSection(points),
-              
+
               const SizedBox(height: 16),
-              
+
               // Enhanced Achievements section
               _buildEnhancedAchievementsSection(),
-              
             ],
           ),
         ),
       ),
     );
   }
-  
+
   Widget _buildProfileHeader(String name, String userId, int points) {
     return Row(
       children: [
@@ -350,7 +356,7 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
         ),
         const SizedBox(width: 20),
-        
+
         // User info
         Expanded(
           child: Column(
@@ -364,7 +370,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              
+
               // User ID
               Text(
                 'ID: $userId',
@@ -373,9 +379,9 @@ class _ProfilePageState extends State<ProfilePage> {
                   color: AppColors.textSecondary,
                 ),
               ),
-              
+
               const SizedBox(height: 8),
-              
+
               // Points display
               Row(
                 children: [
@@ -397,7 +403,7 @@ class _ProfilePageState extends State<ProfilePage> {
       ],
     );
   }
-  
+
   Widget _buildVolunteerSection(bool isVolunteer, bool isWishVolunteer) {
     return Card(
       elevation: 1,
@@ -425,7 +431,7 @@ class _ProfilePageState extends State<ProfilePage> {
               ],
             ),
             const SizedBox(height: 16),
-            
+
             // Show different content based on volunteer status
             if (isVolunteer)
               _buildVolunteerStatusCard(
@@ -455,21 +461,24 @@ class _ProfilePageState extends State<ProfilePage> {
                   Center(
                     child: ElevatedButton.icon(
                       onPressed: _isLoading ? null : _registerAsVolunteer,
-                      icon: _isLoading 
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
-                        : const Icon(Icons.volunteer_activism),
-                      label: Text(_isLoading ? 'Submitting...' : 'Register as Volunteer'),
+                      icon: _isLoading
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Icon(Icons.volunteer_activism),
+                      label: Text(_isLoading
+                          ? 'Submitting...'
+                          : 'Register as Volunteer'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 12),
                       ),
                     ),
                   ),
@@ -480,9 +489,10 @@ class _ProfilePageState extends State<ProfilePage> {
       ),
     );
   }
-  
+
   // Update the volunteer status card to clearly show applied status
-  Widget _buildVolunteerStatusCard(String title, String message, IconData icon, Color color) {
+  Widget _buildVolunteerStatusCard(
+      String title, String message, IconData icon, Color color) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -511,7 +521,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   message,
                   style: const TextStyle(fontSize: 14),
                 ),
-                
+
                 // Add additional info for pending requests
                 if (title == 'Registration Pending')
                   Padding(
@@ -540,7 +550,7 @@ class _ProfilePageState extends State<ProfilePage> {
       ),
     );
   }
-  
+
   Widget _buildStatisticsSection(int points) {
     return Card(
       elevation: 1,
@@ -558,18 +568,20 @@ class _ProfilePageState extends State<ProfilePage> {
               ),
             ),
             const SizedBox(height: 16),
-            
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
                 _isLoadingEvents
-                  ? _buildLoadingStatItem(Icons.event_available, 'Events\nAttended')
-                  : _buildStatItem(Icons.event_available, 'Events\nAttended', _eventsAttended.toString()),
+                    ? _buildLoadingStatItem(
+                        Icons.event_available, 'Events\nAttended')
+                    : _buildStatItem(Icons.event_available, 'Events\nAttended',
+                        _eventsAttended.toString()),
                 _buildStatItem(Icons.stars, 'Total\nPoints', points.toString()),
                 // FIXED: Show loading state and use correct count
                 _isLoadingAchievements
-                  ? _buildLoadingStatItem(Icons.emoji_events, 'Achievements')
-                  : _buildStatItem(Icons.emoji_events, 'Achievements', _achievements.length.toString()),
+                    ? _buildLoadingStatItem(Icons.emoji_events, 'Achievements')
+                    : _buildStatItem(Icons.emoji_events, 'Achievements',
+                        _achievements.length.toString()),
               ],
             ),
           ],
@@ -577,7 +589,7 @@ class _ProfilePageState extends State<ProfilePage> {
       ),
     );
   }
-  
+
   // Add a loading state for stat items
   Widget _buildLoadingStatItem(IconData icon, String label) {
     return Column(
@@ -604,7 +616,7 @@ class _ProfilePageState extends State<ProfilePage> {
       ],
     );
   }
-  
+
   // Add the missing method for stat items
   Widget _buildStatItem(IconData icon, String label, String value) {
     return Column(
@@ -631,7 +643,7 @@ class _ProfilePageState extends State<ProfilePage> {
       ],
     );
   }
-  
+
   // FIXED: Show achievement count in header for verification
   Widget _buildEnhancedAchievementsSection() {
     return Card(
@@ -665,46 +677,47 @@ class _ProfilePageState extends State<ProfilePage> {
               ],
             ),
             const SizedBox(height: 16),
-            
+
             // Show loading or badges
             _isLoadingAchievements
-              ? const Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(20.0),
-                    child: CircularProgressIndicator(),
-                  ),
-                )
-              : _achievements.isEmpty
                 ? const Center(
                     child: Padding(
                       padding: EdgeInsets.all(20.0),
-                      child: Text(
-                        'No achievements earned yet',
-                        style: TextStyle(color: Colors.grey),
-                      ),
+                      child: CircularProgressIndicator(),
                     ),
                   )
-                : GridView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      childAspectRatio: 1.0,
-                      crossAxisSpacing: 16,
-                      mainAxisSpacing: 16,
-                    ),
-                    itemCount: _achievements.length,
-                    itemBuilder: (context, index) {
-                      final achievement = _achievements[index];
-                      return _buildAchievementBadge(achievement);
-                    },
-                  ),
+                : _achievements.isEmpty
+                    ? const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(20.0),
+                          child: Text(
+                            'No achievements earned yet',
+                            style: TextStyle(color: Colors.grey),
+                          ),
+                        ),
+                      )
+                    : GridView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          childAspectRatio: 0.75,
+                          crossAxisSpacing: 16,
+                          mainAxisSpacing: 16,
+                        ),
+                        itemCount: _achievements.length,
+                        itemBuilder: (context, index) {
+                          final achievement = _achievements[index];
+                          return _buildAchievementBadge(achievement);
+                        },
+                      ),
           ],
         ),
       ),
     );
   }
-  
+
   // FIXED: Update to work with AchievementBadge objects
   Widget _buildAchievementBadge(AchievementBadge achievement) {
     return Container(

@@ -29,38 +29,38 @@ class GuidePage extends StatelessWidget {
           // Introduction
           _buildHeader(),
           const SizedBox(height: 24),
-          
+
           // App Features
           _buildSection(
             title: 'App Navigation',
             icon: Icons.navigation,
             content: _buildTabInformation(),
           ),
-          
+
           _buildSection(
             title: 'NSS Events & Participation',
             icon: Icons.event,
             content: _buildEventsExplanation(),
           ),
-          
+
           _buildSection(
             title: 'Becoming a Volunteer',
             icon: Icons.volunteer_activism,
             content: _buildVolunteerExplanation(),
           ),
-          
+
           _buildSection(
             title: 'Points & Achievements',
             icon: Icons.emoji_events,
             content: _buildPointsExplanation(),
           ),
-          
+
           _buildSection(
-            title: 'Community Features (Coming Soon)',
+            title: 'Community Features',
             icon: Icons.people,
             content: _buildCommunityExplanation(),
           ),
-          
+
           // Contact support
           const SizedBox(height: 24),
           _buildContactSupport(),
@@ -168,25 +168,29 @@ class GuidePage extends StatelessWidget {
         _buildFeatureItem(
           icon: Icons.home,
           title: 'Home Tab',
-          description: 'View upcoming NSS events, register for events, and see recent announcements from the NSS team.',
+          description:
+              'View upcoming NSS events, register for events, and see recent announcements from the NSS team.',
         ),
         const Divider(),
         _buildFeatureItem(
           icon: Icons.dashboard,
           title: 'Dashboard Tab',
-          description: 'Track your participation points, view your achievements, see leaderboard of top volunteers, and monitor your NSS journey.',
+          description:
+              'Track your participation points, view your achievements, see leaderboard of top volunteers, and monitor your NSS journey.',
         ),
         const Divider(),
         _buildFeatureItem(
           icon: Icons.people,
           title: 'Community Tab',
-          description: 'Access mental health support features including anonymous teams, finding counselors, and connecting with potential seremates for student wellbeing.',
+          description:
+              'Access mental health support features including anonymous teams, finding counselors, and connecting with potential seremates for student wellbeing.',
         ),
         const Divider(),
         _buildFeatureItem(
           icon: Icons.person,
           title: 'Profile Tab',
-          description: 'Manage your volunteer status, view your achievements and statistics, and register as a volunteer.',
+          description:
+              'Manage your volunteer status, view your achievements and statistics, and register as a volunteer.',
         ),
       ],
     );
@@ -201,7 +205,6 @@ class GuidePage extends StatelessWidget {
           style: TextStyle(fontSize: 15, color: AppColors.textPrimary),
         ),
         const SizedBox(height: 16),
-        
         _buildNumberedStep(
           number: 1,
           text: 'Browse upcoming events on the Home tab',
@@ -226,7 +229,6 @@ class GuidePage extends StatelessWidget {
           number: 6,
           text: 'Earn points and achievements based on your participation',
         ),
-        
         const SizedBox(height: 16),
         ClipRRect(
           borderRadius: BorderRadius.circular(8),
@@ -267,7 +269,6 @@ class GuidePage extends StatelessWidget {
           style: TextStyle(fontSize: 15, color: AppColors.textPrimary),
         ),
         const SizedBox(height: 16),
-        
         const Text(
           'How to Register as a Volunteer:',
           style: TextStyle(
@@ -276,7 +277,6 @@ class GuidePage extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 12),
-        
         _buildNumberedStep(
           number: 1,
           text: 'Go to your Profile tab',
@@ -297,9 +297,7 @@ class GuidePage extends StatelessWidget {
           number: 5,
           text: 'Once approved, you can register for and participate in events',
         ),
-        
         const SizedBox(height: 16),
-        
         ClipRRect(
           borderRadius: BorderRadius.circular(8),
           child: Container(
@@ -345,31 +343,33 @@ class GuidePage extends StatelessWidget {
           style: TextStyle(fontSize: 15, color: AppColors.textPrimary),
         ),
         const SizedBox(height: 16),
-        
         _buildFeatureItem(
           icon: Icons.stars,
           title: 'Earning Points',
-          description: 'Participate in NSS events to earn points. Points are awarded after your participation is verified by event coordinators.',
+          description:
+              'Participate in NSS events to earn points. Points are awarded after your participation is verified by event coordinators.',
         ),
         const Divider(),
         _buildFeatureItem(
           icon: Icons.emoji_events,
           title: 'Achievement Badges',
-          description: 'Unlock various badges based on your point milestones: Bronze Starter (50+ pts), Silver Achiever (200+ pts), Gold Star (500+ pts), and more.',
+          description:
+              'Unlock various badges based on your point milestones: Bronze Starter (50+ pts), Silver Achiever (200+ pts), Gold Star (500+ pts), and more.',
         ),
         const Divider(),
         _buildFeatureItem(
           icon: Icons.leaderboard,
           title: 'Leaderboard',
-          description: 'See how you rank among other volunteers in the dashboard. Top contributors are recognized for their service.',
+          description:
+              'See how you rank among other volunteers in the dashboard. Top contributors are recognized for their service.',
         ),
         const Divider(),
         _buildFeatureItem(
           icon: Icons.volunteer_activism,
           title: 'Volunteer Badge',
-          description: 'Get a special NSS Volunteer badge once your volunteer application is approved.',
+          description:
+              'Get a special NSS Volunteer badge once your volunteer application is approved.',
         ),
-        
         const SizedBox(height: 16),
         ClipRRect(
           borderRadius: BorderRadius.circular(8),
@@ -403,7 +403,6 @@ class GuidePage extends StatelessWidget {
           style: TextStyle(fontSize: 15, color: AppColors.textPrimary),
         ),
         const SizedBox(height: 16),
-        
         ClipRRect(
           borderRadius: BorderRadius.circular(8),
           child: Container(
@@ -420,19 +419,23 @@ class GuidePage extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 8),
-                _buildBulletPoint('Anonymous Teams - Connect with peers for support'),
-                _buildBulletPoint('Seremate Matching - Find compatible study/life partners'),
-                _buildBulletPoint('Mental Health Resources - Access counseling services'),
-                _buildBulletPoint('Student Wellbeing Support - Campus mental health initiatives'),
-                _buildBulletPoint('Anonymous Communication - Safe space for sharing'),
-                _buildBulletPoint('Peer Support Networks - Connect with like-minded students'),
+                _buildBulletPoint(
+                    'Anonymous Teams - Connect with peers for support'),
+                _buildBulletPoint(
+                    'Seremate Matching - Find compatible study/life partners'),
+                _buildBulletPoint(
+                    'Mental Health Resources - Access counseling services'),
+                _buildBulletPoint(
+                    'Student Wellbeing Support - Campus mental health initiatives'),
+                _buildBulletPoint(
+                    'Anonymous Communication - Safe space for sharing'),
+                _buildBulletPoint(
+                    'Peer Support Networks - Connect with like-minded students'),
               ],
             ),
           ),
         ),
-        
         const SizedBox(height: 16),
-        
         ClipRRect(
           borderRadius: BorderRadius.circular(8),
           child: Container(
@@ -464,7 +467,6 @@ class GuidePage extends StatelessWidget {
             ),
           ),
         ),
-        
         const SizedBox(height: 16),
         Text(
           'These features help create a supportive campus environment where students can find help, connect with peers, and access mental health resources in a safe and anonymous way.',
@@ -509,7 +511,6 @@ class GuidePage extends StatelessWidget {
               style: TextStyle(fontSize: 15, color: AppColors.textPrimary),
             ),
             const SizedBox(height: 16),
-            
             Row(
               children: [
                 Expanded(

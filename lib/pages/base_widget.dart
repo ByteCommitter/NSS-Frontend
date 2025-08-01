@@ -18,14 +18,15 @@ class BaseScreen extends StatefulWidget {
   State<BaseScreen> createState() => _BaseScreenState();
 }
 
-class _BaseScreenState extends State<BaseScreen> with SingleTickerProviderStateMixin {
+class _BaseScreenState extends State<BaseScreen>
+    with SingleTickerProviderStateMixin {
   final AuthService _authService = Get.find<AuthService>();
   bool _notificationsEnabled = true;
   late AnimationController _animationController;
-  
+
   // Get the theme provider
   final ThemeProvider _themeProvider = Get.find<ThemeProvider>();
-  
+
   @override
   void initState() {
     super.initState();
@@ -43,15 +44,15 @@ class _BaseScreenState extends State<BaseScreen> with SingleTickerProviderStateM
 
   // Default selected index is Home (0)
   int _selectedIndex = 0;
-  
+
   void _onItemTapped(int index) {
     // Limit index to 0-3
     if (index > 3) return;
-    
+
     setState(() {
       _selectedIndex = index;
     });
-    
+
     // Add animation for bottom nav selection
     _animationController.reset();
     _animationController.forward();
@@ -61,18 +62,18 @@ class _BaseScreenState extends State<BaseScreen> with SingleTickerProviderStateM
     setState(() {
       _notificationsEnabled = value;
     });
-    
+
     // Show confirmation
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(_notificationsEnabled 
-          ? 'Notifications enabled' 
-          : 'Notifications disabled'),
+        content: Text(_notificationsEnabled
+            ? 'Notifications enabled'
+            : 'Notifications disabled'),
         duration: const Duration(seconds: 2),
       ),
     );
   }
-  
+
   void _retakeOnboardingQuiz() {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -91,17 +92,17 @@ class _BaseScreenState extends State<BaseScreen> with SingleTickerProviderStateM
       ),
       barrierDismissible: false,
     );
-    
+
     try {
       // Clear the token and user data
       await _authService.clearToken();
       await _authService.clearUserId();
-      
+
       // Close the loading dialog
       if (Get.isDialogOpen ?? false) {
         Get.back();
       }
-      
+
       // Show success message
       Get.snackbar(
         'Logout Successful',
@@ -110,7 +111,7 @@ class _BaseScreenState extends State<BaseScreen> with SingleTickerProviderStateM
         backgroundColor: AppColors.success.withOpacity(0.1),
         colorText: AppColors.success,
       );
-      
+
       // Navigate to auth page
       Get.offAllNamed('/');
     } catch (e) {
@@ -118,9 +119,9 @@ class _BaseScreenState extends State<BaseScreen> with SingleTickerProviderStateM
       if (Get.isDialogOpen ?? false) {
         Get.back();
       }
-      
+
       print('Error during logout: $e');
-      
+
       // Show error message
       Get.snackbar(
         'Logout Error',
@@ -136,7 +137,7 @@ class _BaseScreenState extends State<BaseScreen> with SingleTickerProviderStateM
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      
+
       // Modern, minimal AppBar with subtle shadow
       appBar: AppBar(
         elevation: 0,
@@ -201,8 +202,7 @@ class _BaseScreenState extends State<BaseScreen> with SingleTickerProviderStateM
               ),
               onPressed: () {
                 Navigator.of(context).push(
-                  MaterialPageRoute(builder: (context) => const GuidePage())
-                );
+                    MaterialPageRoute(builder: (context) => const GuidePage()));
               },
               style: IconButton.styleFrom(
                 backgroundColor: AppColors.primary.withOpacity(0.05),
@@ -214,7 +214,7 @@ class _BaseScreenState extends State<BaseScreen> with SingleTickerProviderStateM
           )
         ],
       ),
-      
+
       // Enhanced drawer with the specified features
       drawer: _buildModernDrawer(),
 
@@ -225,20 +225,20 @@ class _BaseScreenState extends State<BaseScreen> with SingleTickerProviderStateM
           index: _selectedIndex,
           children: const [
             HomePage(),
-            DashboardPage(), 
+            DashboardPage(),
             CommunityPage(),
             ProfilePage(),
           ],
         ),
       ),
-      
+
       // Remove default bottom navigation to replace with custom floating one
       bottomNavigationBar: null,
-      
+
       // Custom bottom navigation bar as a floating element
       extendBody: true,
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      
+
       // Custom bottom navigation bar as a floating element
       bottomSheet: Container(
         height: 85,
@@ -269,10 +269,14 @@ class _BaseScreenState extends State<BaseScreen> with SingleTickerProviderStateM
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    _buildNavItem(Icons.home_rounded, Icons.home_outlined, 'Home', 0),
-                    _buildNavItem(Icons.dashboard_rounded, Icons.dashboard_outlined, 'Dashboard', 1),
-                    _buildNavItem(Icons.people_rounded, Icons.people_outline_rounded, 'Community', 2),
-                    _buildNavItem(Icons.person_rounded, Icons.person_outline_rounded, 'Profile', 3),
+                    _buildNavItem(
+                        Icons.home_rounded, Icons.home_outlined, 'Home', 0),
+                    _buildNavItem(Icons.dashboard_rounded,
+                        Icons.dashboard_outlined, 'Dashboard', 1),
+                    _buildNavItem(Icons.people_rounded,
+                        Icons.people_outline_rounded, 'Community', 2),
+                    _buildNavItem(Icons.person_rounded,
+                        Icons.person_outline_rounded, 'Profile', 3),
                   ],
                 ),
               ),
@@ -282,20 +286,23 @@ class _BaseScreenState extends State<BaseScreen> with SingleTickerProviderStateM
       ),
     );
   }
-  
+
   // Custom navigation item builder with animations
-  Widget _buildNavItem(IconData activeIcon, IconData inactiveIcon, String label, int index) {
+  Widget _buildNavItem(
+      IconData activeIcon, IconData inactiveIcon, String label, int index) {
     final bool isSelected = _selectedIndex == index;
-    
+
     return InkWell(
       onTap: () => _onItemTapped(index),
       borderRadius: BorderRadius.circular(24),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: isSelected ? BoxDecoration(
-          color: AppColors.primary.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(24),
-        ) : null,
+        decoration: isSelected
+            ? BoxDecoration(
+                color: AppColors.primary.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(24),
+              )
+            : null,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -321,7 +328,7 @@ class _BaseScreenState extends State<BaseScreen> with SingleTickerProviderStateM
       ),
     );
   }
-  
+
   Widget _buildModernDrawer() {
     return Drawer(
       shape: const RoundedRectangleBorder(
@@ -340,7 +347,10 @@ class _BaseScreenState extends State<BaseScreen> with SingleTickerProviderStateM
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [AppColors.drawerHeaderStart, AppColors.drawerHeaderEnd],
+                colors: [
+                  AppColors.drawerHeaderStart,
+                  AppColors.drawerHeaderEnd
+                ],
               ),
               borderRadius: const BorderRadius.only(
                 bottomRight: Radius.circular(30),
@@ -382,7 +392,8 @@ class _BaseScreenState extends State<BaseScreen> with SingleTickerProviderStateM
                           // Add admin status indicator
                           Obx(() => _authService.isAdminUser.value
                               ? Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 2),
                                   decoration: BoxDecoration(
                                     color: Colors.orange.withOpacity(0.8),
                                     borderRadius: BorderRadius.circular(12),
@@ -402,18 +413,18 @@ class _BaseScreenState extends State<BaseScreen> with SingleTickerProviderStateM
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 2),
                 Text(
-                  'Not Me but you',
+                  ' Not Me But You',
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.9),
-                    fontSize: 16,
-                  ),
+                      color: Colors.white.withOpacity(0.9),
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold),
                 ),
               ],
             ),
           ),
-          
+
           // Content in a scrollable list
           Expanded(
             child: ListView(
@@ -440,38 +451,40 @@ class _BaseScreenState extends State<BaseScreen> with SingleTickerProviderStateM
                         ],
                       )
                     : const SizedBox.shrink()),
-                
+
                 // Theme selector with modern styling
                 _buildDrawerMenuItem(
                   icon: Icons.color_lens,
                   iconColor: AppColors.primary,
                   title: 'App Theme',
                   trailingWidget: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
                     decoration: BoxDecoration(
                       color: AppColors.primary.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Obx(() => Text(
-                      _themeProvider.currentThemeName,
-                      style: TextStyle(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
-                      ),
-                    )),
+                          _themeProvider.currentThemeName,
+                          style: TextStyle(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                        )),
                   ),
                   onTap: () {
                     _themeProvider.switchToNextTheme();
                     Navigator.pop(context);
                   },
                 ),
-                
+
                 // Notifications toggle
                 Padding(
                   padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 12, horizontal: 16),
                     decoration: BoxDecoration(
                       color: Colors.blue.withOpacity(0.05),
                       borderRadius: BorderRadius.circular(12),
@@ -479,7 +492,9 @@ class _BaseScreenState extends State<BaseScreen> with SingleTickerProviderStateM
                     child: Row(
                       children: [
                         Icon(
-                          _notificationsEnabled ? Icons.notifications_active : Icons.notifications_off,
+                          _notificationsEnabled
+                              ? Icons.notifications_active
+                              : Icons.notifications_off,
                           color: Colors.blue,
                           size: 20,
                         ),
@@ -498,12 +513,12 @@ class _BaseScreenState extends State<BaseScreen> with SingleTickerProviderStateM
                     ),
                   ),
                 ),
-                
+
                 const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 20),
                   child: Divider(height: 32),
                 ),
-                
+
                 // Section header with modern styling
                 Padding(
                   padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
@@ -517,7 +532,7 @@ class _BaseScreenState extends State<BaseScreen> with SingleTickerProviderStateM
                     ),
                   ),
                 ),
-                
+
                 // Help and Information menu items
                 _buildDrawerMenuItem(
                   icon: Icons.menu_book,
@@ -526,12 +541,12 @@ class _BaseScreenState extends State<BaseScreen> with SingleTickerProviderStateM
                   onTap: () {
                     Navigator.pop(context);
                     Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const GuidePage())
-                    );
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => const GuidePage()));
                   },
                 ),
-                
+
                 _buildDrawerMenuItem(
                   icon: Icons.info,
                   iconColor: Colors.teal,
@@ -539,12 +554,12 @@ class _BaseScreenState extends State<BaseScreen> with SingleTickerProviderStateM
                   onTap: () {
                     Navigator.pop(context);
                     Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const AboutNSSPage())
-                    );
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => const AboutNSSPage()));
                   },
                 ),
-                
+
                 _buildDrawerMenuItem(
                   icon: Icons.privacy_tip,
                   iconColor: Colors.indigo,
@@ -552,17 +567,18 @@ class _BaseScreenState extends State<BaseScreen> with SingleTickerProviderStateM
                   onTap: () {
                     Navigator.pop(context);
                     Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const PrivacyPolicyPage())
-                    );
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => const PrivacyPolicyPage()));
                   },
                 ),
-                
+
                 const SizedBox(height: 16),
-                
+
                 // Sign out button with modern styling
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                   child: ElevatedButton.icon(
                     icon: const Icon(Icons.logout, size: 18),
                     label: const Text('Sign Out'),
@@ -581,7 +597,7 @@ class _BaseScreenState extends State<BaseScreen> with SingleTickerProviderStateM
                     ),
                   ),
                 ),
-                
+
                 const SizedBox(height: 40),
               ],
             ),
@@ -590,7 +606,7 @@ class _BaseScreenState extends State<BaseScreen> with SingleTickerProviderStateM
       ),
     );
   }
-  
+
   // Reusable drawer menu item
   Widget _buildDrawerMenuItem({
     required IconData icon,
@@ -651,5 +667,3 @@ class _BaseScreenState extends State<BaseScreen> with SingleTickerProviderStateM
     );
   }
 }
-
-

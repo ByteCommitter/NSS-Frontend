@@ -8,7 +8,8 @@ class NotificationsManagement extends StatefulWidget {
   const NotificationsManagement({Key? key}) : super(key: key);
 
   @override
-  State<NotificationsManagement> createState() => _NotificationsManagementState();
+  State<NotificationsManagement> createState() =>
+      _NotificationsManagementState();
 }
 
 class _NotificationsManagementState extends State<NotificationsManagement> {
@@ -26,7 +27,7 @@ class _NotificationsManagementState extends State<NotificationsManagement> {
     setState(() {
       _isLoading = true;
     });
-    
+
     try {
       // Use getPastEvents to get notifications/eventUpdates
       final fetchedNotifications = await _apiService.getPastEvents();
@@ -55,7 +56,7 @@ class _NotificationsManagementState extends State<NotificationsManagement> {
   // Format ISO date string to a more readable format
   String formatDateTime(String? dateTimeStr) {
     if (dateTimeStr == null) return 'Unknown';
-    
+
     try {
       final dateTime = DateTime.parse(dateTimeStr);
       return DateFormat('MMM d, yyyy - h:mm a').format(dateTime.toLocal());
@@ -84,10 +85,13 @@ class _NotificationsManagementState extends State<NotificationsManagement> {
                       Expanded(
                         child: Text(
                           'Notifications Management',
-                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.primary,
-                          ),
+                          style: Theme.of(context)
+                              .textTheme
+                              .headlineSmall
+                              ?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.primary,
+                                  fontSize: 20),
                         ),
                       ),
                       ElevatedButton.icon(
@@ -102,18 +106,19 @@ class _NotificationsManagementState extends State<NotificationsManagement> {
                     ],
                   ),
                 ),
-                
                 Expanded(
                   child: notifications.isEmpty
                       ? const Center(
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.notifications_none, size: 64, color: Colors.grey),
+                              Icon(Icons.notifications_none,
+                                  size: 64, color: Colors.grey),
                               SizedBox(height: 16),
                               Text(
                                 'No notifications sent',
-                                style: TextStyle(fontSize: 18, color: Colors.grey),
+                                style:
+                                    TextStyle(fontSize: 18, color: Colors.grey),
                               ),
                             ],
                           ),
@@ -161,7 +166,8 @@ class _NotificationsManagementState extends State<NotificationsManagement> {
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: Colors.green,
                     borderRadius: BorderRadius.circular(12),
@@ -197,7 +203,8 @@ class _NotificationsManagementState extends State<NotificationsManagement> {
                 TextButton.icon(
                   onPressed: () => _deleteNotification(notification),
                   icon: const Icon(Icons.delete, color: Colors.red),
-                  label: const Text('Delete', style: TextStyle(color: Colors.red)),
+                  label:
+                      const Text('Delete', style: TextStyle(color: Colors.red)),
                 ),
               ],
             ),
@@ -212,7 +219,8 @@ class _NotificationsManagementState extends State<NotificationsManagement> {
     final confirm = await Get.dialog<bool>(
       AlertDialog(
         title: const Text('Delete Notification'),
-        content: const Text('Are you sure you want to delete this notification?'),
+        content:
+            const Text('Are you sure you want to delete this notification?'),
         actions: [
           TextButton(
             onPressed: () => Get.back(result: false),
@@ -226,25 +234,26 @@ class _NotificationsManagementState extends State<NotificationsManagement> {
         ],
       ),
     );
-    
+
     if (confirm != true) return;
-    
+
     // Show loading indicator
     Get.dialog(
       const Center(child: CircularProgressIndicator()),
       barrierDismissible: false,
     );
-    
+
     try {
       // FIXED: Handle both string and int IDs properly
       final notificationId = notification['id'];
-      print('Attempting to delete notification with ID: $notificationId (type: ${notificationId.runtimeType})');
-      
+      print(
+          'Attempting to delete notification with ID: $notificationId (type: ${notificationId.runtimeType})');
+
       final success = await _apiService.deleteNotification(notificationId);
-      
+
       // Close loading dialog
       Get.back();
-      
+
       if (success) {
         Get.snackbar(
           'Success',
@@ -266,7 +275,7 @@ class _NotificationsManagementState extends State<NotificationsManagement> {
     } catch (e) {
       // Close loading dialog
       Get.back();
-      
+
       print('Exception in _deleteNotification: $e');
       Get.snackbar(
         'Error',
@@ -281,7 +290,7 @@ class _NotificationsManagementState extends State<NotificationsManagement> {
   void _showSendNotificationDialog() {
     final titleController = TextEditingController();
     final messageController = TextEditingController();
-    
+
     Get.dialog(
       Dialog(
         shape: RoundedRectangleBorder(
@@ -329,7 +338,8 @@ class _NotificationsManagementState extends State<NotificationsManagement> {
                   const SizedBox(width: 16),
                   ElevatedButton(
                     onPressed: () async {
-                      if (titleController.text.isEmpty || messageController.text.isEmpty) {
+                      if (titleController.text.isEmpty ||
+                          messageController.text.isEmpty) {
                         Get.snackbar(
                           'Error',
                           'Title and message cannot be empty',
@@ -339,23 +349,23 @@ class _NotificationsManagementState extends State<NotificationsManagement> {
                         );
                         return;
                       }
-                      
+
                       Get.back(); // Close the dialog
-                      
+
                       // Show loading indicator
                       Get.dialog(
                         const Center(child: CircularProgressIndicator()),
                         barrierDismissible: false,
                       );
-                      
+
                       try {
                         final success = await _apiService.postNotification(
                           titleController.text,
                           messageController.text,
                         );
-                        
+
                         Get.back(); // Close loading dialog
-                        
+
                         if (success) {
                           Get.snackbar(
                             'Success',
