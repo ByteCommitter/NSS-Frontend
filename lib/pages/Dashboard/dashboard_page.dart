@@ -156,10 +156,12 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   // NEW: Load full leaderboard for the dialog
-  Future<void> _loadFullLeaderboard() async {
+  Future<void> _loadFullLeaderboard([StateSetter? dialogSetState]) async {
     if (!mounted) return;
 
-    setState(() {
+    final setStateFunction = dialogSetState ?? setState;
+
+    setStateFunction(() {
       _isLoadingAllUsers = true;
     });
 
@@ -179,14 +181,14 @@ class _DashboardPageState extends State<DashboardPage> {
       }
 
       if (!mounted) return;
-      setState(() {
+      setStateFunction(() {
         _allUsers = users;
         _isLoadingAllUsers = false;
       });
     } catch (e) {
       print('Error loading full leaderboard: $e');
       if (!mounted) return;
-      setState(() {
+      setStateFunction(() {
         _isLoadingAllUsers = false;
       });
     }
@@ -304,15 +306,18 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   // NEW: Show full leaderboard dialog
-  void _showFullLeaderboardDialog() {
-    // Load full leaderboard data first
-    _loadFullLeaderboard();
 
+  void _showFullLeaderboardDialog() {
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return StatefulBuilder(
           builder: (context, setDialogState) {
+            if (_allUsers.isEmpty && !_isLoadingAllUsers) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                _loadFullLeaderboard(setDialogState);
+              });
+            }
             return Dialog(
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
@@ -369,7 +374,6 @@ class _DashboardPageState extends State<DashboardPage> {
                     ),
                     const Divider(),
                     const SizedBox(height: 8),
-
                     // Leaderboard content
                     Expanded(
                       child: _isLoadingAllUsers
@@ -776,6 +780,7 @@ class _DashboardPageState extends State<DashboardPage> {
                 TextButton(
                   onPressed: () {
                     // UPDATED: Show full leaderboard dialog
+
                     _showFullLeaderboardDialog();
                   },
                   child: const Text('See All'),
