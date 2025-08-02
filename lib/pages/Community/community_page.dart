@@ -33,9 +33,10 @@ class CommunityPage extends StatefulWidget {
   State<CommunityPage> createState() => _CommunityPageState();
 }
 
-class _CommunityPageState extends State<CommunityPage> with SingleTickerProviderStateMixin {
+class _CommunityPageState extends State<CommunityPage>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  
+
   @override
   void initState() {
     super.initState();
@@ -71,7 +72,7 @@ class _CommunityPageState extends State<CommunityPage> with SingleTickerProvider
                   unselectedLabelColor: Colors.white70,
                 ),
               ),
-              
+
               // Tab content - removed Threads tab
               Expanded(
                 child: TabBarView(
@@ -79,7 +80,7 @@ class _CommunityPageState extends State<CommunityPage> with SingleTickerProvider
                   children: [
                     // NSS Team tab
                     _buildSereineTeamTab(),
-                    
+
                     // Seremate tab
                     _buildSeremateTab(),
                   ],
@@ -87,7 +88,7 @@ class _CommunityPageState extends State<CommunityPage> with SingleTickerProvider
               ),
             ],
           ),
-          
+
           // Hazy semi-transparent overlay with "Coming Soon" message
           // Increased opacity from 0.85 to 0.92 (more opaque)
           _buildComingSoonOverlay(),
@@ -95,7 +96,7 @@ class _CommunityPageState extends State<CommunityPage> with SingleTickerProvider
       ),
     );
   }
-  
+
   // Coming soon overlay with increased opacity
   Widget _buildComingSoonOverlay() {
     return Container(
@@ -119,9 +120,9 @@ class _CommunityPageState extends State<CommunityPage> with SingleTickerProvider
                 color: AppColors.primary.withOpacity(0.7),
               ),
             ),
-            
+
             const SizedBox(height: 32),
-            
+
             // Coming soon text
             Text(
               "Community Features Coming Soon!",
@@ -132,9 +133,9 @@ class _CommunityPageState extends State<CommunityPage> with SingleTickerProvider
               ),
               textAlign: TextAlign.center,
             ),
-            
+
             const SizedBox(height: 16),
-            
+
             // Description
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 32),
@@ -147,9 +148,9 @@ class _CommunityPageState extends State<CommunityPage> with SingleTickerProvider
                 textAlign: TextAlign.center,
               ),
             ),
-            
+
             const SizedBox(height: 32),
-            
+
             // Teasers about the features
             Container(
               margin: const EdgeInsets.symmetric(horizontal: 32),
@@ -188,9 +189,10 @@ class _CommunityPageState extends State<CommunityPage> with SingleTickerProvider
       ),
     );
   }
-  
+
   // Helper method to build feature preview
-  Widget _buildFeaturePreview(IconData icon, String title, String description, Color color) {
+  Widget _buildFeaturePreview(
+      IconData icon, String title, String description, Color color) {
     return Row(
       children: [
         Container(
@@ -232,8 +234,7 @@ class _CommunityPageState extends State<CommunityPage> with SingleTickerProvider
       ],
     );
   }
-  
-  
+
   // Placeholder content for Sereine Team tab
   Widget _buildSereineTeamTab() {
     return ListView(
@@ -342,7 +343,7 @@ class _CommunityPageState extends State<CommunityPage> with SingleTickerProvider
       ],
     );
   }
-  
+
   // Helper to build contact method
   Widget _buildContactMethod(IconData icon, String title, String description) {
     return Row(
@@ -384,7 +385,7 @@ class _CommunityPageState extends State<CommunityPage> with SingleTickerProvider
       ],
     );
   }
-  
+
   // Placeholder content for Seremate tab
   Widget _buildSeremateTab() {
     return ListView(
@@ -537,7 +538,7 @@ class _CommunityPageState extends State<CommunityPage> with SingleTickerProvider
       ],
     );
   }
-  
+
   // Helper to build service item
   Widget _buildServiceItem(IconData icon, String title, String description) {
     return Row(
