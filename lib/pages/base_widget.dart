@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:mentalsustainability/pages/Home/home_page.dart';
 import 'package:mentalsustainability/theme/app_colors.dart';
@@ -25,6 +26,10 @@ class _BaseScreenState extends State<BaseScreen>
   late AnimationController _animationController;
 
   // Get the theme provider
+
+  //swiping actions enabled for navigation
+  late PageController _pageController;
+
   final ThemeProvider _themeProvider = Get.find<ThemeProvider>();
 
   @override
@@ -34,11 +39,15 @@ class _BaseScreenState extends State<BaseScreen>
       vsync: this,
       duration: const Duration(milliseconds: 300),
     );
+
+    _pageController =
+        PageController(initialPage: _selectedIndex, keepPage: true);
   }
 
   @override
   void dispose() {
     _animationController.dispose();
+    _pageController.dispose();
     super.dispose();
   }
 
@@ -53,9 +62,25 @@ class _BaseScreenState extends State<BaseScreen>
       _selectedIndex = index;
     });
 
+    _pageController.animateToPage(index,
+        duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+
     // Add animation for bottom nav selection
     _animationController.reset();
     _animationController.forward();
+  }
+
+  void _onPageChanged(int index) {
+    if (_selectedIndex != index) {
+      setState(() {
+        _selectedIndex = index;
+      });
+
+      _animationController.reset();
+      _animationController.forward();
+
+      HapticFeedback.lightImpact();
+    }
   }
 
   void _toggleNotifications(bool value) {
@@ -219,17 +244,16 @@ class _BaseScreenState extends State<BaseScreen>
       drawer: _buildModernDrawer(),
 
       // Body with extra bottom padding for the floating navigation bar
-      body: Container(
-        margin: const EdgeInsets.only(bottom: 60),
-        child: IndexedStack(
-          index: _selectedIndex,
-          children: const [
-            HomePage(),
-            DashboardPage(),
-            CommunityPage(),
-            ProfilePage(),
-          ],
-        ),
+      body: PageView(
+        controller: _pageController,
+        onPageChanged: _onPageChanged,
+        physics: const ClampingScrollPhysics(),
+        children: const [
+          HomePage(),
+          DashboardPage(),
+          CommunityPage(),
+          ProfilePage(),
+        ],
       ),
 
       // Remove default bottom navigation to replace with custom floating one
@@ -240,6 +264,7 @@ class _BaseScreenState extends State<BaseScreen>
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
 
       // Custom bottom navigation bar as a floating element
+      // Replace your bottomSheet with this:
       bottomSheet: Container(
         height: 85,
         decoration: const BoxDecoration(
@@ -250,34 +275,37 @@ class _BaseScreenState extends State<BaseScreen>
           children: [
             // The actual navigation bar
             Positioned(
-              bottom: 20,
-              child: Container(
-                height: 65,
-                width: MediaQuery.of(context).size.width - 32,
-                decoration: BoxDecoration(
-                  color: AppColors.cardBackground,
-                  borderRadius: BorderRadius.circular(30),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Colors.black12,
-                      blurRadius: 10,
-                      spreadRadius: 3,
-                      offset: Offset(0, 5),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    _buildNavItem(
-                        Icons.home_rounded, Icons.home_outlined, 'Home', 0),
-                    _buildNavItem(Icons.dashboard_rounded,
-                        Icons.dashboard_outlined, 'Dashboard', 1),
-                    _buildNavItem(Icons.people_rounded,
-                        Icons.people_outline_rounded, 'Community', 2),
-                    _buildNavItem(Icons.person_rounded,
-                        Icons.person_outline_rounded, 'Profile', 3),
-                  ],
+              bottom: 10,
+              child: IgnorePointer(
+                ignoring: false, // Allow touches on the nav bar itself
+                child: Container(
+                  height: 65,
+                  width: MediaQuery.of(context).size.width - 15,
+                  decoration: BoxDecoration(
+                    color: AppColors.cardBackground,
+                    borderRadius: BorderRadius.circular(30),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Colors.black12,
+                        blurRadius: 10,
+                        spreadRadius: 3,
+                        offset: Offset(0, 5),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _buildNavItem(
+                          Icons.home_rounded, Icons.home_outlined, 'Home', 0),
+                      _buildNavItem(Icons.dashboard_rounded,
+                          Icons.dashboard_outlined, 'Dashboard', 1),
+                      _buildNavItem(Icons.people_rounded,
+                          Icons.people_outline_rounded, 'Community', 2),
+                      _buildNavItem(Icons.person_rounded,
+                          Icons.person_outline_rounded, 'Profile', 3),
+                    ],
+                  ),
                 ),
               ),
             ),
