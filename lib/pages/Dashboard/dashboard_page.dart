@@ -130,7 +130,7 @@ class _DashboardPageState extends State<DashboardPage> {
       if (!mounted) return; // Add mounted check after await
 
       final List<User> users = [];
-
+      final List<User> topUsers = [];
       for (int i = 0; i < topVolunteers.length; i++) {
         final volunteer = topVolunteers[i];
         users.add(User(
@@ -139,60 +139,33 @@ class _DashboardPageState extends State<DashboardPage> {
           points: volunteer['totalPoints'] ?? 0,
           rank: i + 1,
         ));
+        if (i < 3) {
+          topUsers.add(User(
+              id: i.toString(),
+              name: volunteer['Username'] ?? 'Unknown User',
+              points: volunteer['totalPoints'] ?? 0,
+              rank: i + 1));
+        }
       }
 
       if (!mounted) return;
       setState(() {
-        _topUsers = users;
+        _topUsers = topUsers;
+        _allUsers = users;
         _isLoadingTopUsers = false;
+        _isLoadingAllUsers = false;
       });
     } catch (e) {
       print('Error loading top volunteers: $e');
       if (!mounted) return;
       setState(() {
         _isLoadingTopUsers = false;
+        _isLoadingAllUsers = false;
       });
     }
   }
 
   // NEW: Load full leaderboard for the dialog
-  Future<void> _loadFullLeaderboard([StateSetter? dialogSetState]) async {
-    if (!mounted) return;
-
-    final setStateFunction = dialogSetState ?? setState;
-
-    setStateFunction(() {
-      _isLoadingAllUsers = true;
-    });
-
-    try {
-      final allVolunteers = await _apiService.getTopVolunteers();
-      if (!mounted) return;
-
-      final List<User> users = [];
-      for (int i = 0; i < allVolunteers.length; i++) {
-        final volunteer = allVolunteers[i];
-        users.add(User(
-          id: i.toString(),
-          name: volunteer['username'] ?? 'Unknown User',
-          points: volunteer['totalPoints'] ?? 0,
-          rank: i + 1,
-        ));
-      }
-
-      if (!mounted) return;
-      setStateFunction(() {
-        _allUsers = users;
-        _isLoadingAllUsers = false;
-      });
-    } catch (e) {
-      print('Error loading full leaderboard: $e');
-      if (!mounted) return;
-      setStateFunction(() {
-        _isLoadingAllUsers = false;
-      });
-    }
-  }
 
   // Load recent participations
   Future<void> _loadRecentParticipations() async {
@@ -315,7 +288,7 @@ class _DashboardPageState extends State<DashboardPage> {
           builder: (context, setDialogState) {
             if (_allUsers.isEmpty && !_isLoadingAllUsers) {
               WidgetsBinding.instance.addPostFrameCallback((_) {
-                _loadFullLeaderboard(setDialogState);
+                _loadTopVolunteers();
               });
             }
             return Dialog(
