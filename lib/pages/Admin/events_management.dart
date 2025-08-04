@@ -157,7 +157,7 @@ class _EventsManagementState extends State<EventsManagement> {
                           foregroundColor: Colors.white,
                         ),
                       ),
-                      const SizedBox(width: 0),
+
                       PopupMenuButton(
                         icon: const Icon(Icons.more_vert),
                         tooltip: 'More options',
@@ -408,15 +408,15 @@ class _EventsManagementState extends State<EventsManagement> {
 
           return Dialog(
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(12),
             ),
             child: Container(
               width: double.maxFinite,
               constraints: BoxConstraints(
                 maxHeight: MediaQuery.of(context).size.height * 0.8,
-                maxWidth: 600,
+                maxWidth: 700,
               ),
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(6),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -470,37 +470,37 @@ class _EventsManagementState extends State<EventsManagement> {
 
                           return ListTile(
                             title: Text(user['user_id'] ?? 'Unknown User ID'),
-                            subtitle: Text(
-                                'Registration Status: ${isVerified ? 'Verified' : 'Not Verified'}'),
+                            subtitle: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: isVerified
+                                    ? Colors.green.withOpacity(0.1)
+                                    : Colors.orange.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color:
+                                      isVerified ? Colors.green : Colors.orange,
+                                ),
+                              ),
+                              child: Center(
+                                child: Text(
+                                  isVerified ? 'VERIFIED' : 'PENDING',
+                                  style: TextStyle(
+                                    color: isVerified
+                                        ? Colors.green
+                                        : Colors.orange,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ),
+                            ),
                             trailing: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 // Show current status with color coding
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 8, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: isVerified
-                                        ? Colors.green.withOpacity(0.1)
-                                        : Colors.orange.withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
-                                      color: isVerified
-                                          ? Colors.green
-                                          : Colors.orange,
-                                    ),
-                                  ),
-                                  child: Text(
-                                    isVerified ? 'VERIFIED' : 'PENDING',
-                                    style: TextStyle(
-                                      color: isVerified
-                                          ? Colors.green
-                                          : Colors.orange,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ),
+
                                 const SizedBox(width: 8),
                                 // Verify button
                                 if (!isVerified)

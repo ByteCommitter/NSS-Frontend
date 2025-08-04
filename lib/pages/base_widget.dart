@@ -264,7 +264,6 @@ class _BaseScreenState extends State<BaseScreen>
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
 
       // Custom bottom navigation bar as a floating element
-      // Replace your bottomSheet with this:
       bottomSheet: Container(
         height: 85,
         decoration: const BoxDecoration(
