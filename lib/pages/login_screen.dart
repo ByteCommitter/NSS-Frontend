@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:mentalsustainability/pages/base_widget.dart';
 import 'package:mentalsustainability/theme/app_colors.dart';
 import '../services/auth_service.dart';
 import '../services/onboarding_screen.dart';
@@ -59,7 +60,7 @@ class _LoginScreenState extends State<LoginScreen> {
           );
 
           // Navigate to onboarding or home based on your app flow
-          Get.offAll(() => const OnboardingScreen());
+          Get.offAll(() => const BaseScreen());
         } else {
           // Login failed
           String errorMessage = 'Invalid credentials. Please try again.';

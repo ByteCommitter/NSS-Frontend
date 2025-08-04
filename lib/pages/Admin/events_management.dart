@@ -579,7 +579,7 @@ class _EventsManagementState extends State<EventsManagement> {
                                       }
                                     },
                                     icon: const Icon(Icons.close, size: 16),
-                                    label: const Text('Unverify'),
+                                    label: const Text('Unverify'),  
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: Colors.orange,
                                       foregroundColor: Colors.white,
