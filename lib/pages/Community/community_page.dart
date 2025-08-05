@@ -184,6 +184,7 @@ class _CommunityPageState extends State<CommunityPage>
                 ],
               ),
             ),
+            const SizedBox(height: 50)
           ],
         ),
       ),

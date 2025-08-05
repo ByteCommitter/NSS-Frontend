@@ -5,6 +5,7 @@ import 'package:mentalsustainability/theme/app_colors.dart';
 import 'package:mentalsustainability/services/api_service.dart';
 import 'package:mentalsustainability/services/auth_service.dart';
 import 'dart:async';
+import 'package:intl/intl.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -142,7 +143,7 @@ class _DashboardPageState extends State<DashboardPage> {
         if (i < 3) {
           topUsers.add(User(
               id: i.toString(),
-              name: volunteer['Username'] ?? 'Unknown User',
+              name: volunteer['username'] ?? 'Unknown User',
               points: volunteer['totalPoints'] ?? 0,
               rank: i + 1));
         }
@@ -194,14 +195,21 @@ class _DashboardPageState extends State<DashboardPage> {
           final eventDetails = await _apiService.getEventById(eventId);
           if (!mounted) return; // Add mounted check in loop
 
+          String finaldate;
+          try {
+            DateTime date =
+                DateTime.parse(eventDetails?.date ?? 'Unknown Date');
+            finaldate = '${date.day}/${date.month}/${date.year}';
+          } catch (e) {
+            finaldate = 'Unknown Date';
+          }
           formattedParticipations.add(EventParticipation(
-            eventId: eventId,
-            eventName: eventDetails?.title ?? 'Event #$eventId',
-            pointsEarned: participation['points'] ?? 0,
-            date: eventDetails?.date ?? 'Unknown Date',
-          ));
+              eventId: eventId,
+              eventName: eventDetails?.title ?? 'Event #$eventId',
+              pointsEarned: participation['points'] ?? 0,
+              //adding a try statement here to change date format
+              date: finaldate));
         }
-
         if (!mounted) return;
         setState(() {
           // Limit to 3 most recent participations for dashboard
@@ -286,11 +294,6 @@ class _DashboardPageState extends State<DashboardPage> {
       builder: (BuildContext context) {
         return StatefulBuilder(
           builder: (context, setDialogState) {
-            if (_allUsers.isEmpty && !_isLoadingAllUsers) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                _loadTopVolunteers();
-              });
-            }
             return Dialog(
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
@@ -469,28 +472,7 @@ class _DashboardPageState extends State<DashboardPage> {
                     ),
             ),
           ),
-          const SizedBox(width: 16),
-
-          // User avatar placeholder
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: AppColors.primary.withOpacity(0.1),
-              shape: BoxShape.circle,
-            ),
-            child: Center(
-              child: Text(
-                user.name.isNotEmpty ? user.name[0].toUpperCase() : 'U',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                  color: AppColors.primary,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 8),
 
           // User name
           Expanded(
@@ -1188,6 +1170,7 @@ class _DashboardPageState extends State<DashboardPage> {
                           );
                         }).toList(),
                       ),
+            const SizedBox(height: 50),
           ],
         ),
       ),
@@ -1547,8 +1530,15 @@ class _DashboardPageState extends State<DashboardPage> {
                               builder: (context, snapshot) {
                                 final eventName =
                                     snapshot.data?.title ?? 'Event #$eventId';
-                                final eventDate =
+                                String eventDate =
                                     snapshot.data?.date ?? 'Unknown Date';
+                                try {
+                                  DateTime date = DateTime.parse(eventDate);
+                                  eventDate =
+                                      '${date.day}/${date.month}/${date.year}';
+                                } catch (e) {
+                                  eventDate = 'Unknown Date';
+                                }
 
                                 return ListTile(
                                   leading: Container(
@@ -1612,6 +1602,20 @@ class _DashboardPageState extends State<DashboardPage> {
       },
     );
   }
+}
+
+extension datetimeformatting on DateTime? {
+  String formatOrDefault(
+      [String defaultValue = 'Unknown Date', String format = 'dd MM yyyy']) {
+    return this != null ? DateFormat(format).format(this!) : defaultValue;
+  }
+
+  String get shortDate => formatOrDefault('--', 'dd/MM/yy');
+  String get longDate =>
+      formatOrDefault('Date not available', 'EEEE, MMMM dd, yyyy');
+  String get timeOnly => formatOrDefault('--:--', 'HH:mm');
+  String get dateTime => formatOrDefault('Unknown', 'MMM dd, yyyy HH:mm');
+  String get iso => this?.toIso8601String() ?? 'null';
 }
 
 // Model classes for the dashboard

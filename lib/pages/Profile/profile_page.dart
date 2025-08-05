@@ -712,6 +712,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           return _buildAchievementBadge(achievement);
                         },
                       ),
+            const SizedBox(height: 75)
           ],
         ),
       ),
