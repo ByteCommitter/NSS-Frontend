@@ -1554,29 +1554,33 @@ class _DashboardPageState extends State<DashboardPage> {
                                     ),
                                   ),
                                   title: Text(eventName),
-                                  subtitle: Text(eventDate),
-                                  trailing: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 10, vertical: 4),
-                                    decoration: BoxDecoration(
-                                      color: verified
-                                          ? AppColors.success.withOpacity(0.1)
-                                          : Colors.grey.withOpacity(0.1),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Text(
-                                      verified
-                                          ? '+$participationPoints pts'
-                                          : 'Pending',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                        color: verified
-                                            ? AppColors.success
-                                            : Colors.grey,
-                                      ),
-                                    ),
-                                  ),
+                                  subtitle: Text(eventDate)
+                                  
+                                  //TODO: Fix the pending with the number of points gained by the user.
+
+                                  
+                                  // trailing: Container(
+                                  //   padding: const EdgeInsets.symmetric(
+                                  //       horizontal: 10, vertical: 4),
+                                  //   decoration: BoxDecoration(
+                                  //     color: verified
+                                  //         ? AppColors.success.withOpacity(0.1)
+                                  //         : Colors.grey.withOpacity(0.1),
+                                  //     borderRadius: BorderRadius.circular(12),
+                                  //   ),
+                                  //   child: Text(
+                                  //     verified
+                                  //         ? '+$participationPoints pts'
+                                  //         : 'Pending',
+                                  //     style: TextStyle(
+                                  //       fontSize: 12,
+                                  //       fontWeight: FontWeight.bold,
+                                  //       color: verified
+                                  //           ? AppColors.success
+                                  //           : Colors.grey,
+                                  //     ),
+                                  //   ),
+                                  // ),
                                 );
                               },
                             );
