@@ -18,6 +18,7 @@ class AppRoutes {
   static const String resetPassword = '/reset-password';
   static const String otpVerification = '/otp-verification';
   static const String splash = '/splash';
+  static const String chats = '/chats';
   // Development routes
   static const String socketDebug = '/socket-debug';
 
@@ -62,6 +63,10 @@ class AppRoutes {
       page: () => const SocketTestPage(),
       transition: Transition.rightToLeft,
     ),
+    GetPage(
+        name: chats,
+        page: () => const HomePage(),
+        transition: Transition.rightToLeft)
   ];
 
   /// Navigate to a named route

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:mentalsustainability/chatservice/Screens/homescreen.dart';
 import 'package:mentalsustainability/pages/Home/home_page.dart';
 import 'package:mentalsustainability/theme/app_colors.dart';
 import 'package:mentalsustainability/theme/theme_provider.dart';
@@ -251,7 +252,7 @@ class _BaseScreenState extends State<BaseScreen>
         children: const [
           HomePage(),
           DashboardPage(),
-          CommunityPage(),
+          Homescreen(),
           ProfilePage(),
         ],
       ),
