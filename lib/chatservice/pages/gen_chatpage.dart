@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:mentalsustainability/chatservice/Screens/chatscreen.dart';
+import 'package:mentalsustainability/theme/app_colors.dart';
+import 'package:mentalsustainability/chatservice/apiservices.dart';
 
 class gen_chatpage extends StatefulWidget {
   const gen_chatpage({super.key});
@@ -10,62 +12,94 @@ class gen_chatpage extends StatefulWidget {
 }
 
 class _ChatpageState extends State<gen_chatpage> {
-  final List<ChatModel> alltexts = [
-    ChatModel(
-      name: 'GuruMurthy',
-      lastText: 'yoyoyo just trying the elipsis thing',
-      time: '10:11',
-    ),
-    ChatModel(
-      name: 'Group 1',
-      lastText: 'yoyoyo just trying the elipsis thing',
-      time: '10:11',
-    ),
-    ChatModel(
-      name: 'Group2',
-      lastText: 'yoyoyo just trying the elipsis thing',
-      time: '10:11',
-    ),
-  ];
+  final ChatApiService chatApiService = Get.find<ChatApiService>();
+  List<ChatModel> roomData = [];
+
+  @override
+  void initState() {
+    super.initState();
+    loadRooms();
+  }
+
+  Future<void> loadRooms() async {
+    final Map<String, dynamic> rawData = await chatApiService.getAllRooms();
+
+    final List<dynamic> roomNames = rawData['roomNames'] ?? [];
+    final List<dynamic> sessionIds = rawData['sessionIds'] ?? [];
+    setState(() {
+      roomData = [];
+      for (int index = 0; index < roomNames.length; index++) {
+        final roomName = roomNames[index];
+        final sessionId = sessionIds.length > index ? sessionIds[index] : '';
+
+        if (roomName != null && roomName.toString().trim().isNotEmpty) {
+          roomData.add(ChatModel(
+              name: roomName.toString(),
+              sessionid: sessionId?.toString() ?? ''));
+        }
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: ListView.builder(
-        itemCount: 3,
-        itemBuilder: (context, index) {
-          ChatModel currentchat = alltexts[index];
-          return Column(
-            children: [
-              const Divider(thickness: 0.09),
-              ListTile(
-                leading: CircleAvatar(
-                  radius: 25,
-                  child: Text(currentchat.name[0]),
-                ),
-                trailing: Text(
+      body: roomData.isEmpty
+          ? const Center(
+              child: Icon(
+                Icons.chat,
+                size: 40,
+              ),
+            )
+          : ListView.builder(
+              itemCount: roomData.length,
+              itemBuilder: (context, index) {
+                ChatModel currentchat = roomData[index];
+                return Column(
+                  children: [
+                    const Divider(thickness: 0.09),
+                    ListTile(
+                      leading: CircleAvatar(
+                        backgroundColor: AppColors.primaryDark,
+                        radius: 25,
+                        child: Text(
+                          currentchat.name.isNotEmpty
+                              ? currentchat.name[0].toUpperCase()
+                              : '?',
+                          style: TextStyle(
+                              color: AppColors.background,
+                              fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      /*trailing: Text(
                   currentchat.time,
                   style: const TextStyle(fontSize: 12),
-                ),
-                title: Text(currentchat.name),
-                subtitle: Text(
+                ),*/
+                      title: Text(
+                        currentchat.name,
+                        style: TextStyle(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w600),
+                      ),
+                      /*subtitle: Text(
                   currentchat.lastText,
                   overflow: TextOverflow.ellipsis,
-                ),
-                onTap: () {
-                  Get.to(() => ChatScreen(thischat: currentchat));
-                },
-              ),
-            ],
-          );
-        },
-      ),
+                ),*/
+                      onTap: () {
+                        Get.to(() => ChatScreen(thischat: currentchat));
+                      },
+                    ),
+                  ],
+                );
+              },
+            ),
     );
   }
 }
 
 class ChatModel {
   String name;
-  String time;
-  String lastText;
-  ChatModel({required this.name, required this.time, required this.lastText});
+  //String time;
+  String sessionid;
+  ChatModel({required this.name, required this.sessionid});
 }

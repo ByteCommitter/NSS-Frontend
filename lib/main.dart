@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:mentalsustainability/chatservice/Screens/homescreen.dart';
+import 'package:mentalsustainability/chatservice/apiservices.dart';
 import 'package:mentalsustainability/pages/guide_page.dart';
 import 'package:mentalsustainability/pages/admin/admin_panel.dart';
 import 'package:mentalsustainability/pages/auth/registration_screen.dart';
@@ -57,6 +58,7 @@ Future<void> initServices() async {
   await authService.checkAndSetAuthStatus();
   print('Auth status: ${authService.isAuthenticated.value}');
 
+  Get.put(ChatApiService(), permanent: true);
   // Initialize SocketNotificationService - but don't connect immediately
   print('Initializing SocketNotificationService...');
   await Get.putAsync(() => SocketNotificationService().init());

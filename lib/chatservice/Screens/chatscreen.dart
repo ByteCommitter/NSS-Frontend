@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:mentalsustainability/chatservice/apiservices.dart';
 import 'package:mentalsustainability/chatservice/pages/gen_chatpage.dart';
 import 'package:mentalsustainability/chatservice/pages/groupinfo.dart';
+import 'package:mentalsustainability/theme/app_colors.dart';
 
 class ChatScreen extends StatefulWidget {
-  const ChatScreen({super.key, required this.thischat});
+  const ChatScreen({super.key, required this.thischat, this.chatApiService});
   final ChatModel thischat;
+  final ChatApiService? chatApiService;
 
   @override
   State<ChatScreen> createState() => _ChatScreenState();
@@ -45,7 +48,7 @@ class _ChatScreenState extends State<ChatScreen> {
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         toolbarHeight: 70,
-        backgroundColor: Colors.teal,
+
         leading: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -75,6 +78,7 @@ class _ChatScreenState extends State<ChatScreen> {
                     child: Card(
                       margin: const EdgeInsets.all(8),
                       color: Colors.white,
+                      elevation: 4,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(80),
                       ),
@@ -97,6 +101,8 @@ class _ChatScreenState extends State<ChatScreen> {
                     ),
                   ),
                   CircleAvatar(
+                    backgroundColor: AppColors.primaryDark,
+                    foregroundColor: AppColors.primaryLight,
                     radius: 30,
                     child: IconButton(
                         onPressed: () {}, icon: const Icon(Icons.send)),
