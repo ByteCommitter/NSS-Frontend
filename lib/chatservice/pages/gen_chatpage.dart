@@ -45,12 +45,7 @@ class _ChatpageState extends State<gen_chatpage> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: roomData.isEmpty
-          ? const Center(
-              child: Icon(
-                Icons.chat,
-                size: 40,
-              ),
-            )
+          ? const Center(child: CircularProgressIndicator())
           : ListView.builder(
               itemCount: roomData.length,
               itemBuilder: (context, index) {

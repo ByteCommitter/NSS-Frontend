@@ -1,12 +1,50 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:mentalsustainability/services/auth_service.dart';
 import 'package:get/get.dart';
 
-class ChatApiService {
-  final String chatbaseUrl = 'http://localhost:5000';
-  final String baseUrl = 'http://localhost:8081';
+import 'package:flutter/foundation.dart';
 
+class ApiConfig {
+  // Replace this with your actual laptop IP address
+  static const String _laptopIP = '10.86.76.204';
+
+  // Base URLs
+  static String get baseUrl {
+    if (kIsWeb) {
+      return 'http://localhost:8081';
+    } else if (Platform.isAndroid || Platform.isIOS) {
+      return 'http://$_laptopIP:8081'; // Mobile uses laptop IP
+    } else {
+      return 'http://localhost:8081'; // Desktop development
+    }
+  }
+
+  static String get chatbaseUrl {
+    if (kIsWeb) {
+      return 'http://localhost:5000';
+    } else if (Platform.isAndroid || Platform.isIOS) {
+      return 'http://$_laptopIP:5000'; // Mobile uses laptop IP
+    } else {
+      return 'http://localhost:5000'; // Desktop development
+    }
+  }
+
+  // Debug info
+  static Map<String, dynamic> getDebugInfo() {
+    return {
+      'platform': kIsWeb ? 'web' : Platform.operatingSystem,
+      'baseUrl': baseUrl,
+      'chatbaseUrl': chatbaseUrl,
+      'laptopIP': _laptopIP,
+    };
+  }
+}
+
+class ChatApiService {
+  String get chatbaseUrl => ApiConfig.chatbaseUrl;
+  String get baseUrl => ApiConfig.baseUrl;
   String? _cachedChatJWT;
   final AuthService _authService = Get.find<AuthService>();
 
@@ -30,18 +68,24 @@ class ChatApiService {
     }
     try {
       final mainAuthToken = await _authService.getToken();
+
       if (mainAuthToken == null) {
         throw Exception('User not authenticated - Main Token not found');
       }
-      final url = await http.post(Uri.parse('$baseUrl/chat/check'),
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': mainAuthToken
-          },
-          body: json.encode({'service': 'chat'}));
+
+      final url = await http
+          .post(Uri.parse('$baseUrl/chat/check'),
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': mainAuthToken
+              },
+              body: json.encode({"chatToken": ""}))
+          .timeout(const Duration(seconds: 10));
+
       if (url.statusCode == 200) {
         final data = json.decode(url.body);
         _cachedChatJWT = data["token"];
+
         return _cachedChatJWT!;
       } else {
         throw Exception('Failed to get a chat token: ${url.statusCode}');
@@ -63,15 +107,48 @@ class ChatApiService {
       );
 
       if (response.statusCode == 200) {
-        print('\x1B[32m getAllRooms success: ${response.body}\x1B[0m');
         final Map<String, dynamic> data = json.decode(response.body);
         return data;
       } else {
-        print(' getAllRooms failed: ${response.statusCode} - ${response.body}');
         throw Exception('Failed to load rooms: ${response.statusCode}');
       }
     } catch (e) {
       throw Exception('Error getting rooms: $e');
+    }
+  }
+
+  Future<Map<String, dynamic>> getRoomMessages(String sessionid) async {
+    final chatJWT = await getChatJWT();
+    final response = await http.get(
+        Uri.parse('$chatbaseUrl/chat/message/$sessionid'),
+        headers: {'Authorization': chatJWT});
+
+    if (response.statusCode == 200) {
+      final Map<String, dynamic> data = json.decode(response.body);
+      return data;
+    } else {
+      throw Exception('Failed to get Messages: ${response.statusCode}');
+    }
+  }
+
+  Future<bool> sendText(String text, String sessionID) async {
+    try {
+      final chatJWT = await getChatJWT();
+      final response = await http.post(
+          Uri.parse("$chatbaseUrl/chat/message/$sessionID"),
+          headers: {
+            "Authorization": chatJWT,
+            "Content-Type": "application/json"
+          },
+          body: json.encode({"message": text}));
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return true;
+      } else {
+        return false;
+      }
+    } catch (e) {
+      return false;
     }
   }
 }
