@@ -193,7 +193,7 @@ class _newgroupState extends State<newgroup> {
                                 ),
                               ),
                               Text(
-                                'ID: ${user["username"]}',
+                                'ID: ${user["university_id"]}',
                                 style: TextStyle(
                                   fontSize: 12,
                                   color: Colors.grey.shade600,
