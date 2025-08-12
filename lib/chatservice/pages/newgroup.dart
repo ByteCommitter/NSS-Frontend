@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:get/get_core/src/get_main.dart';
+import 'package:mentalsustainability/services/api_service.dart';
 
 class newgroup extends StatefulWidget {
   const newgroup({super.key});
@@ -8,13 +11,21 @@ class newgroup extends StatefulWidget {
 }
 
 class _newgroupState extends State<newgroup> {
-  final List<ChatUsers> userlist = [
-    ChatUsers(id: 'f2023', username: 'Satvik'),
-    ChatUsers(id: 'f2022', username: 'guru'),
-    ChatUsers(id: 'f2020', username: 'nss'),
-    ChatUsers(id: 'f0000', username: 'random'),
-  ];
+  final ApiService _apiService = Get.find<ApiService>();
+  List<Map<String, dynamic>> userlist = [];
   final List<String> selectedUsers = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUsers();
+  }
+
+  Future<void> _loadUsers() async {
+    userlist = await _apiService.getAllUsers();
+    setState(() {});
+  }
+
   final TextEditingController groupname = TextEditingController();
   @override
   void dispose() {
@@ -49,8 +60,8 @@ class _newgroupState extends State<newgroup> {
 
     // Handle group creation logic here
     final selectedUserNames = userlist
-        .where((user) => selectedUsers.contains(user.id))
-        .map((user) => user.username)
+        .where((user) => selectedUsers.contains(user['id']))
+        .map((user) => user["username"])
         .toList();
 
     showDialog(
@@ -139,10 +150,10 @@ class _newgroupState extends State<newgroup> {
               itemCount: userlist.length,
               itemBuilder: (context, index) {
                 final user = userlist[index];
-                final isSelected = selectedUsers.contains(user.id);
+                final isSelected = selectedUsers.contains(user["username"]);
 
                 return InkWell(
-                  onTap: () => toggleUserSelection(user.id),
+                  onTap: () => toggleUserSelection(user["username"]),
                   child: Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 16.0,
@@ -162,7 +173,7 @@ class _newgroupState extends State<newgroup> {
                         CircleAvatar(
                           backgroundColor: Colors.teal,
                           child: Text(
-                            user.username[0].toUpperCase(),
+                            user["username"][0].toUpperCase(),
                             style: const TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.bold,
@@ -175,14 +186,14 @@ class _newgroupState extends State<newgroup> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                user.username,
+                                user["username"],
                                 style: const TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
                               Text(
-                                'ID: ${user.id}',
+                                'ID: ${user["username"]}',
                                 style: TextStyle(
                                   fontSize: 12,
                                   color: Colors.grey.shade600,

@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:flutter/material.dart';
-import 'package:get/get.dart';
+
+import 'package:mentalsustainability/chatservice/apiservices.dart';
 import 'package:mentalsustainability/chatservice/pages/dms.dart';
 import 'package:mentalsustainability/chatservice/pages/gen_chatpage.dart';
 import 'package:mentalsustainability/chatservice/pages/newgroup.dart';
 import 'package:mentalsustainability/chatservice/pages/organisers.dart';
+import 'package:mentalsustainability/services/api_service.dart';
 import 'package:mentalsustainability/services/auth_service.dart';
 import 'package:mentalsustainability/theme/app_colors.dart';
 
@@ -31,8 +32,9 @@ class HomeController extends GetxController
 }
 
 class Homescreen extends StatefulWidget {
-  const Homescreen({super.key});
-
+  Homescreen({super.key});
+  //final ChatApiService _chatApiService = Get.find<ChatApiService>();
+  //final ApiService _apiService = Get.find<ApiService>();
   @override
   State<Homescreen> createState() => _Homescreen();
 }

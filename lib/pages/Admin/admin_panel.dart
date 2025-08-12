@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:mentalsustainability/pages/Home/home_page.dart';
 import 'package:mentalsustainability/services/auth_service.dart';
 import 'package:mentalsustainability/pages/admin/events_management.dart';
 import 'package:mentalsustainability/pages/admin/notifications_management.dart';
@@ -36,6 +37,11 @@ class _AdminPanelState extends State<AdminPanel> {
         ),
         backgroundColor: AppColors.primary,
         iconTheme: const IconThemeData(color: Colors.white),
+        leading: IconButton(
+            onPressed: () {
+              Get.toNamed('/home');
+            },
+            icon: const Icon(Icons.arrow_back)),
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
@@ -57,7 +63,7 @@ class _AdminPanelState extends State<AdminPanel> {
                   ],
                 ),
               );
-              
+
               if (confirm == true) {
                 await _authService.logout();
                 Get.offAllNamed('/login');

@@ -146,7 +146,7 @@ class MyApp extends StatelessWidget {
           // Add the chat route
           GetPage(
             name: '/chat',
-            page: () => const Homescreen(),
+            page: () => Homescreen(),
             middlewares: [
               AuthMiddleware()
             ], // Assuming chat requires authentication

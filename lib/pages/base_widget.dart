@@ -249,11 +249,11 @@ class _BaseScreenState extends State<BaseScreen>
         controller: _pageController,
         onPageChanged: _onPageChanged,
         physics: const ClampingScrollPhysics(),
-        children: const [
-          HomePage(),
-          DashboardPage(),
+        children: [
+          const HomePage(),
+          const DashboardPage(),
           Homescreen(),
-          ProfilePage(),
+          const ProfilePage(),
         ],
       ),
 

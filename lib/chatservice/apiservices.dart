@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
+import 'package:mentalsustainability/services/api_service.dart';
 import 'package:mentalsustainability/services/auth_service.dart';
 import 'package:get/get.dart';
 
@@ -47,7 +48,7 @@ class ChatApiService {
   String get baseUrl => ApiConfig.baseUrl;
   String? _cachedChatJWT;
   final AuthService _authService = Get.find<AuthService>();
-
+  final ApiService _apiService = Get.find<ApiService>();
   bool _isTokenExpired(String token) {
     try {
       final parts = token.split('.');
@@ -149,6 +150,57 @@ class ChatApiService {
       }
     } catch (e) {
       return false;
+    }
+  }
+
+  Future<bool> createRoom(
+      List<Map<String, dynamic>> participants, String roomName) async {
+    try {
+      if (roomName.trim().isEmpty) {
+        throw ArgumentError('Room name cannot be empty');
+      }
+      if (participants.isEmpty) {
+        throw ArgumentError('At least one participant is required');
+      }
+      if (roomName.trim().isEmpty) {
+        throw ArgumentError('Room name cannot be empty');
+      }
+      if (participants.isEmpty) {
+        throw ArgumentError('At least one participant is required');
+      }
+
+      final mainToken = await _apiService.getToken();
+      if (mainToken == null) {
+        throw Exception('User not authenticated - Main Token not found');
+      }
+      final response = await http.post(Uri.parse("$baseUrl/chat/createSession"),
+          headers: {
+            "Authorization": mainToken,
+            "Content-Type": "application/json"
+          },
+          body: json
+              .encode({"roomName": roomName, "participants": participants}));
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return true;
+      } else if (response.statusCode == 401) {
+        throw Exception('Authentication failed - Invalid token');
+      } else if (response.statusCode == 400) {
+        throw Exception('Bad request - Check room name and participants');
+      } else if (response.statusCode == 403) {
+        throw Exception('Forbidden - Insufficient permissions');
+      } else if (response.statusCode == 409) {
+        throw Exception('Room already exists with this name');
+      } else {
+        // Log the response for debugging
+        print('Create room failed: ${response.statusCode} - ${response.body}');
+        return false;
+      }
+    } on http.ClientException catch (e) {
+      throw Exception('Network error: $e');
+    } on FormatException catch (e) {
+      throw Exception('JSON encoding error: $e');
+    } catch (e) {
+      throw Exception('Error creating room: $e');
     }
   }
 }
