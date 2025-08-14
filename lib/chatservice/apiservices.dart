@@ -9,7 +9,7 @@ import 'package:flutter/foundation.dart';
 
 class ApiConfig {
   // Replace this with your actual laptop IP address
-  static const String _laptopIP = '10.86.76.204';
+  static const String _laptopIP = '10.222.118.204';
 
   // Base URLs
   static String get baseUrl {
@@ -153,54 +153,33 @@ class ChatApiService {
     }
   }
 
-  Future<bool> createRoom(
-      List<Map<String, dynamic>> participants, String roomName) async {
+  Future<Map<String, dynamic>?> createRoom(
+      Map<String, dynamic> groupData) async {
+    final maintoken = await _authService.getToken();
+    if (maintoken == null) {
+      throw Exception('User not authenticated - Main Token not found');
+    }
     try {
-      if (roomName.trim().isEmpty) {
-        throw ArgumentError('Room name cannot be empty');
-      }
-      if (participants.isEmpty) {
-        throw ArgumentError('At least one participant is required');
-      }
-      if (roomName.trim().isEmpty) {
-        throw ArgumentError('Room name cannot be empty');
-      }
-      if (participants.isEmpty) {
-        throw ArgumentError('At least one participant is required');
-      }
+      final response = await http.post(
+        Uri.parse(
+            '$baseUrl/chat/createSession'), // Replace with your actual endpoint
+        headers: {
+          "Authorization": maintoken,
+          'Content-Type': 'application/json',
+          // Add any authentication headers if needed
+        },
+        body: json.encode(groupData),
+      );
 
-      final mainToken = await _apiService.getToken();
-      if (mainToken == null) {
-        throw Exception('User not authenticated - Main Token not found');
-      }
-      final response = await http.post(Uri.parse("$baseUrl/chat/createSession"),
-          headers: {
-            "Authorization": mainToken,
-            "Content-Type": "application/json"
-          },
-          body: json
-              .encode({"roomName": roomName, "participants": participants}));
       if (response.statusCode == 200 || response.statusCode == 201) {
-        return true;
-      } else if (response.statusCode == 401) {
-        throw Exception('Authentication failed - Invalid token');
-      } else if (response.statusCode == 400) {
-        throw Exception('Bad request - Check room name and participants');
-      } else if (response.statusCode == 403) {
-        throw Exception('Forbidden - Insufficient permissions');
-      } else if (response.statusCode == 409) {
-        throw Exception('Room already exists with this name');
+        return json.decode(response.body);
       } else {
-        // Log the response for debugging
-        print('Create room failed: ${response.statusCode} - ${response.body}');
-        return false;
+        print('Failed to create group: ${response.statusCode}');
+        return null;
       }
-    } on http.ClientException catch (e) {
-      throw Exception('Network error: $e');
-    } on FormatException catch (e) {
-      throw Exception('JSON encoding error: $e');
     } catch (e) {
-      throw Exception('Error creating room: $e');
+      print('Error creating group: $e');
+      return null;
     }
   }
 }

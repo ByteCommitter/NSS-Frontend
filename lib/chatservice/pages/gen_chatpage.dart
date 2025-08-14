@@ -14,6 +14,7 @@ class gen_chatpage extends StatefulWidget {
 class _ChatpageState extends State<gen_chatpage> {
   final ChatApiService chatApiService = Get.find<ChatApiService>();
   List<ChatModel> roomData = [];
+  bool isLoading = true;
 
   @override
   void initState() {
@@ -22,73 +23,103 @@ class _ChatpageState extends State<gen_chatpage> {
   }
 
   Future<void> loadRooms() async {
-    final Map<String, dynamic> rawData = await chatApiService.getAllRooms();
+    try {
+      final Map<String, dynamic> rawData = await chatApiService.getAllRooms();
 
-    final List<dynamic> roomNames = rawData['roomNames'] ?? [];
-    final List<dynamic> sessionIds = rawData['sessionIds'] ?? [];
-    setState(() {
-      roomData = [];
-      for (int index = 0; index < roomNames.length; index++) {
-        final roomName = roomNames[index];
-        final sessionId = sessionIds.length > index ? sessionIds[index] : '';
+      final List<dynamic> roomNames = rawData['roomNames'] ?? [];
+      final List<dynamic> sessionIds = rawData['sessionIds'] ?? [];
+      setState(() {
+        roomData = [];
+        for (int index = 0; index < roomNames.length; index++) {
+          final roomName = roomNames[index];
+          final sessionId = sessionIds.length > index ? sessionIds[index] : '';
 
-        if (roomName != null && roomName.toString().trim().isNotEmpty) {
-          roomData.add(ChatModel(
-              name: roomName.toString(),
-              sessionid: sessionId?.toString() ?? ''));
+          if (roomName != null && roomName.toString().trim().isNotEmpty) {
+            roomData.add(ChatModel(
+                name: roomName.toString(),
+                sessionid: sessionId?.toString() ?? ''));
+          }
         }
-      }
+        isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        isLoading = false;
+      });
+      // Handle error if needed
+      print('Error loading rooms: $e');
+    }
+  }
+
+  Future<void> _pulldown() async {
+    setState(() {
+      isLoading = true;
     });
+    await loadRooms();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: roomData.isEmpty
-          ? const Center(child: CircularProgressIndicator())
-          : ListView.builder(
-              itemCount: roomData.length,
-              itemBuilder: (context, index) {
-                ChatModel currentchat = roomData[index];
-                return Column(
-                  children: [
-                    const Divider(thickness: 0.09),
-                    ListTile(
-                      leading: CircleAvatar(
-                        backgroundColor: AppColors.primaryDark,
-                        radius: 25,
-                        child: Text(
-                          currentchat.name.isNotEmpty
-                              ? currentchat.name[0].toUpperCase()
-                              : '?',
-                          style: TextStyle(
-                              color: AppColors.background,
-                              fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                      /*trailing: Text(
+        body: roomData.isEmpty
+            ? const Center(child: CircularProgressIndicator())
+            : RefreshIndicator(
+                onRefresh: _pulldown,
+                color: AppColors.primary,
+                backgroundColor: AppColors.background,
+                child: roomData.isEmpty
+                    ? ListView(
+                        children: const [
+                          Icon(
+                            Icons.new_label,
+                            size: 50,
+                          )
+                        ],
+                      )
+                    : ListView.builder(
+                        itemCount: roomData.length,
+                        itemBuilder: (context, index) {
+                          ChatModel currentchat = roomData[index];
+                          return Column(
+                            children: [
+                              const Divider(thickness: 0.09),
+                              ListTile(
+                                leading: CircleAvatar(
+                                  backgroundColor: AppColors.primaryDark,
+                                  radius: 25,
+                                  child: Text(
+                                    currentchat.name.isNotEmpty
+                                        ? currentchat.name[0].toUpperCase()
+                                        : '?',
+                                    style: TextStyle(
+                                        color: AppColors.background,
+                                        fontWeight: FontWeight.bold),
+                                  ),
+                                ),
+                                /*trailing: Text(
                   currentchat.time,
                   style: const TextStyle(fontSize: 12),
                 ),*/
-                      title: Text(
-                        currentchat.name,
-                        style: TextStyle(
-                            color: AppColors.primary,
-                            fontWeight: FontWeight.w600),
-                      ),
-                      /*subtitle: Text(
+                                title: Text(
+                                  currentchat.name,
+                                  style: TextStyle(
+                                      color: AppColors.primary,
+                                      fontWeight: FontWeight.w600),
+                                ),
+                                /*subtitle: Text(
                   currentchat.lastText,
                   overflow: TextOverflow.ellipsis,
                 ),*/
-                      onTap: () {
-                        Get.to(() => ChatScreen(thischat: currentchat));
-                      },
-                    ),
-                  ],
-                );
-              },
-            ),
-    );
+                                onTap: () {
+                                  Get.to(
+                                      () => ChatScreen(thischat: currentchat));
+                                },
+                              ),
+                            ],
+                          );
+                        },
+                      ),
+              ));
   }
 }
 

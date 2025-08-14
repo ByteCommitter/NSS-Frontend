@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get/get_core/src/get_main.dart';
+import 'package:mentalsustainability/chatservice/apiservices.dart';
 import 'package:mentalsustainability/services/api_service.dart';
 
 class newgroup extends StatefulWidget {
@@ -14,6 +15,7 @@ class _newgroupState extends State<newgroup> {
   final ApiService _apiService = Get.find<ApiService>();
   List<Map<String, dynamic>> userlist = [];
   final List<String> selectedUsers = [];
+  final ChatApiService _chatApiService = Get.find<ChatApiService>();
 
   @override
   void initState() {
@@ -43,7 +45,7 @@ class _newgroupState extends State<newgroup> {
     });
   }
 
-  void createGroup() {
+  void createGroup() async {
     if (groupname.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please enter a group name')),
@@ -58,30 +60,51 @@ class _newgroupState extends State<newgroup> {
       return;
     }
 
-    // Handle group creation logic here
-    final selectedUserNames = userlist
-        .where((user) => selectedUsers.contains(user['id']))
-        .map((user) => user["username"])
-        .toList();
-
     showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Group Created'),
-        content: Text(
-          'Group "${groupname.text}" created with members: ${selectedUserNames.join(', ')}',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              Navigator.of(context).pop(); // Go back to previous screen
-            },
-            child: const Text('OK'),
-          ),
-        ],
-      ),
-    );
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator()));
+    try {
+      final participants = userlist
+          .where((user) => selectedUsers.contains(user['username']))
+          .map(
+              (user) => {"id": user["university_id"], "name": user["username"]})
+          .toList();
+      final requestBody = {
+        "roomName": groupname.text.trim(),
+        "participants": participants,
+      };
+
+      final response = await _chatApiService.createRoom(requestBody);
+
+      Get.back();
+
+      if (response != null) {
+        showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+                    title: const Text("Success"),
+                    content:
+                        Text('Group "{$groupname.text}" created successfully!'),
+                    actions: [
+                      TextButton(
+                          onPressed: () {
+                            Get.back();
+                            Get.back();
+                          },
+                          child: const Text("OK"))
+                    ]));
+      } else {
+        print(response);
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text("Failed to create Room, please Try again.")));
+      }
+    } catch (e) {
+      Get.back();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error creating group: ${e.toString()}')),
+      );
+    }
   }
 
   @override
@@ -203,7 +226,7 @@ class _newgroupState extends State<newgroup> {
                           ),
                         ),
                         if (isSelected)
-                          Icon(
+                          const Icon(
                             Icons.check_circle,
                             color: Colors.teal,
                           )

@@ -46,6 +46,7 @@ class _Homescreen extends State<Homescreen>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         title: const Text('Chats@NSS',
             style: TextStyle(fontWeight: FontWeight.bold)),
         actions: [
