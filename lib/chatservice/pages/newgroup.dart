@@ -84,8 +84,8 @@ class _newgroupState extends State<newgroup> {
             context: context,
             builder: (context) => AlertDialog(
                     title: const Text("Success"),
-                    content:
-                        Text('Group "{$groupname.text}" created successfully!'),
+                    content: Text(
+                        'Group "${groupname.text.trim()}" created successfully!'),
                     actions: [
                       TextButton(
                           onPressed: () {
@@ -143,7 +143,7 @@ class _newgroupState extends State<newgroup> {
               width: double.infinity,
               padding:
                   const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-              color: Colors.teal.withOpacity(0.1),
+              color: Colors.teal.withValues(),
               child: Text(
                 '${selectedUsers.length} user${selectedUsers.length == 1 ? '' : 's'} selected',
                 style: TextStyle(

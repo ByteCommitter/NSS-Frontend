@@ -70,7 +70,10 @@ class _ChatScreenState extends State<ChatScreen> {
         actions: [
           IconButton(
             onPressed: () {
-              Get.to(() => const groupinfo());
+              Get.to(() => groupinfo(
+                    sessionId: sessionID,
+                    roomName: widget.thischat.name,
+                  ));
             },
             icon: const Icon(Icons.info_outline),
           ),

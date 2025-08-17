@@ -9,7 +9,7 @@ import 'package:flutter/foundation.dart';
 
 class ApiConfig {
   // Replace this with your actual laptop IP address
-  static const String _laptopIP = '10.222.118.204';
+  static const String _laptopIP = '172.19.80.1';
 
   // Base URLs
   static String get baseUrl {
@@ -174,12 +174,29 @@ class ChatApiService {
       if (response.statusCode == 200 || response.statusCode == 201) {
         return json.decode(response.body);
       } else {
-        print('Failed to create group: ${response.statusCode}');
         return null;
       }
     } catch (e) {
-      print('Error creating group: $e');
       return null;
+    }
+  }
+
+  Future<Map<String, dynamic>> groupinfo(String sessionID) async {
+    final chatJWT = await getChatJWT();
+    try {
+      final response = await http.get(
+          Uri.parse("$chatbaseUrl/chat/message/members/$sessionID"),
+          headers: {"Authorization": chatJWT});
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = json.decode(response.body);
+        final participants = data['participants'] as List;
+        return data;
+      } else {
+        throw Exception(
+            "Error getting the desired list ${response.statusCode}");
+      }
+    } catch (e) {
+      throw Exception(e);
     }
   }
 }
