@@ -9,7 +9,7 @@ import 'package:flutter/foundation.dart';
 
 class ApiConfig {
   // Replace this with your actual laptop IP address
-  static const String _laptopIP = '172.19.80.1';
+  static const String _laptopIP = '10.222.118.204';
 
   // Base URLs
   static String get baseUrl {
@@ -189,7 +189,6 @@ class ChatApiService {
           headers: {"Authorization": chatJWT});
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = json.decode(response.body);
-        final participants = data['participants'] as List;
         return data;
       } else {
         throw Exception(
@@ -197,6 +196,26 @@ class ChatApiService {
       }
     } catch (e) {
       throw Exception(e);
+    }
+  }
+
+  Future<bool> deleteGroup(String roomName) async {
+    try {
+      final mainToken = await _authService.getToken();
+      if (mainToken == null) {
+        throw Exception('User not authenticated - Main Token not found');
+      }
+      final response = await http.delete(
+          Uri.parse("$baseUrl/chat/deleteChat/$roomName"),
+          headers: {"Authorization": mainToken});
+
+      if (response.statusCode == 200 || response.statusCode == 204) {
+        return true;
+      } else {
+        return false;
+      }
+    } catch (e) {
+      return false;
     }
   }
 }

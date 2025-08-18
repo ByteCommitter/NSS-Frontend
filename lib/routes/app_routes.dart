@@ -1,5 +1,7 @@
 import 'package:get/get.dart';
+import 'package:mentalsustainability/chatservice/pages/gen_chatpage.dart';
 import 'package:mentalsustainability/main.dart';
+import 'package:mentalsustainability/pages/Community/community_page.dart';
 import 'package:mentalsustainability/pages/Home/home_page.dart';
 import 'package:mentalsustainability/pages/Development/socket_test_page.dart';
 import 'package:mentalsustainability/pages/login_screen.dart';
@@ -65,7 +67,7 @@ class AppRoutes {
     ),
     GetPage(
         name: chats,
-        page: () => const HomePage(),
+        page: () => const CommunityPage(),
         transition: Transition.rightToLeft)
   ];
 

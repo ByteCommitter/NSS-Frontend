@@ -61,65 +61,68 @@ class _ChatpageState extends State<gen_chatpage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        body: roomData.isEmpty
-            ? const Center(child: CircularProgressIndicator())
-            : RefreshIndicator(
-                onRefresh: _pulldown,
-                color: AppColors.primary,
-                backgroundColor: AppColors.background,
-                child: roomData.isEmpty
-                    ? ListView(
-                        children: const [
-                          Icon(
-                            Icons.new_label,
-                            size: 50,
-                          )
-                        ],
-                      )
-                    : ListView.builder(
-                        itemCount: roomData.length,
-                        itemBuilder: (context, index) {
-                          ChatModel currentchat = roomData[index];
-                          return Column(
-                            children: [
-                              const Divider(thickness: 0.09),
-                              ListTile(
-                                leading: CircleAvatar(
-                                  backgroundColor: AppColors.primaryDark,
-                                  radius: 25,
-                                  child: Text(
-                                    currentchat.name.isNotEmpty
-                                        ? currentchat.name[0].toUpperCase()
-                                        : '?',
-                                    style: TextStyle(
-                                        color: AppColors.background,
-                                        fontWeight: FontWeight.bold),
-                                  ),
-                                ),
-                                /*trailing: Text(
+      body: isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : roomData.isEmpty
+              ? Center(
+                  child: Column(
+                  children: [
+                    SizedBox(
+                      height: MediaQuery.of(context).size.height * 0.24,
+                    ),
+                    const Icon(
+                      Icons.chat_outlined,
+                      size: 50,
+                    ),
+                    const Text(
+                      "An Unexpected Error Occured.",
+                      style: TextStyle(fontSize: 20),
+                    )
+                  ],
+                ))
+              : ListView.builder(
+                  itemCount: roomData.length,
+                  itemBuilder: (context, index) {
+                    ChatModel currentchat = roomData[index];
+                    return Column(
+                      children: [
+                        const Divider(thickness: 0.09),
+                        ListTile(
+                          leading: CircleAvatar(
+                            backgroundColor: AppColors.primaryDark,
+                            radius: 25,
+                            child: Text(
+                              currentchat.name.isNotEmpty
+                                  ? currentchat.name[0].toUpperCase()
+                                  : '?',
+                              style: TextStyle(
+                                  color: AppColors.background,
+                                  fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                          /*trailing: Text(
                   currentchat.time,
                   style: const TextStyle(fontSize: 12),
                 ),*/
-                                title: Text(
-                                  currentchat.name,
-                                  style: TextStyle(
-                                      color: AppColors.primary,
-                                      fontWeight: FontWeight.w600),
-                                ),
-                                /*subtitle: Text(
+                          title: Text(
+                            currentchat.name,
+                            style: TextStyle(
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.w600),
+                          ),
+                          /*subtitle: Text(
                   currentchat.lastText,
                   overflow: TextOverflow.ellipsis,
                 ),*/
-                                onTap: () {
-                                  Get.to(
-                                      () => ChatScreen(thischat: currentchat));
-                                },
-                              ),
-                            ],
-                          );
-                        },
-                      ),
-              ));
+                          onTap: () {
+                            Get.to(() => ChatScreen(thischat: currentchat));
+                          },
+                        ),
+                      ],
+                    );
+                  },
+                ),
+    );
   }
 }
 
