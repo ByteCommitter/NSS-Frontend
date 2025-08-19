@@ -5,6 +5,7 @@ import 'package:mentalsustainability/chatservice/apiservices.dart';
 import 'package:mentalsustainability/chatservice/pages/dms.dart';
 import 'package:mentalsustainability/chatservice/pages/gen_chatpage.dart';
 import 'package:mentalsustainability/chatservice/pages/newgroup.dart';
+import 'package:mentalsustainability/chatservice/pages/newgroupgeneral.dart';
 import 'package:mentalsustainability/chatservice/pages/organisers.dart';
 import 'package:mentalsustainability/services/api_service.dart';
 import 'package:mentalsustainability/services/auth_service.dart';

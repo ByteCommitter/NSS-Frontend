@@ -9,6 +9,7 @@ import 'package:mentalsustainability/pages/Community/community_page.dart';
 import 'package:mentalsustainability/pages/Home/home_page.dart';
 import 'package:mentalsustainability/routes/app_routes.dart';
 import 'package:mentalsustainability/theme/app_colors.dart';
+import 'package:mentalsustainability/services/auth_service.dart';
 
 class groupinfo extends StatefulWidget {
   final String sessionId;
@@ -145,38 +146,45 @@ class _groupinfoState extends State<groupinfo> {
                                         ],
                                       ),
                                     ),
-                                    IconButton(
-                                        onPressed: () {
-                                          showDialog(
-                                              context: context,
-                                              builder: (BuildContext context) {
-                                                return AlertDialog(
-                                                  title: const Text(
-                                                      "Delete Group"),
-                                                  content: const Text(
-                                                      "Are you sure you want to delete this group?"),
-                                                  actions: [
-                                                    TextButton(
-                                                      onPressed: () {
-                                                        Get.back();
-                                                      },
-                                                      child:
-                                                          const Text("Cancel"),
-                                                    ),
-                                                    TextButton(
-                                                      onPressed: deleteGroup,
-                                                      child:
-                                                          const Text("Delete"),
-                                                    ),
-                                                  ],
-                                                );
-                                              });
-                                        },
-                                        icon: const Icon(
-                                          Icons.delete,
-                                          color: Colors.red,
-                                          size: 30,
-                                        ))
+                                    Obx(() {
+                                      final authService =
+                                          Get.find<AuthService>();
+                                      if (!authService.isAdminUser.value)
+                                        return const SizedBox.shrink();
+                                      return IconButton(
+                                          onPressed: () {
+                                            showDialog(
+                                                context: context,
+                                                builder:
+                                                    (BuildContext context) {
+                                                  return AlertDialog(
+                                                    title: const Text(
+                                                        "Delete Group"),
+                                                    content: const Text(
+                                                        "Are you sure you want to delete this group? It'll be gone (for a long time!!)"),
+                                                    actions: [
+                                                      TextButton(
+                                                        onPressed: () {
+                                                          Get.back();
+                                                        },
+                                                        child: const Text(
+                                                            "Cancel"),
+                                                      ),
+                                                      TextButton(
+                                                        onPressed: deleteGroup,
+                                                        child: const Text(
+                                                            "Delete"),
+                                                      ),
+                                                    ],
+                                                  );
+                                                });
+                                          },
+                                          icon: const Icon(
+                                            Icons.delete,
+                                            color: Colors.red,
+                                            size: 30,
+                                          ));
+                                    })
                                   ],
                                 ),
                               ),
