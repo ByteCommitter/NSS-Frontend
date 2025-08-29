@@ -4,6 +4,7 @@ import 'package:get/get_core/src/get_main.dart';
 import 'package:mentalsustainability/chatservice/apiservices.dart';
 import 'package:mentalsustainability/chatservice/pages/gen_chatpage.dart';
 import 'package:mentalsustainability/services/api_service.dart';
+import 'package:mentalsustainability/theme/app_colors.dart';
 
 class newgroupgeneral extends StatefulWidget {
   const newgroupgeneral({super.key});
@@ -112,7 +113,7 @@ class _newgroupgeneralState extends State<newgroupgeneral> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('New Group'),
-        backgroundColor: Colors.teal,
+        backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         actions: [
           IconButton(
@@ -209,7 +210,7 @@ class _newgroupgeneralState extends State<newgroupgeneral> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                user["username"],
+                                user["username"] ?? "Unknown",
                                 style: const TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w500,

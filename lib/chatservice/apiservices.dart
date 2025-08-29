@@ -9,7 +9,7 @@ import 'package:flutter/foundation.dart';
 
 class ApiConfig {
   // Replace this with your actual laptop IP address
-  static const String _laptopIP = '10.122.126.204';
+  static const String _laptopIP = '10.186.106.204';
 
   // Base URLs
   static String get baseUrl {
