@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
+import 'package:flutter_native_splash/cli_commands.dart';
 import 'package:get/get.dart';
 import 'package:get/utils.dart';
 import 'package:mentalsustainability/chatservice/apiservices.dart';
@@ -85,14 +86,18 @@ class _EventwisegroupState extends State<Eventwisegroup> {
         builder: (context) => const Center(child: CircularProgressIndicator()));
     try {
       final participants = registeredUsers
-          .where((user) => selectedUsers.contains(user['username']))
-          .map(
-              (user) => {"id": user["university_id"], "name": user["username"]})
+          .where((user) => selectedUsers.contains(user['user_id']))
+          .map((user) =>
+              {"id": user["user_id"], "name": user["user"]["username"]})
           .toList();
       final requestBody = {
         "roomName": groupname.text.trim(),
         "participants": participants,
       };
+
+      print('\x1B[34mRegistered Users:\x1B[0m $registeredUsers');
+      print('\x1B[32mSelected Users:\x1B[0m $selectedUsers');
+      print('\x1B[33mParticipants:\x1B[0m $participants');
 
       final response = await _chatApiService.createRoom(requestBody);
 
@@ -214,9 +219,12 @@ class _EventwisegroupState extends State<Eventwisegroup> {
                               children: [
                                 CircleAvatar(
                                   backgroundColor: AppColors.primary,
-                                  child: const Text(
-                                    'U',
-                                    style: TextStyle(
+                                  child: Text(
+                                    user["user"]["username"] != null &&
+                                            user["user"]["username"].isNotEmpty
+                                        ? user["user"]["username"][0]
+                                        : "U",
+                                    style: const TextStyle(
                                       color: Colors.white,
                                       fontWeight: FontWeight.bold,
                                     ),
@@ -228,7 +236,7 @@ class _EventwisegroupState extends State<Eventwisegroup> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      user["name"] ?? "Unknown",
+                                      user["user"]["username"] ?? "Unknown",
                                       style: const TextStyle(
                                         fontWeight: FontWeight.bold,
                                       ),
