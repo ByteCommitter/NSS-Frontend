@@ -65,7 +65,8 @@ class _groupinfoState extends State<groupinfo> {
       bool result = await _chatApiService.deleteGroup(widget.roomName);
       Get.back();
       if (result) {
-        Get.back();
+        Get.offAllNamed('/home');
+
         Get.snackbar(
           "Success",
           "Group ${widget.roomName} deleted successfully.",
@@ -166,6 +167,8 @@ class _groupinfoState extends State<groupinfo> {
                                                       TextButton(
                                                         onPressed: () {
                                                           Get.back();
+                                                          Get.back();
+                                                          Get.back();
                                                         },
                                                         child: const Text(
                                                             "Cancel"),
@@ -233,10 +236,17 @@ class _groupinfoState extends State<groupinfo> {
                                                     style: const TextStyle(
                                                       fontSize: 25,
                                                     )),
-                                                Text("ID: ${currentTile['id']}",
-                                                    style: const TextStyle(
-                                                      fontSize: 15,
-                                                    )),
+                                                Container(
+                                                  padding: const EdgeInsets
+                                                      .symmetric(
+                                                      horizontal: 8,
+                                                      vertical: 4),
+                                                  child: Text(
+                                                      "ID: ${currentTile['id']}",
+                                                      style: const TextStyle(
+                                                        fontSize: 15,
+                                                      )),
+                                                ),
                                               ],
                                             ),
                                           ],

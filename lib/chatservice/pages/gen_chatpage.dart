@@ -75,7 +75,7 @@ class _ChatpageState extends State<gen_chatpage> {
                       size: 50,
                     ),
                     const Text(
-                      "An Unexpected Error Occured.",
+                      "Join a Chat to Get Started",
                       style: TextStyle(fontSize: 20),
                     )
                   ],

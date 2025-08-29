@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get/get_core/src/get_main.dart';
 import 'package:mentalsustainability/chatservice/apiservices.dart';
+import 'package:mentalsustainability/chatservice/pages/gen_chatpage.dart';
 import 'package:mentalsustainability/services/api_service.dart';
 
 class newgroupgeneral extends StatefulWidget {
@@ -89,8 +90,7 @@ class _newgroupgeneralState extends State<newgroupgeneral> {
                     actions: [
                       TextButton(
                           onPressed: () {
-                            Get.back();
-                            Get.back();
+                            Get.offAllNamed('/home');
                           },
                           child: const Text("OK"))
                     ]));

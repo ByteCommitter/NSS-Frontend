@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get/instance_manager.dart';
+import 'package:mentalsustainability/chatservice/pages/eventwisegroup.dart';
 import 'package:mentalsustainability/chatservice/pages/newgroupgeneral.dart';
 import 'package:mentalsustainability/services/api_service.dart';
 import 'package:mentalsustainability/theme/app_colors.dart';
@@ -15,6 +16,8 @@ class newgroup extends StatefulWidget {
 class _newgroupState extends State<newgroup> {
   List<ApiEvent> allEvents = <ApiEvent>[];
   bool isLoading = true;
+  List<Map<String, dynamic>> registeredUsers = [];
+  final ApiService _apiService = Get.find<ApiService>();
 
   @override
   void initState() {
@@ -24,7 +27,7 @@ class _newgroupState extends State<newgroup> {
 
   Future<void> _loadEvents() async {
     try {
-      final events = await ApiService().getEvents();
+      final events = await _apiService.getEvents();
       setState(() {
         allEvents = events;
         isLoading = false;
@@ -46,8 +49,8 @@ class _newgroupState extends State<newgroup> {
           'Events',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
-        backgroundColor: Colors.teal,
-        foregroundColor: Colors.white,
+        backgroundColor: AppColors.primary,
+        foregroundColor: AppColors.background,
       ),
       body: Column(
         children: [
@@ -55,12 +58,27 @@ class _newgroupState extends State<newgroup> {
           InkWell(
             borderRadius: BorderRadius.circular(10),
             onTap: () => Get.to(() => const newgroupgeneral()),
-            child: Card(
-              shape: const RoundedRectangleBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(10))),
+            child: Container(
+              decoration: BoxDecoration(
+                color: AppColors.background,
+                gradient: LinearGradient(
+                  colors: [
+                    AppColors.primaryLight,
+                    AppColors.primaryDark,
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: const BorderRadius.all(Radius.circular(10)),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withOpacity(0.2),
+                    blurRadius: 10,
+                    offset: const Offset(0, 5),
+                  ),
+                ],
+              ),
               margin: const EdgeInsets.all(8),
-              elevation: 10,
-              shadowColor: AppColors.primary,
               child: const SizedBox(
                 width: double.infinity,
                 child: Padding(
@@ -72,7 +90,7 @@ class _newgroupState extends State<newgroup> {
                       Text(
                         "General",
                         style: TextStyle(
-                            fontSize: 17, fontWeight: FontWeight.bold),
+                            fontSize: 25, fontWeight: FontWeight.bold),
                       ),
                       Text(
                         "Select any user from any event",
@@ -96,15 +114,32 @@ class _newgroupState extends State<newgroup> {
                           return InkWell(
                             borderRadius: BorderRadius.circular(10),
                             onTap: () {
-                              // Add your onTap functionality here
+                              Get.to(() => Eventwisegroup(
+                                    id: allEvents[index].id,
+                                  ));
                             },
-                            child: Card(
-                              shape: const RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.all(
-                                      const Radius.circular(10))),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    AppColors.primaryLight,
+                                    AppColors.primaryDark,
+                                  ],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
+                                color: AppColors.background,
+                                borderRadius:
+                                    const BorderRadius.all(Radius.circular(10)),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: AppColors.primary.withOpacity(0.2),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 5),
+                                  ),
+                                ],
+                              ),
                               margin: const EdgeInsets.all(8),
-                              elevation: 10,
-                              shadowColor: AppColors.primary,
                               child: Padding(
                                 padding: const EdgeInsets.only(
                                     left: 8, right: 8, top: 16, bottom: 16),
@@ -114,7 +149,7 @@ class _newgroupState extends State<newgroup> {
                                     Text(
                                       allEvents[index].title,
                                       style: const TextStyle(
-                                          fontSize: 17,
+                                          fontSize: 25,
                                           fontWeight: FontWeight.bold),
                                     ),
                                     Text(
